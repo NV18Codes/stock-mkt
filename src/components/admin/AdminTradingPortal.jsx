@@ -6,11 +6,19 @@ import BuySellButtons from '../user/BuySellButtons';
 const AdminTradingPortal = () => {
   const [underlying, setUnderlying] = useState('NIFTY');
   const [expiry, setExpiry] = useState('');
-  const [underlyings, setUnderlyings] = useState([]);
+  const [underlyings, setUnderlyings] = useState(['NIFTY']);
   const [expiries, setExpiries] = useState([]);
   const [options, setOptions] = useState([]);
-  const [loading, setLoading] = useState({ underlyings: true, expiries: true, options: true });
-  const [error, setError] = useState({ underlyings: '', expiries: '', options: '' });
+  const [loading, setLoading] = useState({
+    underlyings: true,
+    expiries: true,
+    options: true
+  });
+  const [error, setError] = useState({
+    underlyings: '',
+    expiries: '',
+    options: ''
+  });
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [tradeType, setTradeType] = useState('');
   const [tradeStatus, setTradeStatus] = useState('');
@@ -22,10 +30,17 @@ const AdminTradingPortal = () => {
       setError(prev => ({ ...prev, underlyings: '' }));
       try {
         const data = await fetchUnderlyings();
-        setUnderlyings(data);
-        if (data.length > 0) setUnderlying(data[0]);
+        if (Array.isArray(data) && data.length > 0) {
+          setUnderlyings(data);
+          setUnderlying(data[0]);
+        } else {
+          throw new Error('Invalid data format');
+        }
       } catch (err) {
+        console.error('Error loading underlyings:', err);
         setError(prev => ({ ...prev, underlyings: 'Failed to load underlyings' }));
+        setUnderlyings(['NIFTY']);
+        setUnderlying('NIFTY');
       } finally {
         setLoading(prev => ({ ...prev, underlyings: false }));
       }
@@ -40,10 +55,17 @@ const AdminTradingPortal = () => {
       setError(prev => ({ ...prev, expiries: '' }));
       try {
         const data = await fetchOptionExpiries(underlying);
-        setExpiries(data);
-        if (data.length > 0) setExpiry(data[0]);
+        if (Array.isArray(data) && data.length > 0) {
+          setExpiries(data);
+          setExpiry(data[0]);
+        } else {
+          throw new Error('Invalid expiry data format');
+        }
       } catch (err) {
+        console.error('Error loading expiries:', err);
         setError(prev => ({ ...prev, expiries: 'Failed to load expiries' }));
+        setExpiries([]);
+        setExpiry('');
       } finally {
         setLoading(prev => ({ ...prev, expiries: false }));
       }
@@ -58,9 +80,15 @@ const AdminTradingPortal = () => {
       setError(prev => ({ ...prev, options: '' }));
       try {
         const data = await fetchOptionChain({ underlying, expiry });
-        setOptions(data);
+        if (Array.isArray(data)) {
+          setOptions(data);
+        } else {
+          throw new Error('Invalid option chain data format');
+        }
       } catch (err) {
+        console.error('Error loading option chain:', err);
         setError(prev => ({ ...prev, options: 'Failed to load option chain' }));
+        setOptions([]);
       } finally {
         setLoading(prev => ({ ...prev, options: false }));
       }
@@ -95,6 +123,7 @@ const AdminTradingPortal = () => {
         setTradeStatus('Failed to place order.');
       }
     } catch (err) {
+      console.error('Error placing order:', err);
       setTradeStatus('Error placing order.');
     } finally {
       setPlacingOrder(false);
@@ -107,6 +136,16 @@ const AdminTradingPortal = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2em', maxWidth: 1200, margin: '0 auto' }}>
         <div className="card" style={{ textAlign: 'center', padding: '1.5em' }}>
           <h2 style={{ marginBottom: '1em' }}>Market Selection</h2>
+          {error.underlyings && (
+            <div className="error-message" style={{ marginBottom: '1em' }}>
+              {error.underlyings}
+            </div>
+          )}
+          {error.expiries && (
+            <div className="error-message" style={{ marginBottom: '1em' }}>
+              {error.expiries}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: '1em', justifyContent: 'center', flexWrap: 'wrap' }}>
             <div>
               <label style={{ marginRight: '0.5em' }}>Underlying:</label>
@@ -116,10 +155,11 @@ const AdminTradingPortal = () => {
                 style={{ background: '#111', color: '#fff', border: '1px solid #007bff', borderRadius: 4, padding: '0.5em' }}
                 disabled={loading.underlyings}
               >
-                {underlyings.map(und => (
+                {Array.isArray(underlyings) && underlyings.map(und => (
                   <option key={und} value={und}>{und}</option>
                 ))}
               </select>
+              {loading.underlyings && <span className="loading-spinner" style={{ marginLeft: '0.5em' }} />}
             </div>
             <div>
               <label style={{ marginRight: '0.5em' }}>Expiry:</label>
@@ -127,12 +167,13 @@ const AdminTradingPortal = () => {
                 value={expiry}
                 onChange={e => setExpiry(e.target.value)}
                 style={{ background: '#111', color: '#fff', border: '1px solid #007bff', borderRadius: 4, padding: '0.5em' }}
-                disabled={loading.expiries}
+                disabled={loading.expiries || !underlying}
               >
-                {expiries.map(exp => (
+                {Array.isArray(expiries) && expiries.map(exp => (
                   <option key={exp} value={exp}>{exp}</option>
                 ))}
               </select>
+              {loading.expiries && <span className="loading-spinner" style={{ marginLeft: '0.5em' }} />}
             </div>
           </div>
         </div>
@@ -198,10 +239,9 @@ const AdminTradingPortal = () => {
               {placingOrder ? 'Placing Order...' : 'Place Order'}
             </button>
             <button 
-              className="btn" 
-              style={{ width: '100%' }} 
-              onClick={closeModal} 
-              disabled={placingOrder}
+              className="btn"
+              style={{ width: '100%', background: '#333' }}
+              onClick={closeModal}
             >
               Cancel
             </button>

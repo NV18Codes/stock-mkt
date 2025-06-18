@@ -2,7 +2,41 @@ import React, { useState, useEffect } from 'react';
 import SegmentSelection from './SegmentSelection';
 import OptionTable from './OptionTable';
 import BuySellButtons from './BuySellButtons';
-import { fetchOptionExpiries, fetchOptionChain, fetchUnderlyings, placeTradeOrder } from '../../api/trading';
+import { 
+  fetchOptionExpiries, 
+  fetchOptionChain, 
+  fetchUnderlyings, 
+  placeTradeOrder,
+  getPositions,
+  getOrderHistory,
+  getLTPData
+} from '../../api/trading';
+import axios from 'axios';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Link } from 'react-router-dom';
+import ChartArea from './ChartArea';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+const API = 'https://apistocktrading-production.up.railway.app/api';
 
 const TradingViewWidget = ({ symbol }) => (
   <div style={{ width: '100%', height: 320, borderRadius: 8, overflow: 'hidden', margin: '0 auto' }}>
@@ -15,231 +49,310 @@ const TradingViewWidget = ({ symbol }) => (
   </div>
 );
 
-const TradingPortal = () => {
-  const [underlying, setUnderlying] = useState('NIFTY');
-  const [expiry, setExpiry] = useState('');
-  const [underlyings, setUnderlyings] = useState([]);
-  const [expiries, setExpiries] = useState([]);
-  const [options, setOptions] = useState([]);
-  const [loading, setLoading] = useState({
-    underlyings: true,
-    expiries: true,
-    options: true
-  });
-  const [error, setError] = useState({
-    underlyings: '',
-    expiries: '',
-    options: ''
-  });
-  const [showTradeModal, setShowTradeModal] = useState(false);
-  const [tradeType, setTradeType] = useState('');
-  const [tradeStatus, setTradeStatus] = useState('');
-  const [placingOrder, setPlacingOrder] = useState(false);
+// Test data for development - this would normally come from your backend
+const TEST_USER_DATA = {
+  name: 'User One',
+  email: 'user1@gmail.com',
+  phone: '+91 98765 43210',
+  broker: {
+    name: 'Angel One',
+    status: 'ACTIVE',
+    accountId: 'A123456',
+    lastSync: new Date().toISOString()
+  },
+  portfolio: {
+    capitalAmount: 1000000, // 10 Lakhs
+    investedAmount: 750000, // 7.5 Lakhs
+    availableFunds: 250000, // 2.5 Lakhs
+    rmsLimit: 2000000, // 20 Lakhs
+    portfolioValue: 825000, // 8.25 Lakhs
+    todaysPnL: 15000,
+    overallPnL: 75000,
+    holdings: [
+      {
+        symbol: 'RELIANCE',
+        quantity: 100,
+        avgPrice: 2450.75,
+        ltp: 2575.50,
+        currentValue: 257550,
+        pnl: 12475,
+        pnlPercentage: 5.09,
+        dayChange: 25.75,
+        dayChangePercentage: 1.01
+      },
+      {
+        symbol: 'TCS',
+        quantity: 50,
+        avgPrice: 3200.00,
+        ltp: 3350.25,
+        currentValue: 167512.50,
+        pnl: 7512.50,
+        pnlPercentage: 4.69,
+        dayChange: 45.25,
+        dayChangePercentage: 1.37
+      },
+      {
+        symbol: 'INFY',
+        quantity: 150,
+        avgPrice: 1475.50,
+        ltp: 1525.75,
+        currentValue: 228862.50,
+        pnl: 7537.50,
+        pnlPercentage: 3.41,
+        dayChange: 15.75,
+        dayChangePercentage: 1.04
+      }
+    ],
+    history: Array.from({ length: 30 }, (_, i) => ({
+      date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString(),
+      value: 750000 + Math.random() * 100000
+    }))
+  }
+};
 
-  // Fetch available underlyings
+const TradingPortal = () => {
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedSegment, setSelectedSegment] = useState('EQUITY');
+
   useEffect(() => {
-    const loadUnderlyings = async () => {
-      setLoading(prev => ({ ...prev, underlyings: true }));
-      setError(prev => ({ ...prev, underlyings: '' }));
+    const fetchUserData = () => {
+      setLoading(true);
+      setError('');
       try {
-        const data = await fetchUnderlyings();
-        setUnderlyings(data);
-        if (data.length > 0) {
-          setUnderlying(data[0]);
-        }
+        // For testing, we'll use the test data
+        setUserData(TEST_USER_DATA);
       } catch (err) {
-        setError(prev => ({ ...prev, underlyings: 'Failed to load underlyings' }));
+        console.error('Error fetching user data:', err);
+        setError('Failed to fetch trading data');
       } finally {
-        setLoading(prev => ({ ...prev, underlyings: false }));
+        setLoading(false);
       }
     };
-    loadUnderlyings();
+
+    fetchUserData();
+    // Refresh data every minute
+    const interval = setInterval(fetchUserData, 60000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Fetch expiries when underlying changes
-  useEffect(() => {
-    const loadExpiries = async () => {
-      if (!underlying) return;
-      setLoading(prev => ({ ...prev, expiries: true }));
-      setError(prev => ({ ...prev, expiries: '' }));
-      try {
-        const data = await fetchOptionExpiries(underlying);
-        setExpiries(data);
-        if (data.length > 0) {
-          setExpiry(data[0]);
-        }
-      } catch (err) {
-        setError(prev => ({ ...prev, expiries: 'Failed to load expiries' }));
-      } finally {
-        setLoading(prev => ({ ...prev, expiries: false }));
-      }
-    };
-    loadExpiries();
-  }, [underlying]);
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '2em' }}>
+        <div className="loading-spinner" />
+        <p style={{ color: '#fff', marginTop: '1em' }}>Loading trading data...</p>
+      </div>
+    );
+  }
 
-  // Fetch option chain when underlying or expiry changes
-  useEffect(() => {
-    const loadOptions = async () => {
-      if (!underlying || !expiry) return;
-      setLoading(prev => ({ ...prev, options: true }));
-      setError(prev => ({ ...prev, options: '' }));
-      try {
-        const data = await fetchOptionChain({ underlying, expiry });
-        setOptions(data);
-      } catch (err) {
-        setError(prev => ({ ...prev, options: 'Failed to load option chain' }));
-      } finally {
-        setLoading(prev => ({ ...prev, options: false }));
-      }
-    };
-    loadOptions();
-  }, [underlying, expiry]);
-
-  const handleBuy = () => {
-    setTradeType('Buy');
-    setShowTradeModal(true);
-    setTradeStatus('');
-  };
-
-  const handleSell = () => {
-    setTradeType('Sell');
-    setShowTradeModal(true);
-    setTradeStatus('');
-  };
-
-  const closeModal = () => {
-    setShowTradeModal(false);
-    setTradeType('');
-    setTradeStatus('');
-  };
-
-  const handlePlaceOrder = async () => {
-    setPlacingOrder(true);
-    setTradeStatus('');
-    try {
-      const order = { underlying, expiry, type: tradeType };
-      const res = await placeTradeOrder(order);
-      if (res.success) {
-        setTradeStatus('Order placed successfully!');
-      } else {
-        setTradeStatus('Failed to place order.');
-      }
-    } catch (err) {
-      setTradeStatus('Error placing order.');
-    } finally {
-      setPlacingOrder(false);
-    }
-  };
+  if (!userData?.broker?.status || userData.broker.status !== 'ACTIVE') {
+    return (
+      <div style={{ textAlign: 'center', padding: '2em' }}>
+        <h2 style={{ color: '#fff', marginBottom: '1em' }}>Connect Your Broker</h2>
+        <p style={{ color: '#cce3ff', marginBottom: '2em' }}>
+          Please connect your broker account to start trading.
+        </p>
+        <Link to="/broker-settings" className="btn">
+          Connect Broker
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#000', color: '#fff', padding: '2em' }}>
-      <h1 style={{ color: '#007bff', textAlign: 'center', marginBottom: '2em' }}>Options Trading Portal</h1>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2em', maxWidth: 1200, margin: '0 auto' }}>
-        <div className="card" style={{ textAlign: 'center', padding: '1.5em' }}>
-          <h2 style={{ marginBottom: '1em' }}>Market Selection</h2>
-          <div style={{ display: 'flex', gap: '1em', justifyContent: 'center', flexWrap: 'wrap' }}>
+    <div style={{ padding: '2em' }}>
+      {error && (
+        <div className="error-message" style={{ marginBottom: '2em' }}>
+          {error}
+        </div>
+      )}
+
+      {/* Broker Info Card */}
+      <div className="card" style={{ padding: '1.5em', marginBottom: '2em' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ color: '#cce3ff', marginBottom: '0.5em' }}>Connected Broker</h3>
+            <p style={{ color: '#fff', fontSize: '1.2em', fontWeight: 500 }}>
+              {userData.broker.name}
+              <span style={{ 
+                color: '#43e97b',
+                fontSize: '0.8em',
+                marginLeft: '1em',
+                padding: '0.2em 0.75em',
+                background: '#43e97b22',
+                borderRadius: '1em'
+              }}>
+                ACTIVE
+              </span>
+            </p>
+            <p style={{ color: '#cce3ff', fontSize: '0.9em', marginTop: '0.5em' }}>
+              Account ID: {userData.broker.accountId}
+            </p>
+          </div>
+          <Link to="/broker-settings" className="btn" style={{ padding: '0.5em 1em' }}>
+            Manage
+          </Link>
+        </div>
+      </div>
+
+      {/* Portfolio Overview Cards */}
+      <div style={{ display: 'grid', gap: '2em', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', marginBottom: '2em' }}>
+        <div className="card" style={{ padding: '1.5em' }}>
+          <h3 style={{ color: '#cce3ff', marginBottom: '0.5em' }}>Portfolio Value</h3>
+          <p style={{ color: '#fff', fontSize: '1.5em', fontWeight: 600 }}>
+            ₹{(userData.portfolio.portfolioValue / 100000).toFixed(2)}L
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1em' }}>
             <div>
-              <label style={{ marginRight: '0.5em' }}>Underlying:</label>
-              <select
-                value={underlying}
-                onChange={e => setUnderlying(e.target.value)}
-                style={{ background: '#111', color: '#fff', border: '1px solid #007bff', borderRadius: 4, padding: '0.5em' }}
-                disabled={loading.underlyings}
-              >
-                {underlyings.map(und => (
-                  <option key={und} value={und}>{und}</option>
-                ))}
-              </select>
+              <p style={{ color: '#cce3ff', fontSize: '0.9em' }}>Today's P&L</p>
+              <p style={{ 
+                color: userData.portfolio.todaysPnL >= 0 ? '#43e97b' : '#ff4444',
+                fontWeight: 500 
+              }}>
+                ₹{(userData.portfolio.todaysPnL / 1000).toFixed(1)}K
+              </p>
             </div>
-            <div>
-              <label style={{ marginRight: '0.5em' }}>Expiry:</label>
-              <select
-                value={expiry}
-                onChange={e => setExpiry(e.target.value)}
-                style={{ background: '#111', color: '#fff', border: '1px solid #007bff', borderRadius: 4, padding: '0.5em' }}
-                disabled={loading.expiries}
-              >
-                {expiries.map(exp => (
-                  <option key={exp} value={exp}>{exp}</option>
-                ))}
-              </select>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ color: '#cce3ff', fontSize: '0.9em' }}>Overall P&L</p>
+              <p style={{ 
+                color: userData.portfolio.overallPnL >= 0 ? '#43e97b' : '#ff4444',
+                fontWeight: 500 
+              }}>
+                ₹{(userData.portfolio.overallPnL / 1000).toFixed(1)}K
+              </p>
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '2em', flexWrap: 'wrap' }}>
-          <div className="card" style={{ flex: 1, textAlign: 'center', minWidth: 320, padding: '1.5em' }}>
-            <h2 style={{ marginBottom: '1em' }}>Option Chain</h2>
-            <OptionTable 
-              optionChain={options} 
-              loading={loading.options} 
-              error={error.options}
-            />
+        <div className="card" style={{ padding: '1.5em' }}>
+          <h3 style={{ color: '#cce3ff', marginBottom: '0.5em' }}>Account Summary</h3>
+          <div style={{ display: 'grid', gap: '1em' }}>
+            <div>
+              <p style={{ color: '#cce3ff', fontSize: '0.9em' }}>Capital</p>
+              <p style={{ color: '#fff', fontWeight: 500 }}>
+                ₹{(userData.portfolio.capitalAmount / 100000).toFixed(1)}L
+              </p>
+            </div>
+            <div>
+              <p style={{ color: '#cce3ff', fontSize: '0.9em' }}>Invested</p>
+              <p style={{ color: '#fff', fontWeight: 500 }}>
+                ₹{(userData.portfolio.investedAmount / 100000).toFixed(1)}L
+              </p>
+            </div>
+            <div>
+              <p style={{ color: '#cce3ff', fontSize: '0.9em' }}>Available Funds</p>
+              <p style={{ color: '#fff', fontWeight: 500 }}>
+                ₹{(userData.portfolio.availableFunds / 100000).toFixed(1)}L
+              </p>
+            </div>
           </div>
-          <div className="card" style={{ flex: 2, textAlign: 'center', minWidth: 320, padding: '1.5em' }}>
-            <h2 style={{ marginBottom: '1em' }}>Chart</h2>
-            <TradingViewWidget symbol={underlying} />
-            <BuySellButtons onBuy={handleBuy} onSell={handleSell} />
+        </div>
+
+        <div className="card" style={{ padding: '1.5em' }}>
+          <h3 style={{ color: '#cce3ff', marginBottom: '0.5em' }}>Trading Limits</h3>
+          <div style={{ display: 'grid', gap: '1em' }}>
+            <div>
+              <p style={{ color: '#cce3ff', fontSize: '0.9em' }}>RMS Limit</p>
+              <p style={{ color: '#fff', fontWeight: 500 }}>
+                ₹{(userData.portfolio.rmsLimit / 100000).toFixed(1)}L
+              </p>
+            </div>
+            <div>
+              <p style={{ color: '#cce3ff', fontSize: '0.9em' }}>Last Updated</p>
+              <p style={{ color: '#fff', fontWeight: 500 }}>
+                {new Date(userData.broker.lastSync).toLocaleTimeString()}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Trade Modal */}
-      {showTradeModal && (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          width: '100vw', 
-          height: '100vh', 
-          background: 'rgba(0, 0, 0, 0.8)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          zIndex: 1000 
-        }}>
-          <div className="card" style={{ 
-            minWidth: 320, 
-            maxWidth: 400, 
-            textAlign: 'center', 
-            padding: '2em',
-            background: '#181c24',
-            border: '1px solid #007bff',
-            borderRadius: 8
-          }}>
-            <h2 style={{ color: tradeType === 'Buy' ? '#43e97b' : '#ff4b2b' }}>{tradeType} Order</h2>
-            <p style={{ color: '#fff', marginBottom: 20 }}>
-              {tradeStatus || 'Confirm your order details below:'}
-            </p>
-            <div style={{ marginBottom: 20, textAlign: 'left' }}>
-              <p><strong>Underlying:</strong> {underlying}</p>
-              <p><strong>Expiry:</strong> {expiry}</p>
-              <p><strong>Type:</strong> {tradeType}</p>
-            </div>
-            <button 
-              className="btn" 
-              style={{ 
-                width: '100%', 
-                marginBottom: 10,
-                background: tradeType === 'Buy' ? '#43e97b' : '#ff4b2b',
-                color: '#000'
-              }} 
-              onClick={handlePlaceOrder} 
-              disabled={placingOrder}
-            >
-              {placingOrder ? 'Placing Order...' : 'Place Order'}
-            </button>
-            <button 
-              className="btn" 
-              style={{ width: '100%' }} 
-              onClick={closeModal} 
-              disabled={placingOrder}
-            >
-              Cancel
-            </button>
-          </div>
+      {/* Portfolio Performance Chart */}
+      <div style={{ marginBottom: '2em' }}>
+        <ChartArea data={userData.portfolio.history} />
+      </div>
+
+      {/* Segment Selection */}
+      <div style={{ marginBottom: '2em' }}>
+        <SegmentSelection
+          selectedSegment={selectedSegment}
+          onSelect={setSelectedSegment}
+        />
+      </div>
+
+      {/* Holdings Table */}
+      <div className="card" style={{ padding: '1.5em', marginBottom: '2em' }}>
+        <h3 style={{ color: '#cce3ff', marginBottom: '1em' }}>Holdings</h3>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #333' }}>
+                <th style={{ color: '#cce3ff', padding: '0.75em', textAlign: 'left' }}>Symbol</th>
+                <th style={{ color: '#cce3ff', padding: '0.75em', textAlign: 'right' }}>Qty</th>
+                <th style={{ color: '#cce3ff', padding: '0.75em', textAlign: 'right' }}>Avg Price</th>
+                <th style={{ color: '#cce3ff', padding: '0.75em', textAlign: 'right' }}>LTP</th>
+                <th style={{ color: '#cce3ff', padding: '0.75em', textAlign: 'right' }}>Current Value</th>
+                <th style={{ color: '#cce3ff', padding: '0.75em', textAlign: 'right' }}>P&L</th>
+                <th style={{ color: '#cce3ff', padding: '0.75em', textAlign: 'right' }}>Day Change</th>
+              </tr>
+            </thead>
+            <tbody>
+              {userData.portfolio.holdings.map((holding, index) => (
+                <tr key={index} style={{ borderBottom: '1px solid #222' }}>
+                  <td style={{ color: '#fff', padding: '0.75em' }}>{holding.symbol}</td>
+                  <td style={{ color: '#fff', padding: '0.75em', textAlign: 'right' }}>{holding.quantity}</td>
+                  <td style={{ color: '#fff', padding: '0.75em', textAlign: 'right' }}>₹{holding.avgPrice.toFixed(2)}</td>
+                  <td style={{ color: '#fff', padding: '0.75em', textAlign: 'right' }}>₹{holding.ltp.toFixed(2)}</td>
+                  <td style={{ color: '#fff', padding: '0.75em', textAlign: 'right' }}>
+                    ₹{(holding.currentValue / 1000).toFixed(1)}K
+                  </td>
+                  <td style={{ 
+                    padding: '0.75em', 
+                    textAlign: 'right'
+                  }}>
+                    <div style={{ color: holding.pnl >= 0 ? '#43e97b' : '#ff4444' }}>
+                      ₹{(holding.pnl / 1000).toFixed(1)}K
+                    </div>
+                    <div style={{ 
+                      fontSize: '0.8em',
+                      color: holding.pnlPercentage >= 0 ? '#43e97b' : '#ff4444'
+                    }}>
+                      {holding.pnlPercentage >= 0 ? '+' : ''}{holding.pnlPercentage.toFixed(2)}%
+                    </div>
+                  </td>
+                  <td style={{ 
+                    padding: '0.75em', 
+                    textAlign: 'right'
+                  }}>
+                    <div style={{ 
+                      color: holding.dayChange >= 0 ? '#43e97b' : '#ff4444'
+                    }}>
+                      ₹{holding.dayChange.toFixed(2)}
+                    </div>
+                    <div style={{ 
+                      fontSize: '0.8em',
+                      color: holding.dayChangePercentage >= 0 ? '#43e97b' : '#ff4444'
+                    }}>
+                      {holding.dayChangePercentage >= 0 ? '+' : ''}{holding.dayChangePercentage.toFixed(2)}%
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
+
+      {/* Trading Actions */}
+      <div style={{ marginBottom: '2em' }}>
+        <BuySellButtons />
+      </div>
+
+      {/* Option Chain */}
+      <div>
+        <OptionTable segment={selectedSegment} />
+      </div>
     </div>
   );
 };

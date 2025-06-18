@@ -1,61 +1,188 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const plans = [
-  { name: 'Basic', price: 499, features: ['Real-time Data', 'Basic Support', 'Portfolio Tracking'] },
-  { name: 'Pro', price: 1499, features: ['All Basic Features', 'Advanced Analytics', 'Priority Support', 'Broker Integration'] },
-  { name: 'Elite', price: 2999, features: ['All Pro Features', 'Dedicated Account Manager', 'Early Access to New Features'] },
-];
-
-const LandingPage = () => (
-  <div style={{ minHeight: '100vh', background: '#000', color: '#fff', fontFamily: 'Segoe UI, Arial, sans-serif' }}>
-    {/* Hero Section */}
-    <div style={{ padding: '3em 1em 2em 1em', textAlign: 'center', background: 'linear-gradient(90deg, #000 60%, #007bff 100%)' }}>
-      <div style={{ fontSize: '3rem', fontWeight: 700, color: '#fff', letterSpacing: 2, marginBottom: '0.2em' }}>
-        <span role="img" aria-label="logo" style={{ marginRight: 12 }}>📈</span> Stock Trading Portal
-      </div>
-      <div style={{ fontSize: '1.3rem', color: '#cce3ff', marginBottom: '1.5em' }}>
-        Empowering Indian traders with seamless, secure, and smart trading solutions.
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '1em', marginBottom: '1.5em' }}>
-        <Link to="/login"><button className="btn">Login</button></Link>
-        <Link to="/signup"><button className="btn" style={{ background: '#fff', color: '#007bff' }}>Sign Up</button></Link>
-      </div>
-    </div>
-
-    {/* About Company & Trading */}
-    <div style={{ maxWidth: 1000, margin: '2em auto', display: 'flex', flexWrap: 'wrap', gap: '2em', justifyContent: 'center' }}>
-      <div style={{ flex: 1, minWidth: 280 }}>
-        <h2 style={{ color: '#007bff' }}>About Us</h2>
-        <p style={{ color: '#fff', lineHeight: 1.7 }}>
-          Stock Trading Portal is a next-generation platform designed for Indian investors and traders. We provide real-time data, advanced analytics, and seamless broker integration to help you make smarter trading decisions. Our mission is to democratize access to financial markets with technology and transparency.
+const LandingPage = () => {
+  return (
+    <div>
+      {/* Hero Section */}
+      <section style={{ 
+        padding: '4em 2em',
+        background: 'linear-gradient(135deg, #111 0%, #000 100%)',
+        textAlign: 'center',
+        minHeight: '80vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <h1 style={{ 
+          color: '#fff',
+          fontSize: '3em',
+          marginBottom: '0.5em',
+          maxWidth: '800px'
+        }}>
+          Trade Smarter with Our
+          <span style={{ color: '#007bff', display: 'block' }}>
+            Advanced Trading Portal
+          </span>
+        </h1>
+        
+        <p style={{ 
+          color: '#cce3ff',
+          fontSize: '1.2em',
+          maxWidth: '600px',
+          margin: '0 auto 2em'
+        }}>
+          Connect multiple broker accounts, track your portfolio performance,
+          and make informed trading decisions with real-time market data.
         </p>
-      </div>
-      <div style={{ flex: 1, minWidth: 280 }}>
-        <h2 style={{ color: '#007bff' }}>About Trading</h2>
-        <p style={{ color: '#fff', lineHeight: 1.7 }}>
-          Trading in the stock market can be rewarding and exciting. With our platform, you can access live market data, analyze trends, and execute trades with ease. Whether you are a beginner or a pro, our tools are built to support your journey.
-        </p>
-      </div>
-    </div>
 
-    {/* Subscription Models */}
-    <div style={{ background: '#111', padding: '2em 0' }}>
-      <h2 style={{ color: '#007bff', textAlign: 'center', marginBottom: '1em' }}>Subscription Plans</h2>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '2em', flexWrap: 'wrap' }}>
-        {plans.map(plan => (
-          <div key={plan.name} className="card" style={{ minWidth: 240, maxWidth: 300, background: '#181c24', border: '1px solid #007bff', borderRadius: 12, padding: '2em 1.5em', textAlign: 'center', boxShadow: '0 2px 12px #0006' }}>
-            <h3 style={{ color: '#fff', marginBottom: 8 }}>{plan.name}</h3>
-            <div style={{ fontSize: '2em', color: '#007bff', marginBottom: 8 }}>₹{plan.price} <span style={{ fontSize: '0.5em', color: '#fff' }}>/mo</span></div>
-            <ul style={{ color: '#cce3ff', textAlign: 'left', margin: '1em 0', paddingLeft: 18 }}>
-              {plan.features.map(f => <li key={f}>{f}</li>)}
-            </ul>
-            <button className="btn" style={{ width: '100%', marginTop: 10 }}>Subscribe</button>
+        <div style={{ display: 'flex', gap: '1em', justifyContent: 'center' }}>
+          <Link to="/signup" className="btn" style={{ 
+            padding: '1em 2em',
+            fontSize: '1.1em',
+            background: '#007bff'
+          }}>
+            Get Started
+          </Link>
+          <Link to="/login" className="btn" style={{ 
+            padding: '1em 2em',
+            fontSize: '1.1em',
+            background: 'transparent',
+            border: '2px solid #007bff'
+          }}>
+            Login
+          </Link>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section style={{ padding: '4em 2em', background: '#111' }}>
+        <h2 style={{ 
+          color: '#fff',
+          textAlign: 'center',
+          marginBottom: '2em'
+        }}>
+          Why Choose Our Platform?
+        </h2>
+
+        <div style={{ 
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '2em',
+          maxWidth: '1200px',
+          margin: '0 auto'
+        }}>
+          <div className="card" style={{ padding: '2em' }}>
+            <h3 style={{ color: '#007bff', marginBottom: '1em' }}>
+              Multi-Broker Integration
+            </h3>
+            <p style={{ color: '#cce3ff' }}>
+              Connect and manage multiple broker accounts from a single dashboard.
+              Supported brokers include Angel One, Zerodha, Groww, and Upstox.
+            </p>
           </div>
-        ))}
-      </div>
+
+          <div className="card" style={{ padding: '2em' }}>
+            <h3 style={{ color: '#007bff', marginBottom: '1em' }}>
+              Real-Time Portfolio Tracking
+            </h3>
+            <p style={{ color: '#cce3ff' }}>
+              Monitor your investments, track P&L, and analyze portfolio performance
+              with interactive charts and detailed analytics.
+            </p>
+          </div>
+
+          <div className="card" style={{ padding: '2em' }}>
+            <h3 style={{ color: '#007bff', marginBottom: '1em' }}>
+              Advanced Trading Tools
+            </h3>
+            <p style={{ color: '#cce3ff' }}>
+              Access technical indicators, option chain analysis, and market scanners
+              to make informed trading decisions.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Statistics Section */}
+      <section style={{ 
+        padding: '4em 2em',
+        background: 'linear-gradient(135deg, #000 0%, #111 100%)'
+      }}>
+        <div style={{ 
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '2em',
+          maxWidth: '1000px',
+          margin: '0 auto',
+          textAlign: 'center'
+        }}>
+          <div>
+            <h3 style={{ color: '#007bff', fontSize: '2.5em', marginBottom: '0.2em' }}>
+              10K+
+            </h3>
+            <p style={{ color: '#cce3ff' }}>Active Traders</p>
+          </div>
+
+          <div>
+            <h3 style={{ color: '#007bff', fontSize: '2.5em', marginBottom: '0.2em' }}>
+              ₹100Cr+
+            </h3>
+            <p style={{ color: '#cce3ff' }}>Daily Trading Volume</p>
+          </div>
+
+          <div>
+            <h3 style={{ color: '#007bff', fontSize: '2.5em', marginBottom: '0.2em' }}>
+              4
+            </h3>
+            <p style={{ color: '#cce3ff' }}>Supported Brokers</p>
+          </div>
+
+          <div>
+            <h3 style={{ color: '#007bff', fontSize: '2.5em', marginBottom: '0.2em' }}>
+              99.9%
+            </h3>
+            <p style={{ color: '#cce3ff' }}>Uptime</p>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section style={{ 
+        padding: '4em 2em',
+        background: '#111',
+        textAlign: 'center'
+      }}>
+        <h2 style={{ 
+          color: '#fff',
+          marginBottom: '1em',
+          maxWidth: '600px',
+          margin: '0 auto 1em'
+        }}>
+          Ready to Start Trading?
+        </h2>
+        
+        <p style={{ 
+          color: '#cce3ff',
+          marginBottom: '2em',
+          maxWidth: '500px',
+          margin: '0 auto 2em'
+        }}>
+          Join thousands of traders who have already chosen our platform
+          for their trading journey.
+        </p>
+
+        <Link to="/signup" className="btn" style={{ 
+          padding: '1em 3em',
+          fontSize: '1.1em',
+          background: '#007bff'
+        }}>
+          Create Free Account
+        </Link>
+      </section>
     </div>
-  </div>
-);
+  );
+};
 
 export default LandingPage; 

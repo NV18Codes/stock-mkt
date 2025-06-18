@@ -45,3 +45,36 @@ export const placeTradeOrder = async (order) => {
         throw error;
     }
 };
+
+// Get positions
+export const getPositions = async () => {
+    try {
+        const response = await axios.get(`${API}/positions`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching positions:', error);
+        throw error;
+    }
+};
+
+// Get order history
+export const getOrderHistory = async () => {
+    try {
+        const response = await axios.get(`${API}/orders`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching order history:', error);
+        throw error;
+    }
+};
+
+// Get LTP data
+export const getLTPData = async (symbol) => {
+    try {
+        const response = await axios.get(`${API}/market-data/ltp/${symbol}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching LTP data:', error);
+        throw error;
+    }
+};

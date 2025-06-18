@@ -39,10 +39,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    try { await signout(); } catch (e) {}
+    try { 
+      await signout(); 
+    } catch (e) {
+      console.error('Signout API error:', e);
+    }
     localStorage.removeItem('token');
+    localStorage.removeItem('smartApiToken'); // Clear broker token if exists
     setUser(null);
     setRole(null);
+    window.location.href = '/login'; // Force a full page reload to clear all state
   };
 
   return (
