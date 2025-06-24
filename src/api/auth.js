@@ -10,7 +10,7 @@ axios.interceptors.request.use(
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-    return config;
+    return config;  
   },
   (error) => Promise.reject(error)
 );
