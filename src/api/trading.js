@@ -16,10 +16,24 @@ export const fetchOptionExpiries = async (underlying) => {
 // Fetch option chain data
 export const fetchOptionChain = async (params) => {
     try {
-        const response = await axios.get(`${API}/market-data/option-chain`, { params });
+        console.log('Fetching option chain with params:', params);
+        const url = `${API}/market-data/option-chain`;
+        console.log('Option chain URL:', url);
+        console.log('Query params:', params);
+        
+        const response = await axios.get(url, { params });
+        console.log('Option chain response:', response);
         return response.data;
     } catch (error) {
         console.error('Error fetching option chain:', error);
+        console.error('Error details:', {
+            message: error.message,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+            url: error.config?.url,
+            params: error.config?.params
+        });
         throw error;
     }
 };
