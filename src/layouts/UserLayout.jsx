@@ -10,19 +10,20 @@ const UserLayout = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#000', color: '#fff', display: 'flex' }}>
+    <div style={{ minHeight: '100vh', background: '#ffffff', color: '#333', display: 'flex' }}>
       {/* Sidebar */}
       <div style={{
         width: '250px',
-        background: '#111',
+        background: '#f8f9fa',
         padding: '2em 1em',
-        borderRight: '1px solid #222',
+        borderRight: '1px solid #e0e0e0',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        boxShadow: '2px 0 10px rgba(0,0,0,0.1)'
       }}>
         <div style={{ marginBottom: '2em', textAlign: 'center' }}>
-          <h3 style={{ color: '#007bff', margin: 0 }}>Welcome,</h3>
-          <p style={{ color: '#cce3ff', margin: '0.5em 0' }}>{user?.name || 'Trader'}</p>
+          <h3 style={{ color: '#2c3e50', margin: 0, fontWeight: 600, fontSize: '1.5em' }}>Welcome,</h3>
+          <p style={{ color: '#6c757d', margin: '0.5em 0', fontSize: '0.9em' }}>{user?.name || 'Trader'}</p>
         </div>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5em', flex: 1 }}>
@@ -31,11 +32,13 @@ const UserLayout = () => {
             end
             style={({ isActive }) => ({
               padding: '0.8em 1em',
-              borderRadius: '4px',
-              color: isActive ? '#fff' : '#cce3ff',
+              borderRadius: '6px',
+              color: isActive ? '#fff' : '#495057',
               background: isActive ? '#007bff' : 'transparent',
               textDecoration: 'none',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              fontWeight: isActive ? 600 : 500,
+              border: isActive ? 'none' : '1px solid transparent'
             })}
           >
             Trading Portal
@@ -45,11 +48,13 @@ const UserLayout = () => {
             to="/dashboard/broker-settings"
             style={({ isActive }) => ({
               padding: '0.8em 1em',
-              borderRadius: '4px',
-              color: isActive ? '#fff' : '#cce3ff',
+              borderRadius: '6px',
+              color: isActive ? '#fff' : '#495057',
               background: isActive ? '#007bff' : 'transparent',
               textDecoration: 'none',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              fontWeight: isActive ? 600 : 500,
+              border: isActive ? 'none' : '1px solid transparent'
             })}
           >
             Broker Settings
@@ -59,11 +64,13 @@ const UserLayout = () => {
             to="/dashboard/profile-settings"
             style={({ isActive }) => ({
               padding: '0.8em 1em',
-              borderRadius: '4px',
-              color: isActive ? '#fff' : '#cce3ff',
+              borderRadius: '6px',
+              color: isActive ? '#fff' : '#495057',
               background: isActive ? '#007bff' : 'transparent',
               textDecoration: 'none',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              fontWeight: isActive ? 600 : 500,
+              border: isActive ? 'none' : '1px solid transparent'
             })}
           >
             Profile Settings
@@ -73,17 +80,18 @@ const UserLayout = () => {
         {/* Logout Button */}
         <div style={{ marginTop: 'auto', paddingTop: '1em' }}>
           <button 
-            className="btn"
             onClick={handleLogout}
             style={{
               width: '100%',
-              background: '#ff4444',
+              background: '#dc3545',
               color: '#fff',
               border: 'none',
               padding: '0.8em 1em',
-              borderRadius: '4px',
+              borderRadius: '6px',
               cursor: 'pointer',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              fontWeight: 600,
+              fontSize: '0.9em'
             }}
           >
             Logout
@@ -92,7 +100,7 @@ const UserLayout = () => {
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, padding: '2em', overflowY: 'auto' }}>
+      <div style={{ flex: 1, background: '#ffffff', overflowY: 'auto' }}>
         <Outlet />
       </div>
     </div>

@@ -13,11 +13,14 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       getCurrentUser()
         .then(res => {
-          const userData = res.data.data?.user || res.data.data || res.data.user || res.data;
+          console.log('AuthContext getCurrentUser response:', res);
+          const userData = res.data;
+          console.log('Setting user data in context:', userData);
           setUser(userData);
           setRole(userData.role);
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('Error in AuthContext getCurrentUser:', error);
           setUser(null);
           setRole(null);
           localStorage.removeItem('token');
@@ -29,13 +32,25 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const res = await signin({ email, password });
-    const token = res.data.data?.session?.access_token || res.data.data?.access_token;
-    localStorage.setItem('token', token);
-    const userData = res.data.data?.user || res.data.data || res.data.user || res.data;
-    setUser(userData);
-    setRole(userData.role);
-    return userData;
+    try {
+      const res = await signin({ email, password });
+      console.log('Login response:', res.data);
+      
+      const token = res.data.data?.session?.access_token || res.data.data?.access_token || res.data.access_token;
+      localStorage.setItem('token', token);
+      
+      // Get fresh user data after login
+      const userResponse = await getCurrentUser();
+      const userData = userResponse.data;
+      
+      console.log('Setting user data after login:', userData);
+      setUser(userData);
+      setRole(userData.role);
+      return userData;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
   const logout = async () => {
@@ -51,8 +66,31 @@ export const AuthProvider = ({ children }) => {
     window.location.href = '/login'; // Force a full page reload to clear all state
   };
 
+  // Function to refresh user data
+  const refreshUser = async () => {
+    try {
+      const res = await getCurrentUser();
+      const userData = res.data;
+      console.log('Refreshed user data:', userData);
+      setUser(userData);
+      setRole(userData.role);
+      return userData;
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, role, loading, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      role, 
+      loading, 
+      login, 
+      logout, 
+      refreshUser,
+      isAuthenticated: !!user 
+    }}>
       {children}
     </AuthContext.Provider>
   );

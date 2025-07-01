@@ -33,27 +33,34 @@ const options = {
     title: {
       display: true,
       text: 'Portfolio Performance',
-      color: '#fff',
+      color: '#2c3e50',
       font: {
-        size: 16
+        size: 'clamp(14px, 3vw, 16px)',
+        weight: '600'
       }
     }
   },
   scales: {
     x: {
       grid: {
-        color: '#333'
+        color: '#e0e0e0'
       },
       ticks: {
-        color: '#cce3ff'
+        color: '#2c3e50',
+        font: {
+          size: 'clamp(10px, 2.2vw, 12px)'
+        }
       }
     },
     y: {
       grid: {
-        color: '#333'
+        color: '#e0e0e0'
       },
       ticks: {
-        color: '#cce3ff',
+        color: '#2c3e50',
+        font: {
+          size: 'clamp(10px, 2.2vw, 12px)'
+        },
         callback: (value) => `₹${(value / 1000).toFixed(1)}K`
       }
     }
@@ -76,11 +83,26 @@ const ChartArea = ({ data = [] }) => {
   };
 
   return (
-    <div style={{ height: 300, background: '#111', border: '1px solid #007bff', borderRadius: 8, padding: '1em' }}>
+    <div style={{ 
+      height: 'clamp(250px, 40vh, 300px)', 
+      background: '#ffffff', 
+      border: '1px solid #e0e0e0', 
+      borderRadius: '8px', 
+      padding: 'clamp(0.8em, 2vw, 1em)',
+      boxShadow: '0 1px 6px rgba(0,0,0,0.1)'
+    }}>
       {data && data.length > 0 ? (
         <Line options={options} data={chartData} />
       ) : (
-        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: '1.2em' }}>
+        <div style={{ 
+          height: '100%', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          color: '#6c757d', 
+          fontSize: 'clamp(12px, 2.5vw, 14px)',
+          fontWeight: 500
+        }}>
           No portfolio data available
         </div>
       )}
