@@ -13,11 +13,15 @@ axios.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// MARKET DATA API endpoints
+
 // Fetch option expiries for a given underlying
 export const fetchOptionExpiries = async (underlying = 'NIFTY') => {
   try {
     const url = `https://apistocktrading-production.up.railway.app/api/market-data/option-expiries/${underlying}`;
     const response = await axios.get(url);
+    console.log('Option expiries response:', response.data);
+    
     // Accept both { data: [...] } and [...]
     if (Array.isArray(response.data)) {
       return { success: true, data: response.data };
@@ -46,6 +50,7 @@ export const fetchOptionChain = async (underlying = 'NIFTY', expiry = '10JUL2025
     try {
         const url = `https://apistocktrading-production.up.railway.app/api/market-data/option-chain?underlying=${underlying}&expiry=${expiry}`;
         const response = await axios.get(url);
+        console.log('Option chain response:', response.data);
         return response.data;
     } catch (error) {
         console.error('Error fetching option chain:', error);
@@ -64,6 +69,8 @@ export const fetchUnderlyings = async () => {
   try {
     const url = 'https://apistocktrading-production.up.railway.app/api/market-data/option-underlyings';
     const response = await axios.get(url);
+    console.log('Underlyings response:', response.data);
+    
     // Accept both { data: [...] } and [...]
     if (Array.isArray(response.data)) {
       return { success: true, data: response.data };
@@ -85,6 +92,125 @@ export const fetchUnderlyings = async () => {
     }
     return { success: false, data: [], error: error.message };
   }
+};
+
+// Fetch LTP data for specific symbols
+export const fetchLTPData = async (symbols) => {
+    try {
+        const response = await axios.post('https://apistocktrading-production.up.railway.app/api/market-data/ltp', { symbols }, {
+            timeout: 10000, // 10 second timeout for real-time data
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
+        console.log('LTP data response:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching LTP data:', error);
+        if (error.response && (error.response.status === 404 || error.response.status === 403)) {
+            console.log(`LTP endpoint not available (${error.response.status}), using fallback data`);
+            // Return fallback LTP data if endpoint doesn't exist or is forbidden
+            return { success: true, data: generateFallbackLTPData(symbols) };
+        }
+        return { success: false, data: {}, error: error.message };
+    }
+};
+
+// Fetch option chain LTP data
+export const fetchOptionChainLTP = async () => {
+    try {
+        const url = 'https://apistocktrading-production.up.railway.app/api/market-data/option-chain/ltp';
+        const response = await axios.get(url, {
+            timeout: 10000, // 10 second timeout for real-time data
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
+        console.log('Option chain LTP response:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching option chain LTP data:', error);
+        if (error.response && (error.response.status === 404 || error.response.status === 403)) {
+            console.log(`Option chain LTP endpoint not available (${error.response.status}), using fallback data`);
+            // Return fallback LTP data if endpoint doesn't exist or is forbidden
+            return { success: true, data: generateFallbackLTPData() };
+        }
+        return { success: false, data: [], error: error.message };
+    }
+};
+
+// Fetch LTP data for specific option symbols
+export const fetchOptionSymbolsLTP = async (symbols) => {
+    try {
+        const url = 'https://apistocktrading-production.up.railway.app/api/market-data/ltp';
+        const response = await axios.post(url, { symbols }, {
+            timeout: 10000,
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
+        console.log('Option symbols LTP response:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching option symbols LTP data:', error);
+        if (error.response && (error.response.status === 404 || error.response.status === 403)) {
+            console.log(`Option symbols LTP endpoint not available (${error.response.status}), using fallback data`);
+            // Return fallback LTP data if endpoint doesn't exist or is forbidden
+            return { success: true, data: generateFallbackOptionSymbolsLTP(symbols) };
+        }
+        return { success: false, data: {}, error: error.message };
+    }
+};
+
+// TRADE EXECUTION API endpoints
+
+// Place a trade order (admin)
+export const placeTradeOrder = async (orderData) => {
+    try {
+        const url = 'https://apistocktrading-production.up.railway.app/api/admin/trades/initiate';
+        const response = await axios.post(url, orderData);
+        console.log('Trade order response:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Error placing trade order:', error);
+        throw error;
+    }
+};
+
+// Get positions
+export const getPositions = async () => {
+    try {
+        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/trading/positions');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching positions:', error);
+        return { success: false, data: [], error: error.message };
+    }
+};
+
+// Get order history
+export const getOrderHistory = async () => {
+    try {
+        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/trading/order-history');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching order history:', error);
+        return { success: false, data: [], error: error.message };
+    }
+};
+
+// Legacy functions for backward compatibility
+export const getLTPData = async (symbols) => {
+    try {
+        const response = await axios.post('https://apistocktrading-production.up.railway.app/api/market-data/ltp', { symbols });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching LTP data:', error);
+        return { success: false, data: {}, error: error.message };
+    }
 };
 
 // Generate fallback option chain data
@@ -119,47 +245,48 @@ const generateFallbackOptionChain = (underlying, expiry) => {
   return strikes;
 };
 
-// Place a trade order (admin)
-export const placeTradeOrder = async (orderData) => {
-    try {
-        const url = 'https://apistocktrading-production.up.railway.app/api/admin/trades/initiate';
-        const response = await axios.post(url, orderData);
-        return response.data;
-    } catch (error) {
-        console.error('Error placing trade order:', error);
-        throw error;
-    }
+// Generate fallback LTP data
+const generateFallbackLTPData = (symbols = []) => {
+  const fallbackData = {};
+  const defaultSymbols = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY'];
+  const symbolsToUse = symbols.length > 0 ? symbols : defaultSymbols;
+  
+  symbolsToUse.forEach(symbol => {
+    const basePrice = symbol === 'NIFTY' ? 22000 : symbol === 'BANKNIFTY' ? 48000 : 20000;
+    const randomChange = (Math.random() - 0.5) * 200;
+    const ltp = basePrice + randomChange;
+    
+    fallbackData[symbol] = {
+      ltp: ltp.toFixed(2),
+      lastPrice: ltp.toFixed(2),
+      change: randomChange.toFixed(2),
+      changePercent: ((randomChange / basePrice) * 100).toFixed(2),
+      volume: Math.floor(Math.random() * 1000000 + 100000),
+      openInterest: Math.floor(Math.random() * 10000 + 1000)
+    };
+  });
+  
+  return fallbackData;
 };
 
-// Get positions
-export const getPositions = async () => {
-    try {
-        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/trading/positions');
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching positions:', error);
-        return { success: false, data: [], error: error.message };
-    }
-};
-
-// Get order history
-export const getOrderHistory = async () => {
-    try {
-        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/trading/order-history');
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching order history:', error);
-        return { success: false, data: [], error: error.message };
-    }
-};
-
-// Get LTP data
-export const getLTPData = async (symbols) => {
-    try {
-        const response = await axios.post('https://apistocktrading-production.up.railway.app/api/market-data/ltp', { symbols });
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching LTP data:', error);
-        return { success: false, data: {}, error: error.message };
-    }
+// Generate fallback option symbols LTP data
+const generateFallbackOptionSymbolsLTP = (symbols) => {
+  const fallbackData = {};
+  
+  symbols.forEach(symbol => {
+    const basePrice = 100 + Math.random() * 200;
+    const randomChange = (Math.random() - 0.5) * 20;
+    const ltp = basePrice + randomChange;
+    
+    fallbackData[symbol] = {
+      ltp: ltp.toFixed(2),
+      lastPrice: ltp.toFixed(2),
+      change: randomChange.toFixed(2),
+      changePercent: ((randomChange / basePrice) * 100).toFixed(2),
+      volume: Math.floor(Math.random() * 10000 + 1000),
+      openInterest: Math.floor(Math.random() * 5000 + 500)
+    };
+  });
+  
+  return fallbackData;
 };

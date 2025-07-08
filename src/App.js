@@ -15,8 +15,102 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import UserLayout from './layouts/UserLayout';
 import AdminLayout from './layouts/AdminLayout';
 
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ 
+          minHeight: '100vh', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          background: '#f8f9fa',
+          padding: '2rem',
+          textAlign: 'center'
+        }}>
+          <div>
+            <h1 style={{ color: '#dc3545', marginBottom: '1rem' }}>Something went wrong</h1>
+            <p style={{ color: '#6c757d', marginBottom: '1rem' }}>
+              {this.state.error?.message || 'An unexpected error occurred'}
+            </p>
+            <button 
+              onClick={() => window.location.reload()} 
+              style={{
+                background: '#007bff',
+                color: '#fff',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Simple test component
+const TestComponent = () => {
+  console.log('TestComponent rendering');
+  return (
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      background: '#f8f9fa',
+      color: '#007bff',
+      fontSize: '2rem',
+      fontWeight: 'bold'
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <h1>🚀 React App is Working!</h1>
+        <p style={{ fontSize: '1rem', marginTop: '1rem', color: '#6c757d' }}>
+          If you can see this, React is rendering correctly.
+        </p>
+        <button 
+          onClick={() => window.location.href = '/landing'} 
+          style={{
+            background: '#007bff',
+            color: '#fff',
+            border: 'none',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            marginTop: '1rem'
+          }}
+        >
+          Go to Landing Page
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const ProtectedRoute = ({ children, role: requiredRole }) => {
   const { isAuthenticated, role, loading } = useAuth();
+  
+  console.log('ProtectedRoute state:', { isAuthenticated, role, loading, requiredRole });
   
   if (loading) {
     return (
@@ -25,19 +119,34 @@ const ProtectedRoute = ({ children, role: requiredRole }) => {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        background: '#000',
-        color: '#007bff'
+        background: '#f8f9fa',
+        color: '#007bff',
+        fontSize: '1.2em',
+        fontWeight: 500
       }}>
-        Loading...
+        <div style={{ textAlign: 'center' }}>
+          <div className="loading-spinner" style={{
+            width: '40px',
+            height: '40px',
+            border: '4px solid #e3e3e3',
+            borderTop: '4px solid #007bff',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 1em'
+          }} />
+          <p>Loading...</p>
+        </div>
       </div>
     );
   }
   
   if (!isAuthenticated) {
+    console.log('User not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
   
   if (requiredRole && role !== requiredRole) {
+    console.log('User role mismatch, redirecting');
     return <Navigate to={role === 'admin' ? '/admin-panel' : '/dashboard'} replace />;
   }
   
@@ -47,16 +156,23 @@ const ProtectedRoute = ({ children, role: requiredRole }) => {
 function AppRoutes() {
   const { isAuthenticated, role } = useAuth();
 
+  console.log('AppRoutes render:', { isAuthenticated, role });
+
   return (
     <>
       <Navbar />
       <Routes>
+        {/* Test Route */}
+        <Route path="/test" element={<TestComponent />} />
+        
         {/* Public Routes */}
         <Route path="/" element={
           isAuthenticated ? 
             <Navigate to={role === 'admin' ? '/admin-panel' : '/dashboard'} replace /> : 
             <LandingPage />
         } />
+        
+        <Route path="/landing" element={<LandingPage />} />
         
         <Route path="/login" element={
           isAuthenticated ? 
@@ -101,14 +217,22 @@ function AppRoutes() {
 }
 
 function App() {
+  console.log('App component rendering');
+  
   return (
-    <AuthProvider>
-      <Router>
-        <div style={{ minHeight: '100vh', background: '#000' }}>
-          <AppRoutes />
-        </div>
-      </Router>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <div style={{ 
+            minHeight: '100vh', 
+            background: '#f8f9fa',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif'
+          }}>
+            <AppRoutes />
+          </div>
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

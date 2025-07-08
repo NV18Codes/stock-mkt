@@ -81,15 +81,16 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
     <>
       <div style={{ 
         display: 'flex', 
-        gap: '0.8em', 
-        marginTop: '1em',
-        flexDirection: 'row'
+        gap: 'clamp(0.5em, 1.5vw, 0.8em)', 
+        marginTop: 'clamp(0.8em, 2vw, 1em)',
+        flexDirection: 'row',
+        flexWrap: 'wrap'
       }}>
         <button
           onClick={() => isAdmin && openModal('BUY')}
           disabled={!selectedOption || !isAdmin}
           style={{
-            flex: 1,
+            flex: '1 1 200px',
             padding: 'clamp(0.6em, 2vw, 0.8em)',
             background: '#28a745',
             color: '#ffffff',
@@ -99,10 +100,14 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
             fontWeight: 600,
             cursor: selectedOption && isAdmin ? 'pointer' : 'not-allowed',
             opacity: selectedOption && isAdmin ? 1 : 0.6,
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            minHeight: 'clamp(40px, 8vw, 48px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
-          onMouseOver={(e) => selectedOption && (e.target.style.background = '#1e7e34')}
-          onMouseOut={(e) => selectedOption && (e.target.style.background = '#28a745')}
+          onMouseOver={(e) => selectedOption && isAdmin && (e.target.style.background = '#1e7e34')}
+          onMouseOut={(e) => selectedOption && isAdmin && (e.target.style.background = '#28a745')}
         >
           BUY
         </button>
@@ -111,7 +116,7 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
           onClick={() => isAdmin && openModal('SELL')}
           disabled={!selectedOption || !isAdmin}
           style={{
-            flex: 1,
+            flex: '1 1 200px',
             padding: 'clamp(0.6em, 2vw, 0.8em)',
             background: '#dc3545',
             color: '#ffffff',
@@ -121,10 +126,14 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
             fontWeight: 600,
             cursor: selectedOption && isAdmin ? 'pointer' : 'not-allowed',
             opacity: selectedOption && isAdmin ? 1 : 0.6,
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            minHeight: 'clamp(40px, 8vw, 48px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
-          onMouseOver={(e) => selectedOption && (e.target.style.background = '#c82333')}
-          onMouseOut={(e) => selectedOption && (e.target.style.background = '#dc3545')}
+          onMouseOver={(e) => selectedOption && isAdmin && (e.target.style.background = '#c82333')}
+          onMouseOut={(e) => selectedOption && isAdmin && (e.target.style.background = '#dc3545')}
         >
           SELL
         </button>
@@ -142,21 +151,24 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000
+          zIndex: 1000,
+          padding: 'clamp(0.5em, 2vw, 1em)'
         }}>
           <div style={{
             background: '#ffffff',
             borderRadius: '8px',
             padding: 'clamp(1em, 3vw, 1.5em)',
-            maxWidth: '400px',
-            width: '90%',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+            maxWidth: 'clamp(300px, 90vw, 400px)',
+            width: '100%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
           }}>
             <div style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
               alignItems: 'center', 
-              marginBottom: '1em' 
+              marginBottom: 'clamp(0.8em, 2vw, 1em)' 
             }}>
               <h3 style={{ 
                 color: '#28a745', 
@@ -171,10 +183,15 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
                 style={{
                   background: 'none',
                   border: 'none',
-                  fontSize: '1.5em',
+                  fontSize: 'clamp(1.2em, 3vw, 1.5em)',
                   cursor: 'pointer',
                   color: '#6c757d',
-                  padding: 0
+                  padding: 'clamp(0.2em, 0.5vw, 0.4em)',
+                  minWidth: 'clamp(30px, 6vw, 40px)',
+                  minHeight: 'clamp(30px, 6vw, 40px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
                 ×
@@ -184,9 +201,9 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
             {selectedOption && (
               <div style={{ 
                 background: '#f8f9fa', 
-                padding: '0.8em', 
+                padding: 'clamp(0.6em, 1.5vw, 0.8em)', 
                 borderRadius: '4px', 
-                marginBottom: '1em',
+                marginBottom: 'clamp(0.8em, 2vw, 1em)',
                 border: '1px solid #e9ecef'
               }}>
                 <div style={{ 
@@ -202,21 +219,20 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
                   color: '#6c757d' 
                 }}>
                   Strike: {selectedOption.strikePrice || 'N/A'} | 
-                  Type: {selectedOption.optionType || 'N/A'} | 
-                  Token: {selectedOption.token || 'N/A'}
+                  Type: {selectedOption.optionType || 'N/A'}
                 </div>
               </div>
             )}
 
-            <div style={{ marginBottom: '1em' }}>
+            <div style={{ marginBottom: 'clamp(0.8em, 2vw, 1em)' }}>
               <label style={{ 
-                color: '#2c3e50', 
-                fontWeight: 500, 
                 display: 'block', 
                 marginBottom: '0.3em', 
-                fontSize: 'clamp(12px, 2.5vw, 13px)' 
+                fontWeight: 500, 
+                color: '#2c3e50',
+                fontSize: 'clamp(11px, 2.2vw, 12px)'
               }}>
-                Quantity *
+                Quantity:
               </label>
               <input
                 type="number"
@@ -224,23 +240,26 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
                 value={tradeData.quantity}
                 onChange={handleInputChange}
                 placeholder="Enter quantity"
-                min="1"
-                required
                 style={{
                   width: '100%',
-                  padding: '0.6em',
+                  padding: 'clamp(0.5em, 1.5vw, 0.7em)',
                   border: '1px solid #e0e0e0',
                   borderRadius: '4px',
                   fontSize: 'clamp(12px, 2.5vw, 14px)',
-                  background: '#ffffff',
-                  color: '#2c3e50'
+                  minHeight: 'clamp(36px, 8vw, 44px)'
                 }}
               />
             </div>
 
-            <div style={{ marginBottom: '1em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>
-                Price *
+            <div style={{ marginBottom: 'clamp(0.8em, 2vw, 1em)' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '0.3em', 
+                fontWeight: 500, 
+                color: '#2c3e50',
+                fontSize: 'clamp(11px, 2.2vw, 12px)'
+              }}>
+                Price (₹):
               </label>
               <input
                 type="number"
@@ -248,23 +267,27 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
                 value={tradeData.price}
                 onChange={handleInputChange}
                 placeholder="Enter price"
-                min="0"
                 step="0.01"
-                required
                 style={{
                   width: '100%',
-                  padding: '0.6em',
+                  padding: 'clamp(0.5em, 1.5vw, 0.7em)',
                   border: '1px solid #e0e0e0',
                   borderRadius: '4px',
-                  fontSize: 14,
-                  background: '#fff'
+                  fontSize: 'clamp(12px, 2.5vw, 14px)',
+                  minHeight: 'clamp(36px, 8vw, 44px)'
                 }}
               />
             </div>
 
-            <div style={{ marginBottom: '1.5em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>
-                Order Type
+            <div style={{ marginBottom: 'clamp(1em, 2.5vw, 1.5em)' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '0.3em', 
+                fontWeight: 500, 
+                color: '#2c3e50',
+                fontSize: 'clamp(11px, 2.2vw, 12px)'
+              }}>
+                Order Type:
               </label>
               <select
                 name="orderType"
@@ -272,50 +295,62 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
                 onChange={handleInputChange}
                 style={{
                   width: '100%',
-                  padding: '0.6em',
+                  padding: 'clamp(0.5em, 1.5vw, 0.7em)',
                   border: '1px solid #e0e0e0',
                   borderRadius: '4px',
-                  fontSize: 14,
-                  background: '#fff'
+                  fontSize: 'clamp(12px, 2.5vw, 14px)',
+                  minHeight: 'clamp(36px, 8vw, 44px)'
                 }}
               >
-                <option value="MARKET">Market Order</option>
-                <option value="LIMIT">Limit Order</option>
-                <option value="STOP">Stop Order</option>
+                <option value="MARKET">Market</option>
+                <option value="LIMIT">Limit</option>
               </select>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.8em' }}>
+            <div style={{ 
+              display: 'flex', 
+              gap: 'clamp(0.5em, 1.5vw, 0.8em)',
+              flexWrap: 'wrap'
+            }}>
               <button
                 onClick={() => handleTrade('BUY')}
                 disabled={loading}
                 style={{
-                  flex: 1,
-                  padding: '0.8em',
+                  flex: '1 1 120px',
+                  padding: 'clamp(0.6em, 2vw, 0.8em)',
                   background: '#28a745',
-                  color: '#fff',
+                  color: '#ffffff',
                   border: 'none',
                   borderRadius: '4px',
-                  fontSize: 14,
+                  fontSize: 'clamp(11px, 2.2vw, 13px)',
                   fontWeight: 600,
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1
+                  opacity: loading ? 0.6 : 1,
+                  minHeight: 'clamp(40px, 8vw, 48px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
-                {loading ? 'Processing...' : 'Confirm Buy'}
+                {loading ? 'Processing...' : 'Place Buy Order'}
               </button>
+              
               <button
                 onClick={closeModal}
                 style={{
-                  flex: 1,
-                  padding: '0.8em',
+                  flex: '1 1 120px',
+                  padding: 'clamp(0.6em, 2vw, 0.8em)',
                   background: '#6c757d',
-                  color: '#fff',
+                  color: '#ffffff',
                   border: 'none',
                   borderRadius: '4px',
-                  fontSize: 14,
+                  fontSize: 'clamp(11px, 2.2vw, 13px)',
                   fontWeight: 600,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  minHeight: 'clamp(40px, 8vw, 48px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
                 Cancel
@@ -337,27 +372,47 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000
+          zIndex: 1000,
+          padding: 'clamp(0.5em, 2vw, 1em)'
         }}>
           <div style={{
-            background: '#fff',
+            background: '#ffffff',
             borderRadius: '8px',
-            padding: '1.5em',
-            maxWidth: '400px',
-            width: '90%',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+            padding: 'clamp(1em, 3vw, 1.5em)',
+            maxWidth: 'clamp(300px, 90vw, 400px)',
+            width: '100%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1em' }}>
-              <h3 style={{ color: '#dc3545', margin: 0, fontWeight: 600, fontSize: '1.2em' }}>Sell Order</h3>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: 'clamp(0.8em, 2vw, 1em)' 
+            }}>
+              <h3 style={{ 
+                color: '#dc3545', 
+                margin: 0, 
+                fontWeight: 600, 
+                fontSize: 'clamp(1em, 3vw, 1.2em)' 
+              }}>
+                Sell Order
+              </h3>
               <button
                 onClick={closeModal}
                 style={{
                   background: 'none',
                   border: 'none',
-                  fontSize: '1.5em',
+                  fontSize: 'clamp(1.2em, 3vw, 1.5em)',
                   cursor: 'pointer',
                   color: '#6c757d',
-                  padding: 0
+                  padding: 'clamp(0.2em, 0.5vw, 0.4em)',
+                  minWidth: 'clamp(30px, 6vw, 40px)',
+                  minHeight: 'clamp(30px, 6vw, 40px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
                 ×
@@ -367,25 +422,38 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
             {selectedOption && (
               <div style={{ 
                 background: '#f8f9fa', 
-                padding: '0.8em', 
+                padding: 'clamp(0.6em, 1.5vw, 0.8em)', 
                 borderRadius: '4px', 
-                marginBottom: '1em',
+                marginBottom: 'clamp(0.8em, 2vw, 1em)',
                 border: '1px solid #e9ecef'
               }}>
-                <div style={{ fontSize: 12, color: '#6c757d', marginBottom: '0.3em' }}>
+                <div style={{ 
+                  fontSize: 'clamp(11px, 2.2vw, 12px)', 
+                  color: '#2c3e50', 
+                  marginBottom: '0.3em',
+                  fontWeight: 500
+                }}>
                   Selected Option: {selectedOption.tradingSymbol || selectedOption.symbol || 'N/A'}
                 </div>
-                <div style={{ fontSize: 12, color: '#6c757d' }}>
+                <div style={{ 
+                  fontSize: 'clamp(10px, 2vw, 11px)', 
+                  color: '#6c757d' 
+                }}>
                   Strike: {selectedOption.strikePrice || 'N/A'} | 
-                  Type: {selectedOption.optionType || 'N/A'} | 
-                  Token: {selectedOption.token || 'N/A'}
+                  Type: {selectedOption.optionType || 'N/A'}
                 </div>
               </div>
             )}
 
-            <div style={{ marginBottom: '1em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>
-                Quantity *
+            <div style={{ marginBottom: 'clamp(0.8em, 2vw, 1em)' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '0.3em', 
+                fontWeight: 500, 
+                color: '#2c3e50',
+                fontSize: 'clamp(11px, 2.2vw, 12px)'
+              }}>
+                Quantity:
               </label>
               <input
                 type="number"
@@ -393,22 +461,26 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
                 value={tradeData.quantity}
                 onChange={handleInputChange}
                 placeholder="Enter quantity"
-                min="1"
-                required
                 style={{
                   width: '100%',
-                  padding: '0.6em',
+                  padding: 'clamp(0.5em, 1.5vw, 0.7em)',
                   border: '1px solid #e0e0e0',
                   borderRadius: '4px',
-                  fontSize: 14,
-                  background: '#fff'
+                  fontSize: 'clamp(12px, 2.5vw, 14px)',
+                  minHeight: 'clamp(36px, 8vw, 44px)'
                 }}
               />
             </div>
 
-            <div style={{ marginBottom: '1em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>
-                Price *
+            <div style={{ marginBottom: 'clamp(0.8em, 2vw, 1em)' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '0.3em', 
+                fontWeight: 500, 
+                color: '#2c3e50',
+                fontSize: 'clamp(11px, 2.2vw, 12px)'
+              }}>
+                Price (₹):
               </label>
               <input
                 type="number"
@@ -416,23 +488,27 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
                 value={tradeData.price}
                 onChange={handleInputChange}
                 placeholder="Enter price"
-                min="0"
                 step="0.01"
-                required
                 style={{
                   width: '100%',
-                  padding: '0.6em',
+                  padding: 'clamp(0.5em, 1.5vw, 0.7em)',
                   border: '1px solid #e0e0e0',
                   borderRadius: '4px',
-                  fontSize: 14,
-                  background: '#fff'
+                  fontSize: 'clamp(12px, 2.5vw, 14px)',
+                  minHeight: 'clamp(36px, 8vw, 44px)'
                 }}
               />
             </div>
 
-            <div style={{ marginBottom: '1.5em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>
-                Order Type
+            <div style={{ marginBottom: 'clamp(1em, 2.5vw, 1.5em)' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '0.3em', 
+                fontWeight: 500, 
+                color: '#2c3e50',
+                fontSize: 'clamp(11px, 2.2vw, 12px)'
+              }}>
+                Order Type:
               </label>
               <select
                 name="orderType"
@@ -440,60 +516,72 @@ const BuySellButtons = ({ selectedOption, onTrade, isAdmin = false }) => {
                 onChange={handleInputChange}
                 style={{
                   width: '100%',
-                  padding: '0.6em',
+                  padding: 'clamp(0.5em, 1.5vw, 0.7em)',
                   border: '1px solid #e0e0e0',
                   borderRadius: '4px',
-                  fontSize: 14,
-                  background: '#fff'
+                  fontSize: 'clamp(12px, 2.5vw, 14px)',
+                  minHeight: 'clamp(36px, 8vw, 44px)'
                 }}
               >
-                <option value="MARKET">Market Order</option>
-                <option value="LIMIT">Limit Order</option>
-                <option value="STOP">Stop Order</option>
+                <option value="MARKET">Market</option>
+                <option value="LIMIT">Limit</option>
               </select>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.8em' }}>
+            <div style={{ 
+              display: 'flex', 
+              gap: 'clamp(0.5em, 1.5vw, 0.8em)',
+              flexWrap: 'wrap'
+            }}>
               <button
                 onClick={() => handleTrade('SELL')}
                 disabled={loading}
                 style={{
-                  flex: 1,
-                  padding: '0.8em',
+                  flex: '1 1 120px',
+                  padding: 'clamp(0.6em, 2vw, 0.8em)',
                   background: '#dc3545',
-                  color: '#fff',
+                  color: '#ffffff',
                   border: 'none',
                   borderRadius: '4px',
-                  fontSize: 14,
+                  fontSize: 'clamp(11px, 2.2vw, 13px)',
                   fontWeight: 600,
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1
+                  opacity: loading ? 0.6 : 1,
+                  minHeight: 'clamp(40px, 8vw, 48px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
-                {loading ? 'Processing...' : 'Confirm Sell'}
+                {loading ? 'Processing...' : 'Place Sell Order'}
               </button>
+              
               <button
                 onClick={closeModal}
                 style={{
-                  flex: 1,
-                  padding: '0.8em',
+                  flex: '1 1 120px',
+                  padding: 'clamp(0.6em, 2vw, 0.8em)',
                   background: '#6c757d',
-                  color: '#fff',
+                  color: '#ffffff',
                   border: 'none',
                   borderRadius: '4px',
-                  fontSize: 14,
+                  fontSize: 'clamp(11px, 2.2vw, 13px)',
                   fontWeight: 600,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  minHeight: 'clamp(40px, 8vw, 48px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
               >
                 Cancel
               </button>
             </div>
           </div>
-  </div>
+        </div>
       )}
     </>
-);
+  );
 };
 
 export default BuySellButtons; 

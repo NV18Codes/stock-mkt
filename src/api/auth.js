@@ -13,12 +13,24 @@ axios.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// AUTH API endpoints
 export const signup = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/signup', data);
 export const signin = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/signin', data);
 export const signout = () => axios.get('https://apistocktrading-production.up.railway.app/api/auth/signout');
+export const getCurrentUser = () => axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+export const forgotPassword = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/forgot-password', data);
+export const resetPassword = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/reset-password', data);
 
-// Enhanced getCurrentUser with better error handling and data normalization
-export const getCurrentUser = async () => {
+// USER API endpoints
+export const userProfileUpdate = (data) => axios.put('https://apistocktrading-production.up.railway.app/api/users/me/profileUpdate', data);
+export const addBrokerAccount = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/connect', data);
+export const getDematLimit = () => axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/rmsLimit');
+export const verifyBrokerConnection = () => axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/verify');
+export const fetchMyBrokerProfile = () => axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/profile');
+export const fetchBrokerConnectionStatus = () => axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/status');
+
+// Enhanced get current user details with better error handling and data normalization
+export const getCurrentUserEnhanced = async () => {
   try {
     const response = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
     console.log('Raw current user response:', response.data);
@@ -66,9 +78,6 @@ export const getCurrentUser = async () => {
     throw error;
   }
 };
-
-export const forgotPassword = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/forgot-password', data);
-export const resetPassword = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/reset-password', data);
 
 // Enhanced profile update endpoint
 export const updateProfile = async (data) => {
@@ -199,17 +208,10 @@ export const getUserProfile = async () => {
         return { data: normalizedProfile };
       } catch (altError) {
         console.error('Alternative profile endpoint also failed:', altError);
+        throw error; // Throw the original error
       }
     }
     
-    // If all profile endpoints fail, try to get current user data
-    try {
-      console.log('All profile endpoints failed, falling back to current user data');
-      const currentUserResponse = await getCurrentUser();
-      return currentUserResponse;
-    } catch (currentUserError) {
-      console.error('Error fetching current user as fallback:', currentUserError);
-      throw error;
-    }
+    throw error;
   }
 }; 
