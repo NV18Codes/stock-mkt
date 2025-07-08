@@ -24,7 +24,8 @@ import {
   Legend,
 } from 'chart.js';
 import { Link } from 'react-router-dom';
-import ChartArea from './ChartArea';
+import OrderList from './OrderList';
+import TradeList from './TradeList';
 
 ChartJS.register(
   CategoryScale,
@@ -125,6 +126,8 @@ const TradingPortal = () => {
   const [refreshInterval, setRefreshInterval] = useState(5000); // 5 seconds default
   const [autoRefresh, setAutoRefresh] = useState(true);
   const pollingRef = useRef(null);
+  const [clearBrokerStatus, setClearBrokerStatus] = useState('');
+  const [clearBrokerLoading, setClearBrokerLoading] = useState(false);
 
   useEffect(() => {
     const fetchUserData = () => {
@@ -252,6 +255,26 @@ const TradingPortal = () => {
     } catch (error) {
       console.error('Error placing trade:', error);
       throw error;
+    }
+  };
+
+  // Add clear broker profile handler
+  const handleClearBrokerProfile = async () => {
+    setClearBrokerLoading(true);
+    setClearBrokerStatus('');
+    try {
+      const res = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/clear');
+      if (res && res.data && res.data.success) {
+        setClearBrokerStatus('Broker profile cleared successfully.');
+        // Optionally refresh user data
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        setClearBrokerStatus('Failed to clear broker profile.');
+      }
+    } catch (err) {
+      setClearBrokerStatus('Failed to clear broker profile.');
+    } finally {
+      setClearBrokerLoading(false);
     }
   };
 
@@ -389,12 +412,35 @@ const TradingPortal = () => {
               Account ID: {userData.broker.accountId}
             </p>
           </div>
-          <Link to="/broker-settings" className="btn btn-primary" style={{ 
-            padding: '0.5em 1em',
-            alignSelf: 'flex-start'
-          }}>
-            Manage
-          </Link>
+          <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap' }}>
+            <Link to="/broker-settings" className="btn btn-primary" style={{ 
+              padding: '0.5em 1em',
+              alignSelf: 'flex-start'
+            }}>
+              Manage
+            </Link>
+            <button
+              onClick={handleClearBrokerProfile}
+              disabled={clearBrokerLoading}
+              style={{
+                padding: '0.5em 1em',
+                background: '#dc3545',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 4,
+                fontWeight: 500,
+                cursor: clearBrokerLoading ? 'not-allowed' : 'pointer',
+                opacity: clearBrokerLoading ? 0.6 : 1
+              }}
+            >
+              {clearBrokerLoading ? 'Clearing...' : 'Clear Broker Profile'}
+            </button>
+          </div>
+          {clearBrokerStatus && (
+            <div style={{ color: clearBrokerStatus.includes('success') ? '#28a745' : '#dc3545', fontWeight: 500, marginTop: 8 }}>
+              {clearBrokerStatus}
+            </div>
+          )}
         </div>
       </div>
 
@@ -538,9 +584,13 @@ const TradingPortal = () => {
         </div>
       </div>
 
-      {/* Portfolio Performance Chart */}
+      {/* Order List Section */}
       <div style={{ marginBottom: '1.5em' }}>
-        <ChartArea data={userData.portfolio.history} />
+        <OrderList />
+      </div>
+      {/* Trade List Section */}
+      <div style={{ marginBottom: '1.5em' }}>
+        <TradeList />
       </div>
 
       {/* Segment Selection */}
