@@ -469,7 +469,7 @@ const TradingPortal = () => {
 
       {/* TradingView Chart */}
       <div style={{ marginBottom: '2em' }}>
-        <TradingViewWidget symbol={underlying} />
+        <TradingViewWidget symbol="NIFTY" />
       </div>
 
       {/* Order and Trade Lists */}
