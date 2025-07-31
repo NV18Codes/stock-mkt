@@ -5,6 +5,7 @@ const TradeLog = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
 
   useEffect(() => {
     fetchTradeLogs();
@@ -13,6 +14,7 @@ const TradeLog = () => {
   const fetchTradeLogs = async () => {
     setLoading(true);
     setError('');
+    setInfoMessage('');
     try {
       const response = await getTradeLogs();
       console.log('Trade logs response:', response);
@@ -29,9 +31,15 @@ const TradeLog = () => {
       }
       
       setLogs(Array.isArray(logsData) ? logsData : []);
+      
+      // Show info message if using fallback
+      if (response && response.message) {
+        setInfoMessage(response.message);
+      }
     } catch (err) {
       console.error('Error fetching trade logs:', err);
-      setError('Failed to fetch trade logs');
+      setError('Failed to fetch trade logs. Please try again later.');
+      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -72,6 +80,19 @@ const TradeLog = () => {
           border: '1px solid #f5c6cb'
         }}>
           {error}
+        </div>
+      )}
+
+      {infoMessage && (
+        <div style={{ 
+          background: '#e2f0d9', 
+          color: '#155724', 
+          padding: '1em', 
+          borderRadius: '8px', 
+          marginBottom: '1em',
+          border: '1px solid #d4edda'
+        }}>
+          {infoMessage}
         </div>
       )}
 

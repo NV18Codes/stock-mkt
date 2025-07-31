@@ -14,6 +14,8 @@ import Navbar from './components/common/Navbar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import UserLayout from './layouts/UserLayout';
 import AdminLayout from './layouts/AdminLayout';
+import TradeHistory from './components/admin/TradeHistory';
+import TradeLog from './components/admin/TradeLog';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -71,7 +73,6 @@ class ErrorBoundary extends React.Component {
 
 // Simple test component
 const TestComponent = () => {
-  console.log('TestComponent rendering');
   return (
     <div style={{ 
       minHeight: '100vh', 
@@ -110,8 +111,6 @@ const TestComponent = () => {
 const ProtectedRoute = ({ children, role: requiredRole }) => {
   const { isAuthenticated, role, loading } = useAuth();
   
-  console.log('ProtectedRoute state:', { isAuthenticated, role, loading, requiredRole });
-  
   if (loading) {
     return (
       <div style={{ 
@@ -141,12 +140,10 @@ const ProtectedRoute = ({ children, role: requiredRole }) => {
   }
   
   if (!isAuthenticated) {
-    console.log('User not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
   
   if (requiredRole && role !== requiredRole) {
-    console.log('User role mismatch, redirecting');
     return <Navigate to={role === 'admin' ? '/admin-panel' : '/dashboard'} replace />;
   }
   
@@ -155,8 +152,6 @@ const ProtectedRoute = ({ children, role: requiredRole }) => {
 
 function AppRoutes() {
   const { isAuthenticated, role } = useAuth();
-
-  console.log('AppRoutes render:', { isAuthenticated, role });
 
   return (
     <>
@@ -207,6 +202,8 @@ function AppRoutes() {
           <Route path="admin-settings" element={<AdminProfileSettings />} />
           <Route path="user-management" element={<UserManagement />} />
           <Route path="admin-trading-portal" element={<AdminTradingPortal />} />
+          <Route path="trades" element={<TradeHistory />} />
+          <Route path="logs" element={<TradeLog />} />
         </Route>
 
         {/* Fallback */}
@@ -217,8 +214,6 @@ function AppRoutes() {
 }
 
 function App() {
-  console.log('App component rendering');
-  
   return (
     <ErrorBoundary>
       <AuthProvider>

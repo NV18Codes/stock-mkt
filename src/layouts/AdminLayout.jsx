@@ -75,6 +75,36 @@ const AdminLayout = () => {
           >
             Trading Portal
           </NavLink>
+          <NavLink
+            to="/admin-panel/trades"
+            style={({ isActive }) => ({
+              padding: '0.8em 1em',
+              borderRadius: '6px',
+              color: isActive ? '#fff' : '#495057',
+              background: isActive ? '#007bff' : 'transparent',
+              textDecoration: 'none',
+              transition: 'all 0.3s ease',
+              fontWeight: isActive ? 600 : 500,
+              border: isActive ? 'none' : '1px solid transparent'
+            })}
+          >
+            Trade History
+          </NavLink>
+          <NavLink
+            to="/admin-panel/logs"
+            style={({ isActive }) => ({
+              padding: '0.8em 1em',
+              borderRadius: '6px',
+              color: isActive ? '#fff' : '#495057',
+              background: isActive ? '#007bff' : 'transparent',
+              textDecoration: 'none',
+              transition: 'all 0.3s ease',
+              fontWeight: isActive ? 600 : 500,
+              border: isActive ? 'none' : '1px solid transparent'
+            })}
+          >
+            System Logs
+          </NavLink>
 
           <NavLink
             to="/admin-panel/admin-settings"

@@ -1,75 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import {
+  addBrokerAccount,
+  verifyBrokerConnection,
+  fetchMyBrokerProfile,
+  fetchBrokerConnectionStatus,
+  clearBrokerProfile,
+  getDematLimit
+} from '../../api/auth';
 
 const API = 'https://apistocktrading-production.up.railway.app/api';
 
 const BROKERS = [
-  { id: 'angelone', name: 'Angel One', apiEndpoint: 'https://apiconnect.angelbroking.com' },
-  { id: 'zerodha', name: 'Zerodha', apiEndpoint: 'https://api.kite.trade' },
-  { id: 'groww', name: 'Groww', apiEndpoint: 'https://groww.in/api' },
-  { id: 'upstox', name: 'Upstox', apiEndpoint: 'https://api.upstox.com' }
+  { id: 'angelone', name: 'Angel One', apiEndpoint: 'https://apiconnect.angelbroking.com', logo: '🟢' },
+  { id: 'zerodha', name: 'Zerodha', apiEndpoint: 'https://api.kite.trade', logo: '🔵' },
+  { id: 'groww', name: 'Groww', apiEndpoint: 'https://groww.in/api', logo: '🟣' },
+  { id: 'upstox', name: 'Upstox', apiEndpoint: 'https://api.upstox.com', logo: '🟠' }
 ];
-
-// Test data for development
-const TEST_BROKER_DATA = {
-  name: 'User One',
-  email: 'user1@gmail.com',
-  phone: '+91 98765 43210',
-  broker: {
-    name: 'Angel One',
-    status: 'ACTIVE',
-    accountId: 'A123456',
-    lastSync: new Date().toISOString()
-  },
-  portfolio: {
-    capitalAmount: 1000000, // 10 Lakhs
-    investedAmount: 750000, // 7.5 Lakhs
-    availableFunds: 250000, // 2.5 Lakhs
-    rmsLimit: 2000000, // 20 Lakhs
-    portfolioValue: 825000, // 8.25 Lakhs
-    todaysPnL: 15000,
-    overallPnL: 75000,
-    holdings: [
-      {
-        symbol: 'RELIANCE',
-        quantity: 100,
-        avgPrice: 2450.75,
-        ltp: 2575.50,
-        currentValue: 257550,
-        pnl: 12475,
-        pnlPercentage: 5.09,
-        dayChange: 25.75,
-        dayChangePercentage: 1.01
-      },
-      {
-        symbol: 'TCS',
-        quantity: 50,
-        avgPrice: 3200.00,
-        ltp: 3350.25,
-        currentValue: 167512.50,
-        pnl: 7512.50,
-        pnlPercentage: 4.69,
-        dayChange: 45.25,
-        dayChangePercentage: 1.37
-      },
-      {
-        symbol: 'INFY',
-        quantity: 150,
-        avgPrice: 1475.50,
-        ltp: 1525.75,
-        currentValue: 228862.50,
-        pnl: 7537.50,
-        pnlPercentage: 3.41,
-        dayChange: 15.75,
-        dayChangePercentage: 1.04
-      }
-    ],
-    history: Array.from({ length: 30 }, (_, i) => ({
-      date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString(),
-      value: 750000 + Math.random() * 100000
-    }))
-  }
-};
 
 const BrokerAccountSettings = () => {
   const [formData, setFormData] = useState({
@@ -87,40 +34,55 @@ const BrokerAccountSettings = () => {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [dematLimit, setDematLimit] = useState(null);
+  const [showConnectForm, setShowConnectForm] = useState(false);
+
+  const fetchBrokerInfo = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      // Fetch broker connection status
+      const statusRes = await fetchBrokerConnectionStatus();
+      const statusValue = statusRes.data?.status || 'NOT_CONNECTED';
+      setStatus(statusValue);
+      
+      // Fetch broker profile if connected
+      if (statusValue === 'ACTIVE') {
+        const profileRes = await fetchMyBrokerProfile();
+        setBrokerData(profileRes.data);
+        setFormData(prev => ({
+          ...prev,
+          broker: profileRes.data?.brokerName || '',
+          accountId: profileRes.data?.accountId || '',
+          mpin: '',
+          totp: ''
+        }));
+        
+        // Fetch demat limit
+        try {
+          const dematRes = await getDematLimit();
+          setDematLimit(dematRes.data);
+        } catch (dematErr) {
+          console.error('Error fetching demat limit:', dematErr);
+          setDematLimit(null);
+        }
+      } else {
+        setBrokerData(null);
+        setDematLimit(null);
+      }
+    } catch (err) {
+      console.error('Error fetching broker info:', err);
+      setError('Failed to fetch broker status');
+      setStatus('NOT_CONNECTED');
+      setBrokerData(null);
+      setDematLimit(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStatus = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        // For testing, we'll simulate the API call
-        const storedStatus = localStorage.getItem('testBrokerStatus');
-        const storedBroker = localStorage.getItem('testBrokerData');
-        
-        if (storedStatus && storedBroker) {
-          setStatus(storedStatus);
-          setBrokerData(JSON.parse(storedBroker));
-          if (storedStatus === 'ACTIVE') {
-            setFormData(prev => ({
-              ...prev,
-              broker: 'angelone',
-              accountId: 'A123456',
-              mpin: '',
-              totp: ''
-            }));
-          }
-        } else {
-          setStatus('NOT_CONNECTED');
-        }
-      } catch (err) {
-        console.error('Error fetching broker status:', err);
-        setError('Failed to fetch broker status');
-        setStatus('NOT_CONNECTED');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStatus();
+    fetchBrokerInfo();
   }, []);
 
   const handleChange = (e) => {
@@ -131,312 +93,708 @@ const BrokerAccountSettings = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleConnect = async (e) => {
     e.preventDefault();
+    
+    // Validation
+    if (!formData.broker || !formData.accountId || !formData.apiKey || !formData.apiSecret) {
+      setError('Please fill in all required fields');
+      return;
+    }
+    
     setSaving(true);
     setError('');
     setSuccess('');
+    
     try {
-      // For testing, we'll simulate the connection
-      const initialData = {
-        name: 'User One',
-        email: 'user1@gmail.com',
-        phone: '+91 98765 43210',
-        broker: {
-          name: formData.broker === 'angelone' ? 'Angel One' :
-                formData.broker === 'zerodha' ? 'Zerodha' :
-                formData.broker === 'groww' ? 'Groww' : 'Upstox',
-          status: 'PENDING_VERIFICATION',
-          accountId: formData.accountId,
-          lastSync: new Date().toISOString()
-        }
-      };
-      localStorage.setItem('testBrokerStatus', 'PENDING_VERIFICATION');
-      localStorage.setItem('testBrokerData', JSON.stringify(initialData));
-      setStatus('PENDING_VERIFICATION');
-      setBrokerData(initialData);
-      setSuccess('Broker connection initiated! Please verify your account.');
+      const response = await addBrokerAccount({
+        broker: formData.broker,
+        accountId: formData.accountId,
+        apiKey: formData.apiKey,
+        apiSecret: formData.apiSecret
+      });
+      
+      if (response.success) {
+        setSuccess('Broker account connected successfully! Please complete the verification step below with your MPIN and TOTP.');
+        setStatus('CONNECTED');
+        setShowConnectForm(false);
+        // Don't refresh - let user complete verification
+        // Refresh broker data after a delay without page reload
+        setTimeout(() => {
+          fetchBrokerInfo();
+        }, 1000);
+      } else {
+        setError(response.message || 'Failed to connect broker account');
+      }
     } catch (err) {
       console.error('Error connecting broker:', err);
-      setError('Failed to connect broker');
+      setError(err.response?.data?.message || 'Failed to connect broker account');
     } finally {
       setSaving(false);
     }
   };
 
   const handleVerify = async () => {
+    // Validation
+    if (!formData.mpin || !formData.totp) {
+      setError('Please enter both MPIN and TOTP code');
+      return;
+    }
+    
     setVerifying(true);
     setError('');
     setSuccess('');
+    
     try {
-      // For testing, we'll simulate verification
-      const verifiedData = {
-        ...TEST_BROKER_DATA,
-        broker: {
-          ...TEST_BROKER_DATA.broker,
-          accountId: formData.accountId,
-          lastSync: new Date().toISOString()
-        }
-      };
-      localStorage.setItem('testBrokerStatus', 'ACTIVE');
-      localStorage.setItem('testBrokerData', JSON.stringify(verifiedData));
-      setStatus('ACTIVE');
-      setBrokerData(verifiedData);
-      setSuccess('Broker account verified successfully! Your trading information has been synced.');
-      setFormData(prev => ({ ...prev, totp: '' }));
+      const response = await verifyBrokerConnection({
+        mpin: formData.mpin,
+        totp: formData.totp
+      });
+      
+      if (response.success) {
+        setSuccess('Broker connection verified successfully! Your account is now active for trading.');
+        setStatus('ACTIVE');
+        // Refresh broker data without page reload
+        setTimeout(() => {
+          fetchBrokerInfo();
+        }, 1000);
+      } else {
+        setError(response.message || 'Failed to verify broker connection');
+      }
     } catch (err) {
       console.error('Error verifying broker:', err);
-      setError('Failed to verify broker account');
+      setError(err.response?.data?.message || 'Failed to verify broker connection');
     } finally {
       setVerifying(false);
     }
   };
 
-  const handleToggleStatus = async () => {
-    setLoading(true);
+  const handleClear = async () => {
+    if (!window.confirm('Are you sure you want to disconnect your broker account? This action cannot be undone.')) {
+      return;
+    }
+    
+    setSaving(true);
     setError('');
     setSuccess('');
+    
     try {
-      const newStatus = status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-      localStorage.setItem('testBrokerStatus', newStatus);
-      if (newStatus === 'ACTIVE') {
-        const updatedData = {
-          ...TEST_BROKER_DATA,
-          broker: {
-            ...TEST_BROKER_DATA.broker,
-            accountId: formData.accountId || 'A123456',
-            lastSync: new Date().toISOString()
-          }
-        };
-        localStorage.setItem('testBrokerData', JSON.stringify(updatedData));
-        setBrokerData(updatedData);
-        setSuccess('Broker account activated and trading information synced');
-      } else {
-        localStorage.removeItem('testBrokerData');
-        setBrokerData(null);
-        setSuccess('Broker account deactivated');
-      }
-      setStatus(newStatus);
+      await clearBrokerProfile();
+      setSuccess('Broker account disconnected successfully');
+      setStatus('NOT_CONNECTED');
+      setBrokerData(null);
+      setDematLimit(null);
+      setFormData({
+        broker: '',
+        accountId: '',
+        apiKey: '',
+        apiSecret: '',
+        mpin: '',
+        totp: ''
+      });
     } catch (err) {
-      console.error('Error updating broker status:', err);
-      setError('Failed to update broker status');
+      console.error('Error clearing broker:', err);
+      setError(err.response?.data?.message || 'Failed to disconnect broker account');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
+  };
+
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      'NOT_CONNECTED': { color: '#dc3545', bg: '#f8d7da', text: 'Not Connected', icon: '❌' },
+      'CONNECTED': { color: '#856404', bg: '#fff3cd', text: 'Connected', icon: '⚠️' },
+      'ACTIVE': { color: '#155724', bg: '#d4edda', text: 'Active', icon: '✅' },
+      'VERIFYING': { color: '#0c5460', bg: '#d1ecf1', text: 'Verifying', icon: '🔄' }
+    };
+    
+    const config = statusConfig[status] || statusConfig['NOT_CONNECTED'];
+    
+    return (
+      <span style={{
+        color: config.color,
+        background: config.bg,
+        padding: '0.4em 0.8em',
+        borderRadius: '20px',
+        fontSize: 'clamp(11px, 2.5vw, 13px)',
+        fontWeight: 600,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.3em'
+      }}>
+        <span>{config.icon}</span>
+        {config.text}
+      </span>
+    );
   };
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: 'clamp(2em, 5vw, 4em)', background: '#fff', minHeight: '60vh' }}>
-        <div className="loading-spinner" />
-        <p style={{ color: '#2c3e50', marginTop: '1em', fontSize: 'clamp(14px, 2.5vw, 16px)', fontWeight: 500 }}>Loading broker settings...</p>
+      <div style={{ 
+        textAlign: 'center', 
+        padding: '3em',
+        background: '#ffffff',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <div className="loading-spinner" style={{
+          width: '50px',
+          height: '50px',
+          border: '4px solid #e3e3e3',
+          borderTop: '4px solid #007bff',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '1em'
+        }} />
+        <p style={{ 
+          color: '#2c3e50', 
+          fontSize: 'clamp(14px, 2.5vw, 16px)',
+          fontWeight: 500
+        }}>
+          Loading broker settings...
+        </p>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto', padding: 'clamp(2em, 5vw, 3em)' }}>
-      <h1 style={{ color: '#007bff', marginBottom: '1.5em', textAlign: 'center', fontWeight: 700, fontSize: 'clamp(1.5em, 4vw, 2.2em)' }}>Broker Settings</h1>
-
+    <div style={{ 
+      maxWidth: 1200, 
+      margin: '0 auto', 
+      padding: 'clamp(1.5em, 3vw, 2em)', 
+      background: '#f8f9fa', 
+      minHeight: '100vh' 
+    }}>
+      <h1 style={{ 
+        color: '#2c3e50', 
+        marginBottom: '1.5em', 
+        textAlign: 'center', 
+        fontWeight: 600, 
+        fontSize: 'clamp(1.8em, 4vw, 2.2em)'
+      }}>
+        Broker Account Settings
+      </h1>
+      
       {error && (
-        <div className="error-message" style={{ background: '#f8d7da', color: '#721c24', padding: '1em', borderRadius: 8, marginBottom: '1em', border: '1px solid #f5c6cb', fontWeight: 500 }}>
-          {error}
+        <div style={{ 
+          background: '#f8d7da', 
+          color: '#721c24', 
+          padding: '1em', 
+          borderRadius: '8px', 
+          marginBottom: '1.5em', 
+          border: '1px solid #f5c6cb', 
+          fontSize: 14,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5em'
+        }}>
+          <span>⚠️</span>
+          <span>{error}</span>
         </div>
       )}
       
       {success && (
-        <div className="success-message" style={{ background: '#d4edda', color: '#155724', padding: '1em', borderRadius: 8, marginBottom: '1em', border: '1px solid #c3e6cb', fontWeight: 500 }}>
-          {success}
+        <div style={{ 
+          background: '#d4edda', 
+          color: '#155724', 
+          padding: '1em', 
+          borderRadius: '8px', 
+          marginBottom: '1.5em', 
+          border: '1px solid #c3e6cb', 
+          fontSize: 14,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5em'
+        }}>
+          <span>✅</span>
+          <span>{success}</span>
         </div>
       )}
 
-      <div className="card" style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 8, boxShadow: '0 1px 6px rgba(0,0,0,0.08)', padding: '2em', marginBottom: '2em' }}>
-        <h2 style={{ color: '#2c3e50', marginBottom: '1em', fontWeight: 600, fontSize: 'clamp(1.1em, 3vw, 1.3em)' }}>Broker Status</h2>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1em', flexWrap: 'wrap', gap: '1em' }}>
-          <div>
-            <p style={{ color: '#2c3e50', fontWeight: 500 }}>Current Status:
-              <span style={{
-                color: status === 'ACTIVE' ? '#28a745' : status === 'INACTIVE' ? '#ffc107' : '#dc3545',
-                marginLeft: '0.5em',
-                fontWeight: 700
+      <div style={{ 
+        display: 'grid', 
+        gap: '2em', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' 
+      }}>
+        {/* Current Status */}
+        <div style={{ 
+          padding: '2em', 
+          background: '#fff', 
+          borderRadius: '12px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
+          border: '1px solid #e0e0e0' 
+        }}>
+          <h2 style={{ 
+            color: '#2c3e50', 
+            marginBottom: '1.5em', 
+            fontWeight: 600, 
+            fontSize: '1.4em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5em'
+          }}>
+            <span>📊</span>
+            Connection Status
+          </h2>
+          
+          <div style={{ display: 'grid', gap: '1.5em' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '1em',
+              background: '#f8f9fa',
+              borderRadius: '8px'
+            }}>
+              <span style={{ color: '#495057', fontSize: 14, fontWeight: 500 }}>Status</span>
+              {getStatusBadge(status)}
+            </div>
+            
+            {brokerData && (
+              <>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  padding: '1em',
+                  background: '#f8f9fa',
+                  borderRadius: '8px'
+                }}>
+                  <span style={{ color: '#495057', fontSize: 14, fontWeight: 500 }}>Broker</span>
+                  <span style={{ color: '#2c3e50', fontSize: 14, fontWeight: 600 }}>
+                    {brokerData.brokerName || 'Unknown'}
+                  </span>
+                </div>
+                
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  padding: '1em',
+                  background: '#f8f9fa',
+                  borderRadius: '8px'
+                }}>
+                  <span style={{ color: '#495057', fontSize: 14, fontWeight: 500 }}>Account ID</span>
+                  <span style={{ color: '#2c3e50', fontSize: 14, fontWeight: 600 }}>
+                    {brokerData.accountId || 'N/A'}
+                  </span>
+                </div>
+              </>
+            )}
+            
+            {dematLimit && (
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                padding: '1em',
+                background: '#f8f9fa',
+                borderRadius: '8px'
               }}>
-                {status.replace('_', ' ')}
-              </span>
-            </p>
-            {formData.broker && (
-              <p style={{ color: '#6c757d', marginTop: '0.5em', fontWeight: 500 }}>
-                Broker: <span style={{ color: '#2c3e50', fontWeight: 600 }}>
-                  {BROKERS.find(b => b.id === formData.broker)?.name}
+                <span style={{ color: '#495057', fontSize: 14, fontWeight: 500 }}>Available Balance</span>
+                <span style={{ color: '#28a745', fontSize: 14, fontWeight: 600 }}>
+                  ₹{dematLimit.net?.toLocaleString() || '0'}
                 </span>
-              </p>
+              </div>
             )}
           </div>
-          {(status === 'ACTIVE' || status === 'INACTIVE') && (
-            <button
-              className="btn"
-              onClick={handleToggleStatus}
-              style={{
-                background: status === 'ACTIVE' ? '#dc3545' : '#28a745',
-                color: '#fff',
-                minWidth: 120,
-                border: 'none',
-                borderRadius: 6,
-                fontWeight: 600,
-                fontSize: 'clamp(13px, 2.5vw, 15px)',
-                padding: '0.7em 1.2em',
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-              disabled={loading}
-            >
-              {loading ? 'Processing...' : status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-            </button>
-          )}
         </div>
 
-        {brokerData && (
-          <div style={{ marginTop: '1em', padding: '1em', background: '#f8f9fa', borderRadius: '6px' }}>
-            <h3 style={{ color: '#2c3e50', marginBottom: '1em', fontWeight: 600, fontSize: 'clamp(1em, 2.5vw, 1.1em)' }}>Synced Trading Information</h3>
-            <div style={{ display: 'grid', gap: '1em', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-              <div>
-                <p style={{ color: '#6c757d', fontWeight: 500 }}>Capital Amount</p>
-                <p style={{ color: '#2c3e50', fontWeight: 600, fontSize: 'clamp(1em, 2.5vw, 1.1em)' }}>
-                  ₹{brokerData.portfolio?.capitalAmount?.toLocaleString() || '0'}
-                </p>
+        {/* Actions */}
+        <div style={{ 
+          padding: '2em', 
+          background: '#fff', 
+          borderRadius: '12px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
+          border: '1px solid #e0e0e0' 
+        }}>
+          <h2 style={{ 
+            color: '#2c3e50', 
+            marginBottom: '1.5em', 
+            fontWeight: 600, 
+            fontSize: '1.4em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5em'
+          }}>
+            <span>⚙️</span>
+            Actions
+          </h2>
+          
+          <div style={{ display: 'grid', gap: '1em' }}>
+            {status === 'NOT_CONNECTED' && (
+              <button
+                onClick={() => setShowConnectForm(true)}
+                style={{
+                  width: '100%',
+                  padding: '1em',
+                  background: '#007bff',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Connect Broker Account
+              </button>
+            )}
+            
+            {status === 'CONNECTED' && (
+              <button
+                onClick={handleVerify}
+                disabled={verifying}
+                style={{
+                  width: '100%',
+                  padding: '1em',
+                  background: verifying ? '#6c757d' : '#28a745',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: verifying ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {verifying ? 'Verifying...' : 'Verify Connection'}
+              </button>
+            )}
+            
+            {(status === 'CONNECTED' || status === 'ACTIVE') && (
+              <button
+                onClick={handleClear}
+                disabled={saving}
+                style={{
+                  width: '100%',
+                  padding: '1em',
+                  background: saving ? '#6c757d' : '#dc3545',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {saving ? 'Disconnecting...' : 'Disconnect Broker'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Connect Form */}
+        {showConnectForm && (
+          <div style={{ 
+            padding: '2em', 
+            background: '#fff', 
+            borderRadius: '12px', 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
+            border: '1px solid #e0e0e0',
+            gridColumn: '1 / -1'
+          }}>
+            <h2 style={{ 
+              color: '#2c3e50', 
+              marginBottom: '1.5em', 
+              fontWeight: 600, 
+              fontSize: '1.4em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5em'
+            }}>
+              <span>🔗</span>
+              Connect New Broker
+            </h2>
+            
+            <form onSubmit={handleConnect}>
+              <div style={{ display: 'grid', gap: '1.5em' }}>
+                <div>
+                  <label style={{ 
+                    color: '#495057', 
+                    fontWeight: 500, 
+                    display: 'block', 
+                    marginBottom: '0.5em', 
+                    fontSize: 14 
+                  }}>
+                    Select Broker *
+                  </label>
+                  <select
+                    name="broker"
+                    value={formData.broker}
+                    onChange={handleChange}
+                    required
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.8em', 
+                      border: '1px solid #e0e0e0', 
+                      borderRadius: '6px', 
+                      fontSize: 14, 
+                      background: '#fff' 
+                    }}
+                  >
+                    <option value="">Choose a broker</option>
+                    {BROKERS.map(broker => (
+                      <option key={broker.id} value={broker.id}>
+                        {broker.logo} {broker.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label style={{ 
+                    color: '#495057', 
+                    fontWeight: 500, 
+                    display: 'block', 
+                    marginBottom: '0.5em', 
+                    fontSize: 14 
+                  }}>
+                    Account ID *
+                  </label>
+                  <input
+                    type="text"
+                    name="accountId"
+                    value={formData.accountId}
+                    onChange={handleChange}
+                    placeholder="Enter your broker account ID"
+                    required
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.8em', 
+                      border: '1px solid #e0e0e0', 
+                      borderRadius: '6px', 
+                      fontSize: 14, 
+                      background: '#fff' 
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <label style={{ 
+                    color: '#495057', 
+                    fontWeight: 500, 
+                    display: 'block', 
+                    marginBottom: '0.5em', 
+                    fontSize: 14 
+                  }}>
+                    API Key *
+                  </label>
+                  <input
+                    type="password"
+                    name="apiKey"
+                    value={formData.apiKey}
+                    onChange={handleChange}
+                    placeholder="Enter your API key"
+                    required
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.8em', 
+                      border: '1px solid #e0e0e0', 
+                      borderRadius: '6px', 
+                      fontSize: 14, 
+                      background: '#fff' 
+                    }}
+                  />
+                </div>
+                
+                <div>
+                  <label style={{ 
+                    color: '#495057', 
+                    fontWeight: 500, 
+                    display: 'block', 
+                    marginBottom: '0.5em', 
+                    fontSize: 14 
+                  }}>
+                    API Secret *
+                  </label>
+                  <input
+                    type="password"
+                    name="apiSecret"
+                    value={formData.apiSecret}
+                    onChange={handleChange}
+                    placeholder="Enter your API secret"
+                    required
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.8em', 
+                      border: '1px solid #e0e0e0', 
+                      borderRadius: '6px', 
+                      fontSize: 14, 
+                      background: '#fff' 
+                    }}
+                  />
+                </div>
+                
+                <div style={{ display: 'flex', gap: '1em' }}>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    style={{
+                      flex: 1,
+                      padding: '1em',
+                      background: saving ? '#6c757d' : '#007bff',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    {saving ? 'Connecting...' : 'Connect Account'}
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setShowConnectForm(false)}
+                    style={{
+                      flex: 1,
+                      padding: '1em',
+                      background: '#6c757d',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-              <div>
-                <p style={{ color: '#6c757d', fontWeight: 500 }}>Invested Amount</p>
-                <p style={{ color: '#2c3e50', fontWeight: 600, fontSize: 'clamp(1em, 2.5vw, 1.1em)' }}>
-                  ₹{brokerData.portfolio?.investedAmount?.toLocaleString() || '0'}
-                </p>
-              </div>
-              <div>
-                <p style={{ color: '#6c757d', fontWeight: 500 }}>RMS Limit</p>
-                <p style={{ color: '#2c3e50', fontWeight: 600, fontSize: 'clamp(1em, 2.5vw, 1.1em)' }}>
-                  ₹{brokerData.portfolio?.rmsLimit?.toLocaleString() || '0'}
-                </p>
-              </div>
-            </div>
+            </form>
           </div>
         )}
-      </div>
 
-      <form onSubmit={handleSubmit} className="card" style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 8, boxShadow: '0 1px 6px rgba(0,0,0,0.08)', padding: '2em' }}>
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ color: '#2c3e50', fontWeight: 600, marginBottom: 6, display: 'block' }}>Select Broker</label>
-          <select
-            name="broker"
-            value={formData.broker}
-            onChange={handleChange}
-            required
-            style={{ background: '#fff', color: '#2c3e50', border: '1px solid #e0e0e0', borderRadius: 4, padding: '0.6em', fontSize: 'clamp(13px, 2.5vw, 15px)', fontWeight: 500, width: '100%' }}
-            disabled={status !== 'NOT_CONNECTED' && status !== 'PENDING_VERIFICATION'}
-          >
-            <option value="">Select a broker</option>
-            {BROKERS.map(broker => (
-              <option key={broker.id} value={broker.id}>
-                {broker.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ color: '#2c3e50', fontWeight: 600, marginBottom: 6, display: 'block' }}>Account ID</label>
-          <input
-            type="text"
-            name="accountId"
-            value={formData.accountId}
-            onChange={handleChange}
-            placeholder="Enter your broker account ID"
-            required
-            disabled={status !== 'NOT_CONNECTED' && status !== 'PENDING_VERIFICATION'}
-            style={{ background: '#fff', color: '#2c3e50', border: '1px solid #e0e0e0', borderRadius: 4, padding: '0.6em', fontSize: 'clamp(13px, 2.5vw, 15px)', width: '100%' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ color: '#2c3e50', fontWeight: 600, marginBottom: 6, display: 'block' }}>API Key</label>
-          <input
-            type="text"
-            name="apiKey"
-            value={formData.apiKey}
-            onChange={handleChange}
-            placeholder="Enter your API key"
-            required
-            disabled={status !== 'NOT_CONNECTED' && status !== 'PENDING_VERIFICATION'}
-            style={{ background: '#fff', color: '#2c3e50', border: '1px solid #e0e0e0', borderRadius: 4, padding: '0.6em', fontSize: 'clamp(13px, 2.5vw, 15px)', width: '100%' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ color: '#2c3e50', fontWeight: 600, marginBottom: 6, display: 'block' }}>API Secret</label>
-          <input
-            type="password"
-            name="apiSecret"
-            value={formData.apiSecret}
-            onChange={handleChange}
-            placeholder="Enter your API secret"
-            required
-            disabled={status !== 'NOT_CONNECTED' && status !== 'PENDING_VERIFICATION'}
-            style={{ background: '#fff', color: '#2c3e50', border: '1px solid #e0e0e0', borderRadius: 4, padding: '0.6em', fontSize: 'clamp(13px, 2.5vw, 15px)', width: '100%' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: 18 }}>
-          <label style={{ color: '#2c3e50', fontWeight: 600, marginBottom: 6, display: 'block' }}>Broker MPIN</label>
-          <input
-            type="password"
-            name="mpin"
-            value={formData.mpin}
-            onChange={handleChange}
-            placeholder="Enter your broker MPIN"
-            required
-            pattern="[0-9]{4}"
-            maxLength={4}
-            disabled={status !== 'NOT_CONNECTED' && status !== 'PENDING_VERIFICATION'}
-            style={{ background: '#fff', color: '#2c3e50', border: '1px solid #e0e0e0', borderRadius: 4, padding: '0.6em', fontSize: 'clamp(13px, 2.5vw, 15px)', width: '100%' }}
-          />
-        </div>
-
-        {status === 'PENDING_VERIFICATION' && (
-          <div style={{ marginBottom: 18 }}>
-            <label style={{ color: '#2c3e50', fontWeight: 600, marginBottom: 6, display: 'block' }}>TOTP Code</label>
-            <div style={{ display: 'flex', gap: '1em' }}>
-              <input
-                type="text"
-                name="totp"
-                value={formData.totp}
-                onChange={handleChange}
-                placeholder="Enter TOTP code (any 6 digits)"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                style={{ flex: 1, background: '#fff', color: '#2c3e50', border: '1px solid #e0e0e0', borderRadius: 4, padding: '0.6em', fontSize: 'clamp(13px, 2.5vw, 15px)' }}
-              />
+        {/* Verification Form */}
+        {status === 'CONNECTED' && (
+          <div style={{ 
+            padding: '2em', 
+            background: '#fff', 
+            borderRadius: '12px', 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
+            border: '1px solid #e0e0e0',
+            gridColumn: '1 / -1'
+          }}>
+            <h2 style={{ 
+              color: '#2c3e50', 
+              marginBottom: '1.5em', 
+              fontWeight: 600, 
+              fontSize: '1.4em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5em'
+            }}>
+              <span>🔐</span>
+              Verify Connection
+            </h2>
+            
+            <div style={{ 
+              background: '#e7f3ff', 
+              border: '1px solid #b3d9ff', 
+              borderRadius: '8px', 
+              padding: '1em', 
+              marginBottom: '1.5em',
+              fontSize: 14,
+              color: '#0056b3'
+            }}>
+              <strong>📝 Note:</strong> In demo mode, you can use any values for MPIN and TOTP. In production, these would be your actual broker credentials.
+            </div>
+            
+            <div style={{ display: 'grid', gap: '1.5em' }}>
+              <div>
+                <label style={{ 
+                  color: '#495057', 
+                  fontWeight: 500, 
+                  display: 'block', 
+                  marginBottom: '0.5em', 
+                  fontSize: 14 
+                }}>
+                  MPIN *
+                </label>
+                <input
+                  type="password"
+                  name="mpin"
+                  value={formData.mpin}
+                  onChange={handleChange}
+                  placeholder="Enter your MPIN (4-digit code)"
+                  required
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.8em', 
+                    border: '1px solid #e0e0e0', 
+                    borderRadius: '6px', 
+                    fontSize: 14, 
+                    background: '#fff' 
+                  }}
+                />
+                <small style={{ color: '#6c757d', fontSize: 12, marginTop: '0.25em', display: 'block' }}>
+                  Your 4-digit MPIN from your broker account
+                </small>
+              </div>
+              
+              <div>
+                <label style={{ 
+                  color: '#495057', 
+                  fontWeight: 500, 
+                  display: 'block', 
+                  marginBottom: '0.5em', 
+                  fontSize: 14 
+                }}>
+                  TOTP Code *
+                </label>
+                <input
+                  type="text"
+                  name="totp"
+                  value={formData.totp}
+                  onChange={handleChange}
+                  placeholder="Enter TOTP code from authenticator app"
+                  required
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.8em', 
+                    border: '1px solid #e0e0e0', 
+                    borderRadius: '6px', 
+                    fontSize: 14, 
+                    background: '#fff' 
+                  }}
+                />
+                <small style={{ color: '#6c757d', fontSize: 12, marginTop: '0.25em', display: 'block' }}>
+                  6-digit code from your authenticator app (Google Authenticator, etc.)
+                </small>
+              </div>
+              
               <button
-                type="button"
-                className="btn"
                 onClick={handleVerify}
-                disabled={verifying || !formData.totp}
-                style={{ minWidth: 120, background: '#007bff', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 'clamp(13px, 2.5vw, 15px)', padding: '0.7em 1.2em', cursor: 'pointer', transition: 'background 0.2s' }}
+                disabled={verifying}
+                style={{
+                  width: '100%',
+                  padding: '1em',
+                  background: verifying ? '#6c757d' : '#28a745',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: verifying ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
               >
-                {verifying ? 'Verifying...' : 'Verify'}
+                {verifying ? 'Verifying...' : 'Verify Connection'}
               </button>
             </div>
           </div>
         )}
-
-        {(status === 'NOT_CONNECTED' || status === 'PENDING_VERIFICATION') && (
-          <button
-            type="submit"
-            className="btn"
-            disabled={saving}
-            style={{ width: '100%', background: '#007bff', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 700, fontSize: 'clamp(15px, 2.5vw, 17px)', padding: '0.9em 0', marginTop: 8, cursor: 'pointer', transition: 'background 0.2s' }}
-          >
-            {saving ? 'Connecting...' : 'Connect Broker'}
-          </button>
-        )}
-      </form>
+      </div>
     </div>
   );
 };

@@ -9,15 +9,19 @@ const TradeList = () => {
   useEffect(() => {
     const fetchTrades = async () => {
       setLoading(true);
+      setError('');
       try {
         const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/trades');
         if (response.data && response.data.success) {
           setTrades(response.data.trades || []);
+        } else if (response.data && Array.isArray(response.data)) {
+          setTrades(response.data);
         } else {
           setTrades([]);
         }
       } catch (error) {
         console.error('Error fetching trades:', error);
+        setError('Failed to fetch trade history. Please try again later.');
         setTrades([]);
       } finally {
         setLoading(false);

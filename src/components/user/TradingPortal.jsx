@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import SegmentSelection from './SegmentSelection';
 import OptionTable from './OptionTable';
 import BuySellButtons from './BuySellButtons';
+import ChartArea from './ChartArea';
 import { 
   fetchOptionExpiries, 
   fetchOptionChain, 
@@ -26,6 +27,12 @@ import {
 import { Link } from 'react-router-dom';
 import OrderList from './OrderList';
 import TradeList from './TradeList';
+import {
+  fetchMyBrokerProfile,
+  fetchBrokerConnectionStatus,
+  clearBrokerProfile,
+  getDematLimit
+} from '../../api/auth';
 
 ChartJS.register(
   CategoryScale,
@@ -50,67 +57,6 @@ const TradingViewWidget = ({ symbol }) => (
   </div>
 );
 
-// Test data for development - this would normally come from your backend
-const TEST_USER_DATA = {
-  name: 'User One',
-  email: 'user1@gmail.com',
-  phone: '+91 98765 43210',
-  broker: {
-    name: 'Angel One',
-    status: 'ACTIVE',
-    accountId: 'A123456',
-    lastSync: new Date().toISOString()
-  },
-  portfolio: {
-    capitalAmount: 1000000, // 10 Lakhs
-    investedAmount: 750000, // 7.5 Lakhs
-    availableFunds: 250000, // 2.5 Lakhs
-    rmsLimit: 2000000, // 20 Lakhs
-    portfolioValue: 825000, // 8.25 Lakhs
-    todaysPnL: 15000,
-    overallPnL: 75000,
-    holdings: [
-      {
-        symbol: 'RELIANCE',
-        quantity: 100,
-        avgPrice: 2450.75,
-        ltp: 2575.50,
-        currentValue: 257550,
-        pnl: 12475,
-        pnlPercentage: 5.09,
-        dayChange: 25.75,
-        dayChangePercentage: 1.01
-      },
-      {
-        symbol: 'TCS',
-        quantity: 50,
-        avgPrice: 3200.00,
-        ltp: 3350.25,
-        currentValue: 167512.50,
-        pnl: 7512.50,
-        pnlPercentage: 4.69,
-        dayChange: 45.25,
-        dayChangePercentage: 1.37
-      },
-      {
-        symbol: 'INFY',
-        quantity: 150,
-        avgPrice: 1475.50,
-        ltp: 1525.75,
-        currentValue: 228862.50,
-        pnl: 7537.50,
-        pnlPercentage: 3.41,
-        dayChange: 15.75,
-        dayChangePercentage: 1.04
-      }
-    ],
-    history: Array.from({ length: 30 }, (_, i) => ({
-      date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString(),
-      value: 750000 + Math.random() * 100000
-    }))
-  }
-};
-
 const TradingPortal = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -128,17 +74,56 @@ const TradingPortal = () => {
   const pollingRef = useRef(null);
   const [clearBrokerStatus, setClearBrokerStatus] = useState('');
   const [clearBrokerLoading, setClearBrokerLoading] = useState(false);
+  const [portfolioData, setPortfolioData] = useState(null);
+  const [positions, setPositions] = useState([]);
+  const [dematLimit, setDematLimit] = useState(null);
 
   useEffect(() => {
-    const fetchUserData = () => {
+    const fetchUserData = async () => {
       setLoading(true);
       setError('');
       try {
-        // For testing, we'll use the test data
-        setUserData(TEST_USER_DATA);
+        // Fetch broker connection status
+        const statusRes = await fetchBrokerConnectionStatus();
+        const statusValue = statusRes.data?.status || 'NOT_CONNECTED';
+        
+        if (statusValue === 'ACTIVE') {
+          const profileRes = await fetchMyBrokerProfile();
+          setUserData({ broker: profileRes.data });
+          
+          // Fetch additional data for connected users
+          try {
+            const [positionsRes, dematRes] = await Promise.all([
+              getPositions(),
+              getDematLimit()
+            ]);
+            
+            if (positionsRes.success && Array.isArray(positionsRes.data)) {
+              setPositions(positionsRes.data);
+            }
+            
+            if (dematRes.data) {
+              setDematLimit(dematRes.data);
+            }
+            
+            // Generate portfolio data for chart
+            const portfolioValue = dematRes.data?.net || 100000;
+            const chartData = generatePortfolioChartData(portfolioValue);
+            setPortfolioData(chartData);
+            
+          } catch (dataErr) {
+            console.error('Error fetching additional data:', dataErr);
+            // Use fallback data
+            setPortfolioData(generatePortfolioChartData(100000));
+          }
+        } else {
+          setUserData(null);
+          setPortfolioData(null);
+        }
       } catch (err) {
-        console.error('Error fetching user data:', err);
         setError('Failed to fetch trading data');
+        setUserData(null);
+        setPortfolioData(null);
       } finally {
         setLoading(false);
       }
@@ -150,6 +135,23 @@ const TradingPortal = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Generate portfolio chart data
+  const generatePortfolioChartData = (baseValue) => {
+    const data = [];
+    const today = new Date();
+    for (let i = 30; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const randomChange = (Math.random() - 0.5) * 0.1; // ±5% daily change
+      const value = baseValue * (1 + randomChange);
+      data.push({
+        date: date.toISOString(),
+        value: Math.max(value, baseValue * 0.8) // Don't go below 80% of base
+      });
+    }
+    return data;
+  };
+
   // Fetch underlyings on mount
   useEffect(() => {
     const fetchAllUnderlyings = async () => {
@@ -158,17 +160,14 @@ const TradingPortal = () => {
         if (res && res.success && Array.isArray(res.data)) {
           setUnderlyings(res.data);
           setUnderlying(res.data[0]);
-          // Clear any previous errors if successful
           setError('');
         } else {
-          // Only set error if it's not a fallback case
           if (!res.error || !res.error.includes('403')) {
             setError('Failed to fetch underlyings');
           }
         }
       } catch (err) {
         console.error('Error in fetchAllUnderlyings:', err);
-        // Don't set error for 403 cases as fallback data is used
       }
     };
     fetchAllUnderlyings();
@@ -183,19 +182,16 @@ const TradingPortal = () => {
         if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
           setExpiries(res.data);
           setExpiry(res.data[0]);
-          // Clear any previous errors if successful
           setError('');
         } else {
           setExpiries([]);
           setExpiry('');
-          // Only set error if it's not a fallback case
           if (!res.error || !res.error.includes('403')) {
             setError('No expiries found for selected underlying');
           }
         }
       } catch (err) {
         console.error('Error in fetchExpiries:', err);
-        // Don't set error for 403 cases as fallback data is used
       }
     };
     fetchExpiries();
@@ -209,11 +205,9 @@ const TradingPortal = () => {
       const res = await fetchOptionChain(underlying, expiry);
       if (res && res.success && Array.isArray(res.data)) {
         setOptionChain(res.data);
-        // Clear any previous errors if successful
         setError('');
       } else {
         setOptionChain([]);
-        // Only set error if it's not a fallback case
         if (!res.error || !res.error.includes('403')) {
           setError(res.error || 'Failed to fetch option chain');
         }
@@ -221,7 +215,6 @@ const TradingPortal = () => {
     } catch (err) {
       console.error('Error in fetchChain:', err);
       setOptionChain([]);
-      // Don't set error for 403 cases as fallback data is used
     } finally {
       setOptionLoading(false);
     }
@@ -258,21 +251,18 @@ const TradingPortal = () => {
     }
   };
 
-  // Add clear broker profile handler
-  const handleClearBrokerProfile = async () => {
+  const handleClearBroker = async () => {
     setClearBrokerLoading(true);
     setClearBrokerStatus('');
     try {
-      const res = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/clear');
-      if (res && res.data && res.data.success) {
-        setClearBrokerStatus('Broker profile cleared successfully.');
-        // Optionally refresh user data
-        setTimeout(() => window.location.reload(), 1500);
-      } else {
-        setClearBrokerStatus('Failed to clear broker profile.');
-      }
+      await clearBrokerProfile();
+      setClearBrokerStatus('Broker connection cleared successfully');
+      setUserData(null);
+      setPortfolioData(null);
+      setPositions([]);
+      setDematLimit(null);
     } catch (err) {
-      setClearBrokerStatus('Failed to clear broker profile.');
+      setClearBrokerStatus('Failed to clear broker connection');
     } finally {
       setClearBrokerLoading(false);
     }
@@ -282,7 +272,7 @@ const TradingPortal = () => {
     return (
       <div style={{ 
         textAlign: 'center', 
-        padding: 'clamp(1em, 3vw, 2em)',
+        padding: 'clamp(2em, 5vw, 4em)',
         background: '#ffffff',
         minHeight: '100vh',
         display: 'flex',
@@ -290,14 +280,21 @@ const TradingPortal = () => {
         justifyContent: 'center',
         alignItems: 'center'
       }}>
-        <div className="loading-spinner" />
+        <div className="loading-spinner" style={{
+          width: '50px',
+          height: '50px',
+          border: '4px solid #e3e3e3',
+          borderTop: '4px solid #007bff',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '1em'
+        }} />
         <p style={{ 
           color: '#2c3e50', 
-          marginTop: '1em', 
           fontSize: 'clamp(14px, 2.5vw, 16px)',
           fontWeight: 500
         }}>
-          Loading trading data...
+          Loading your trading dashboard...
         </p>
       </div>
     );
@@ -307,7 +304,7 @@ const TradingPortal = () => {
     return (
       <div style={{ 
         textAlign: 'center', 
-        padding: 'clamp(1em, 3vw, 2em)',
+        padding: 'clamp(2em, 5vw, 4em)',
         background: '#ffffff',
         minHeight: '100vh',
         display: 'flex',
@@ -315,41 +312,56 @@ const TradingPortal = () => {
         justifyContent: 'center',
         alignItems: 'center'
       }}>
-        <h2 style={{ 
-          color: '#2c3e50', 
-          marginBottom: '1em',
-          fontSize: 'clamp(1.5em, 4vw, 2em)',
-          fontWeight: 600
+        <div style={{
+          background: '#f8f9fa',
+          padding: 'clamp(2em, 4vw, 3em)',
+          borderRadius: '12px',
+          border: '2px dashed #dee2e6',
+          maxWidth: '500px',
+          width: '100%'
         }}>
-          Connect Your Broker
-        </h2>
-        <p style={{ 
-          color: '#6c757d', 
-          marginBottom: '2em',
-          fontSize: 'clamp(14px, 2.5vw, 16px)',
-          maxWidth: '500px'
-        }}>
-          Please connect your broker account to start trading.
-        </p>
-        <Link to="/broker-settings" className="btn btn-primary" style={{
-          padding: 'clamp(0.8em, 2vw, 1em) clamp(1.5em, 3vw, 2em)',
-          fontSize: 'clamp(14px, 2.5vw, 16px)',
-          fontWeight: 600
-        }}>
-          Connect Broker
-        </Link>
+          <h2 style={{ 
+            color: '#2c3e50', 
+            marginBottom: '1em',
+            fontSize: 'clamp(1.5em, 4vw, 2em)',
+            fontWeight: 600
+          }}>
+            Connect Your Broker
+          </h2>
+          <p style={{ 
+            color: '#6c757d', 
+            marginBottom: '2em',
+            fontSize: 'clamp(14px, 2.5vw, 16px)',
+            lineHeight: 1.6
+          }}>
+            To start trading, you need to connect your broker account. This will allow you to view real-time market data and place trades.
+          </p>
+          <Link to="/dashboard/broker-settings" style={{
+            display: 'inline-block',
+            background: '#007bff',
+            color: '#ffffff',
+            padding: 'clamp(0.8em, 2vw, 1em) clamp(1.5em, 3vw, 2em)',
+            borderRadius: '8px',
+            textDecoration: 'none',
+            fontWeight: 600,
+            fontSize: 'clamp(14px, 2.5vw, 16px)',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 2px 4px rgba(0,123,255,0.2)'
+          }}>
+            Connect Broker Account
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
     <div style={{ 
-      padding: '1em', 
-      background: '#ffffff', 
+      padding: 'clamp(1em, 3vw, 1.5em)', 
+      background: '#f8f9fa', 
       minHeight: '100vh', 
-      maxWidth: 1200, 
-      margin: '0 auto',
-      overflowX: 'hidden'
+      maxWidth: 1400, 
+      margin: '0 auto'
     }}>
       {error && (
         <div style={{ 
@@ -357,383 +369,388 @@ const TradingPortal = () => {
           color: '#721c24', 
           padding: 'clamp(0.8em, 2vw, 1em)', 
           borderRadius: '8px', 
-          marginBottom: '1em', 
+          marginBottom: '1.5em', 
           border: '1px solid #f5c6cb', 
           fontSize: 'clamp(12px, 2.5vw, 14px)',
-          fontWeight: 500
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5em'
         }}>
-          <strong>⚠️ Error:</strong> {error}
+          <span>⚠️</span>
+          <span><strong>Error:</strong> {error}</span>
         </div>
       )}
 
-      {/* Broker Info Card */}
-      <div style={{ 
-        padding: 'clamp(1em, 3vw, 1.5em)', 
-        background: '#fff', 
-        borderRadius: '8px', 
-        boxShadow: '0 1px 6px rgba(0,0,0,0.1)', 
-        border: '1px solid #e0e0e0', 
-        marginBottom: '1.5em' 
-      }}>
+      {clearBrokerStatus && (
         <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column',
-          gap: '1em'
+          background: clearBrokerStatus.includes('successfully') ? '#d4edda' : '#f8d7da',
+          color: clearBrokerStatus.includes('successfully') ? '#155724' : '#721c24',
+          padding: 'clamp(0.8em, 2vw, 1em)', 
+          borderRadius: '8px', 
+          marginBottom: '1.5em', 
+          border: clearBrokerStatus.includes('successfully') ? '1px solid #c3e6cb' : '1px solid #f5c6cb', 
+          fontSize: 'clamp(12px, 2.5vw, 14px)',
+          fontWeight: 500
         }}>
-          <div>
+          {clearBrokerStatus}
+        </div>
+      )}
+
+      {/* Header Section */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+        gap: '1.5em', 
+        marginBottom: '2em' 
+      }}>
+        {/* Portfolio Overview */}
+        {portfolioData && (
+          <div style={{ 
+            padding: 'clamp(1em, 3vw, 1.5em)', 
+            background: '#fff', 
+            borderRadius: '12px', 
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
+            border: '1px solid #e0e0e0' 
+          }}>
             <h3 style={{ 
               color: '#2c3e50', 
-              marginBottom: '0.5em', 
-              fontSize: 'clamp(1em, 3vw, 1.2em)' 
-            }}>Connected Broker</h3>
-            <p style={{ 
-              color: '#333', 
-              fontSize: 'clamp(0.9em, 2.5vw, 1.1em)', 
-              fontWeight: 500 
+              marginBottom: '1em', 
+              fontSize: 'clamp(1.1em, 3vw, 1.3em)',
+              fontWeight: 600
             }}>
-              {userData.broker.name}
-              <span style={{ 
-                color: '#28a745',
-                fontSize: 'clamp(0.7em, 2vw, 0.8em)',
-                marginLeft: '0.5em',
-                padding: '0.2em 0.75em',
-                background: '#d4edda',
-                borderRadius: '1em',
-                border: '1px solid #c3e6cb'
-              }}>
-                ACTIVE
-              </span>
-            </p>
-            <p style={{ 
-              color: '#666', 
-              fontSize: 'clamp(0.8em, 2.2vw, 0.9em)', 
-              marginTop: '0.5em' 
-            }}>
-              Account ID: {userData.broker.accountId}
-            </p>
+              Portfolio Performance
+            </h3>
+            <ChartArea data={portfolioData} />
           </div>
-          <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap' }}>
-            <Link to="/broker-settings" className="btn btn-primary" style={{ 
-              padding: '0.5em 1em',
-              alignSelf: 'flex-start'
+        )}
+
+        {/* Account Summary */}
+        <div style={{ 
+          padding: 'clamp(1em, 3vw, 1.5em)', 
+          background: '#fff', 
+          borderRadius: '12px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
+          border: '1px solid #e0e0e0' 
+        }}>
+          <h3 style={{ 
+            color: '#2c3e50', 
+            marginBottom: '1em', 
+            fontSize: 'clamp(1.1em, 3vw, 1.3em)',
+            fontWeight: 600
+          }}>
+            Account Summary
+          </h3>
+          <div style={{ display: 'grid', gap: '1em' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '0.8em',
+              background: '#f8f9fa',
+              borderRadius: '8px'
             }}>
-              Manage
-            </Link>
+              <span style={{ color: '#6c757d', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Available Balance</span>
+              <span style={{ 
+                color: '#2c3e50', 
+                fontWeight: 600,
+                fontSize: 'clamp(14px, 2.5vw, 16px)'
+              }}>
+                ₹{(dematLimit?.net || 0).toLocaleString()}
+              </span>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '0.8em',
+              background: '#f8f9fa',
+              borderRadius: '8px'
+            }}>
+              <span style={{ color: '#6c757d', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Total Positions</span>
+              <span style={{ 
+                color: '#2c3e50', 
+                fontWeight: 600,
+                fontSize: 'clamp(14px, 2.5vw, 16px)'
+              }}>
+                {positions.length}
+              </span>
+            </div>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '0.8em',
+              background: '#f8f9fa',
+              borderRadius: '8px'
+            }}>
+              <span style={{ color: '#6c757d', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Broker Status</span>
+              <span style={{ 
+                color: '#28a745', 
+                fontWeight: 600,
+                fontSize: 'clamp(12px, 2.5vw, 14px)',
+                background: '#d4edda',
+                padding: '0.3em 0.8em',
+                borderRadius: '20px'
+              }}>
+                Connected
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div style={{ 
+          padding: 'clamp(1em, 3vw, 1.5em)', 
+          background: '#fff', 
+          borderRadius: '12px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
+          border: '1px solid #e0e0e0' 
+        }}>
+          <h3 style={{ 
+            color: '#2c3e50', 
+            marginBottom: '1em', 
+            fontSize: 'clamp(1.1em, 3vw, 1.3em)',
+            fontWeight: 600
+          }}>
+            Quick Actions
+          </h3>
+          <div style={{ display: 'grid', gap: '0.8em' }}>
             <button
-              onClick={handleClearBrokerProfile}
+              onClick={handleManualRefresh}
+              disabled={optionLoading}
+              style={{
+                width: '100%',
+                padding: '0.8em',
+                background: '#007bff',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: 'clamp(12px, 2.5vw, 14px)',
+                fontWeight: 600,
+                cursor: optionLoading ? 'not-allowed' : 'pointer',
+                opacity: optionLoading ? 0.6 : 1,
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {optionLoading ? 'Refreshing...' : 'Refresh Data'}
+            </button>
+            <button
+              onClick={handleClearBroker}
               disabled={clearBrokerLoading}
               style={{
-                padding: '0.5em 1em',
+                width: '100%',
+                padding: '0.8em',
                 background: '#dc3545',
                 color: '#fff',
                 border: 'none',
-                borderRadius: 4,
-                fontWeight: 500,
+                borderRadius: '8px',
+                fontSize: 'clamp(12px, 2.5vw, 14px)',
+                fontWeight: 600,
                 cursor: clearBrokerLoading ? 'not-allowed' : 'pointer',
-                opacity: clearBrokerLoading ? 0.6 : 1
+                opacity: clearBrokerLoading ? 0.6 : 1,
+                transition: 'all 0.3s ease'
               }}
             >
-              {clearBrokerLoading ? 'Clearing...' : 'Clear Broker Profile'}
+              {clearBrokerLoading ? 'Disconnecting...' : 'Disconnect Broker'}
             </button>
           </div>
-          {clearBrokerStatus && (
-            <div style={{ color: clearBrokerStatus.includes('success') ? '#28a745' : '#dc3545', fontWeight: 500, marginTop: 8 }}>
-              {clearBrokerStatus}
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Portfolio Overview Cards */}
+      {/* Market Data Controls */}
       <div style={{ 
-        display: 'grid', 
-        gap: '1em', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-        marginBottom: '1.5em' 
+        padding: 'clamp(1em, 3vw, 1.5em)', 
+        background: '#fff', 
+        borderRadius: '12px', 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
+        border: '1px solid #e0e0e0',
+        marginBottom: '2em'
       }}>
         <div style={{ 
-          padding: 'clamp(1em, 3vw, 1.5em)', 
-          background: '#fff', 
-          borderRadius: '8px', 
-          boxShadow: '0 1px 6px rgba(0,0,0,0.1)', 
-          border: '1px solid #e0e0e0' 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1em'
         }}>
           <h3 style={{ 
             color: '#2c3e50', 
-            marginBottom: '0.5em', 
-            fontSize: 'clamp(0.9em, 2.5vw, 1.1em)' 
-          }}>Portfolio Value</h3>
-          <p style={{ 
-            color: '#333', 
-            fontSize: 'clamp(1.2em, 4vw, 1.4em)', 
-            fontWeight: 600 
+            margin: 0, 
+            fontSize: 'clamp(1.1em, 3vw, 1.3em)',
+            fontWeight: 600
           }}>
-            ₹{(userData.portfolio.portfolioValue / 100000).toFixed(2)}L
-          </p>
+            Market Data
+          </h3>
+          
           <div style={{ 
             display: 'flex', 
-            flexDirection: 'column',
-            gap: '0.5em',
-            marginTop: '1em' 
+            gap: '1em', 
+            alignItems: 'center',
+            flexWrap: 'wrap'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div>
-                <p style={{ color: '#666', fontSize: 'clamp(0.8em, 2.2vw, 0.9em)' }}>Today's P&L</p>
-                <p style={{ 
-                  color: userData.portfolio.todaysPnL >= 0 ? '#28a745' : '#dc3545',
-                  fontWeight: 500,
-                  fontSize: 'clamp(0.9em, 2.5vw, 1em)'
-                }}>
-                  ₹{(userData.portfolio.todaysPnL / 1000).toFixed(1)}K
-                </p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <p style={{ color: '#666', fontSize: 'clamp(0.8em, 2.2vw, 0.9em)' }}>Overall P&L</p>
-                <p style={{ 
-                  color: userData.portfolio.overallPnL >= 0 ? '#28a745' : '#dc3545',
-                  fontWeight: 500,
-                  fontSize: 'clamp(0.9em, 2.5vw, 1em)'
-                }}>
-                  ₹{(userData.portfolio.overallPnL / 1000).toFixed(1)}K
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ 
-          padding: 'clamp(1em, 3vw, 1.5em)', 
-          background: '#fff', 
-          borderRadius: '8px', 
-          boxShadow: '0 1px 6px rgba(0,0,0,0.1)', 
-          border: '1px solid #e0e0e0' 
-        }}>
-          <h3 style={{ 
-            color: '#2c3e50', 
-            marginBottom: '0.5em', 
-            fontSize: 'clamp(0.9em, 2.5vw, 1.1em)' 
-          }}>Account Summary</h3>
-          <div style={{ display: 'grid', gap: '0.8em' }}>
-            <div>
-              <p style={{ color: '#666', fontSize: 'clamp(0.8em, 2.2vw, 0.9em)' }}>Capital</p>
-              <p style={{ 
-                color: '#333', 
-                fontWeight: 500,
-                fontSize: 'clamp(0.9em, 2.5vw, 1em)'
-              }}>
-                ₹{(userData.portfolio.capitalAmount / 100000).toFixed(1)}L
-              </p>
-            </div>
-            <div>
-              <p style={{ color: '#666', fontSize: 'clamp(0.8em, 2.2vw, 0.9em)' }}>Invested</p>
-              <p style={{ 
-                color: '#333', 
-                fontWeight: 500,
-                fontSize: 'clamp(0.9em, 2.5vw, 1em)'
-              }}>
-                ₹{(userData.portfolio.investedAmount / 100000).toFixed(1)}L
-              </p>
-            </div>
-            <div>
-              <p style={{ color: '#666', fontSize: 'clamp(0.8em, 2.2vw, 0.9em)' }}>Available Funds</p>
-              <p style={{ 
-                color: '#333', 
-                fontWeight: 500,
-                fontSize: 'clamp(0.9em, 2.5vw, 1em)'
-              }}>
-                ₹{(userData.portfolio.availableFunds / 100000).toFixed(1)}L
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ 
-          padding: 'clamp(1em, 3vw, 1.5em)', 
-          background: '#fff', 
-          borderRadius: '8px', 
-          boxShadow: '0 1px 6px rgba(0,0,0,0.1)', 
-          border: '1px solid #e0e0e0' 
-        }}>
-          <h3 style={{ 
-            color: '#2c3e50', 
-            marginBottom: '0.5em', 
-            fontSize: 'clamp(0.9em, 2.5vw, 1.1em)' 
-          }}>Trading Limits</h3>
-          <div style={{ display: 'grid', gap: '0.8em' }}>
-            <div>
-              <p style={{ color: '#666', fontSize: 'clamp(0.8em, 2.2vw, 0.9em)' }}>RMS Limit</p>
-              <p style={{ 
-                color: '#333', 
-                fontWeight: 500,
-                fontSize: 'clamp(0.9em, 2.5vw, 1em)'
-              }}>
-                ₹{(userData.portfolio.rmsLimit / 100000).toFixed(1)}L
-              </p>
-            </div>
-            <div>
-              <p style={{ color: '#666', fontSize: 'clamp(0.8em, 2.2vw, 0.9em)' }}>Last Updated</p>
-              <p style={{ 
-                color: '#333', 
-                fontWeight: 500,
-                fontSize: 'clamp(0.8em, 2.2vw, 0.9em)'
-              }}>
-                {new Date(userData.broker.lastSync).toLocaleTimeString()}
-              </p>
-            </div>
+            <select
+              value={underlying}
+              onChange={(e) => setUnderlying(e.target.value)}
+              style={{
+                padding: '0.5em',
+                border: '1px solid #e0e0e0',
+                borderRadius: '6px',
+                fontSize: 'clamp(12px, 2.5vw, 14px)',
+                background: '#fff'
+              }}
+            >
+              {underlyings.map(und => (
+                <option key={und} value={und}>{und}</option>
+              ))}
+            </select>
+            
+            <select
+              value={expiry}
+              onChange={(e) => setExpiry(e.target.value)}
+              style={{
+                padding: '0.5em',
+                border: '1px solid #e0e0e0',
+                borderRadius: '6px',
+                fontSize: 'clamp(12px, 2.5vw, 14px)',
+                background: '#fff'
+              }}
+            >
+              {expiries.map(exp => (
+                <option key={exp} value={exp}>{exp}</option>
+              ))}
+            </select>
+            
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5em',
+              fontSize: 'clamp(12px, 2.5vw, 14px)'
+            }}>
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                style={{ transform: 'scale(1.2)' }}
+              />
+              Auto Refresh
+            </label>
           </div>
         </div>
       </div>
 
-      {/* Order List Section */}
-      <div style={{ marginBottom: '1.5em' }}>
+      {/* Option Chain */}
+      <div style={{ marginBottom: '2em' }}>
+        <OptionTable
+          optionChain={optionChain}
+          loading={optionLoading}
+          error={error}
+          onOptionSelect={handleOptionSelect}
+          onRefresh={handleManualRefresh}
+        />
+      </div>
+
+      {/* Buy/Sell Buttons */}
+      {selectedOption && (
+        <div style={{ marginBottom: '2em' }}>
+          <BuySellButtons
+            selectedOption={selectedOption}
+            onTrade={handleTrade}
+          />
+        </div>
+      )}
+
+      {/* TradingView Chart */}
+      <div style={{ marginBottom: '2em' }}>
+        <TradingViewWidget symbol={underlying} />
+      </div>
+
+      {/* Order and Trade Lists */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
+        gap: '1.5em', 
+        marginBottom: '2em' 
+      }}>
         <OrderList />
-      </div>
-      {/* Trade List Section */}
-      <div style={{ marginBottom: '1.5em' }}>
         <TradeList />
       </div>
 
       {/* Segment Selection */}
-      <div style={{ marginBottom: '1.5em' }}>
+      <div style={{ marginBottom: '2em' }}>
         <SegmentSelection
           selected={selectedSegment}
           onSelectSegment={setSelectedSegment}
         />
       </div>
 
-      {/* Holdings Table */}
-      <div style={{ 
-        padding: 'clamp(1em, 3vw, 1.5em)', 
-        background: '#fff', 
-        borderRadius: '8px', 
-        boxShadow: '0 1px 6px rgba(0,0,0,0.1)', 
-        border: '1px solid #e0e0e0', 
-        marginBottom: '1.5em' 
-      }}>
-        <h3 style={{ 
-          color: '#2c3e50', 
-          marginBottom: '1em', 
-          fontSize: 'clamp(1em, 3vw, 1.2em)' 
-        }}>Holdings</h3>
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <table style={{ 
-            width: '100%', 
-            borderCollapse: 'collapse', 
-            fontSize: 'clamp(11px, 2.5vw, 13px)',
-            minWidth: '600px'
-          }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
-                <th style={{ color: '#495057', padding: '0.6em', textAlign: 'left', fontWeight: 600 }}>Symbol</th>
-                <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Qty</th>
-                <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Avg Price</th>
-                <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>LTP</th>
-                <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Current Value</th>
-                <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>P&L</th>
-                <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Day Change</th>
-                <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Range</th>
-                <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Circuit Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {userData.portfolio.holdings.map((holding, index) => (
-                <tr key={index} style={{ borderBottom: '1px solid #e0e0e0' }}>
-                  <td style={{ color: '#333', padding: '0.6em' }}>{holding.symbol}</td>
-                  <td style={{ color: '#333', padding: '0.6em', textAlign: 'right' }}>{holding.quantity}</td>
-                  <td style={{ color: '#333', padding: '0.6em', textAlign: 'right' }}>₹{holding.avgPrice.toFixed(2)}</td>
-                  <td style={{ color: '#333', padding: '0.6em', textAlign: 'right' }}>₹{holding.ltp.toFixed(2)}</td>
-                  <td style={{ color: '#333', padding: '0.6em', textAlign: 'right' }}>
-                    ₹{(holding.currentValue / 1000).toFixed(1)}K
-                  </td>
-                  <td style={{ padding: '0.6em', textAlign: 'right' }}>
-                    <div style={{ color: holding.pnl >= 0 ? '#28a745' : '#dc3545' }}>
-                      ₹{(holding.pnl / 1000).toFixed(1)}K
-                    </div>
-                    <div style={{ fontSize: 'clamp(0.7em, 2vw, 0.8em)', color: holding.pnlPercentage >= 0 ? '#28a745' : '#dc3545' }}>
-                      {holding.pnlPercentage >= 0 ? '+' : ''}{holding.pnlPercentage.toFixed(2)}%
-                    </div>
-                  </td>
-                  <td style={{ padding: '0.6em', textAlign: 'right' }}>
-                    <div style={{ color: holding.dayChange >= 0 ? '#28a745' : '#dc3545' }}>
-                      ₹{holding.dayChange.toFixed(2)}
-                    </div>
-                    <div style={{ fontSize: 'clamp(0.7em, 2vw, 0.8em)', color: holding.dayChangePercentage >= 0 ? '#28a745' : '#dc3545' }}>
-                      {holding.dayChangePercentage >= 0 ? '+' : ''}{holding.dayChangePercentage.toFixed(2)}%
-                    </div>
-                  </td>
-                  <td style={{ color: '#333', padding: '0.6em', textAlign: 'right' }}>
-                    {holding.rangeLow && holding.rangeHigh ? `₹${holding.rangeLow} - ₹${holding.rangeHigh}` : 'N/A'}
-                  </td>
-                  <td style={{ color: '#333', padding: '0.6em', textAlign: 'right' }}>
-                    {holding.ltp === holding.lowerCircuit ? 'Lower Circuit' : holding.ltp === holding.upperCircuit ? 'Upper Circuit' : 'Normal'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Option Chain Section */}
-      <div style={{ marginBottom: '1.5em' }}>
+      {/* Positions Table */}
+      {positions.length > 0 && (
         <div style={{ 
           padding: 'clamp(1em, 3vw, 1.5em)', 
           background: '#fff', 
-          borderRadius: '8px', 
-          boxShadow: '0 1px 6px rgba(0,0,0,0.1)', 
-          border: '1px solid #e0e0e0' 
+          borderRadius: '12px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
+          border: '1px solid #e0e0e0', 
+          marginBottom: '2em' 
         }}>
           <h3 style={{ 
             color: '#2c3e50', 
             marginBottom: '1em', 
-            fontSize: 'clamp(1em, 3vw, 1.2em)' 
-          }}>Option Chain - {underlying} ({expiry})</h3>
-          
-          {/* Selected Option Info */}
-          {selectedOption && (
-            <div style={{ 
-              background: '#e3f2fd', 
-              padding: '0.8em', 
-              borderRadius: '4px', 
-              marginBottom: '1em',
-              border: '1px solid #bbdefb'
+            fontSize: 'clamp(1.1em, 3vw, 1.3em)',
+            fontWeight: 600
+          }}>
+            Current Positions
+          </h3>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ 
+              width: '100%', 
+              borderCollapse: 'collapse', 
+              fontSize: 'clamp(11px, 2.5vw, 13px)',
+              minWidth: '600px'
             }}>
-              <div style={{ 
-                fontSize: 'clamp(11px, 2.5vw, 13px)', 
-                color: '#1976d2', 
-                marginBottom: '0.3em' 
-              }}>
-                Selected Option: {selectedOption.tradingSymbol || selectedOption.symbol || 'N/A'}
-              </div>
-              <div style={{ 
-                fontSize: 'clamp(10px, 2.2vw, 12px)', 
-                color: '#1976d2' 
-              }}>
-                Strike: {selectedOption.strikePrice || 'N/A'} | 
-                Type: {selectedOption.optionType || 'N/A'} | 
-                Token: {selectedOption.token || 'N/A'}
-              </div>
-            </div>
-          )}
-
-          {/* Buy/Sell Buttons */}
-          <BuySellButtons
-            selectedOption={selectedOption}
-            onTrade={handleTrade}
-            isAdmin={false}
-          />
-
-          {/* Option Table */}
-          <OptionTable 
-            optionChain={optionChain}
-            loading={optionLoading}
-            error={error}
-            onOptionSelect={handleOptionSelect}
-            onRefresh={handleManualRefresh}
-            isAdmin={false}
-          />
+              <thead>
+                <tr style={{ borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
+                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'left', fontWeight: 600 }}>Symbol</th>
+                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Qty</th>
+                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Avg Price</th>
+                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>LTP</th>
+                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Current Value</th>
+                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>P&L</th>
+                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Day Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                {positions.map((position, idx) => (
+                  <tr key={position.symbol || idx} style={{ borderBottom: '1px solid #e0e0e0' }}>
+                    <td style={{ padding: '0.6em', fontWeight: 500 }}>{position.symbol || '-'}</td>
+                    <td style={{ padding: '0.6em', textAlign: 'right' }}>{position.quantity || '-'}</td>
+                    <td style={{ padding: '0.6em', textAlign: 'right' }}>₹{position.averagePrice || '-'}</td>
+                    <td style={{ padding: '0.6em', textAlign: 'right' }}>₹{position.ltp || '-'}</td>
+                    <td style={{ padding: '0.6em', textAlign: 'right' }}>₹{position.currentValue || '-'}</td>
+                    <td style={{ 
+                      padding: '0.6em', 
+                      textAlign: 'right',
+                      color: (position.pnl || 0) >= 0 ? '#28a745' : '#dc3545',
+                      fontWeight: 500
+                    }}>
+                      ₹{position.pnl || '-'}
+                    </td>
+                    <td style={{ 
+                      padding: '0.6em', 
+                      textAlign: 'right',
+                      color: (position.dayChange || 0) >= 0 ? '#28a745' : '#dc3545',
+                      fontWeight: 500
+                    }}>
+                      {position.dayChange ? `${position.dayChange > 0 ? '+' : ''}${position.dayChange}%` : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
