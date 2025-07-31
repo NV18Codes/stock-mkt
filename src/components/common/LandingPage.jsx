@@ -1,80 +1,47 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  TrendingUp, 
-  Shield, 
-  Zap, 
-  Users, 
-  Smartphone, 
-  Monitor, 
-  Tablet,
-  ArrowRight,
-  CheckCircle,
-  Star,
-  BarChart3,
-  Globe,
-  Lock
-} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowRight, TrendingUp, Shield, Zap, Users, BarChart3 } from 'lucide-react';
+import v4Logo from '../../assets/logo-V4.png';
 
 const LandingPage = () => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
-  const fadeInUp = {
-    initial: { opacity: 0, y: 60 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6 }
-  };
-
-  const staggerContainer = {
-    animate: {
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
   const features = [
     {
-      icon: <BarChart3 size={32} />,
-      title: "Multi-Broker Integration",
-      description: "Connect Angel One, Zerodha, Upstox, and more from a single dashboard"
-    },
-    {
       icon: <TrendingUp size={32} />,
-      title: "Real-Time Analytics",
-      description: "Advanced charts, technical indicators, and portfolio tracking"
+      title: "Advanced Analytics",
+      description: "Real-time insights with powerful trading analytics and market data visualization."
     },
     {
       icon: <Shield size={32} />,
-      title: "Secure & Reliable",
-      description: "Bank-grade security with 256-bit encryption and 2FA protection"
+      title: "Bank-Grade Security",
+      description: "Enterprise-level security and encryption protocols protect your data."
     },
     {
       icon: <Zap size={32} />,
       title: "Lightning Fast",
-      description: "Ultra-low latency execution with real-time market data"
-    },
-    {
-      icon: <Globe size={32} />,
-      title: "Cross-Platform",
-      description: "Trade seamlessly across desktop, tablet, and mobile devices"
+      description: "Execute trades instantly with high-performance trading engine."
     },
     {
       icon: <Users size={32} />,
-      title: "Community Support",
-      description: "Join thousands of traders in our active community"
+      title: "Expert Community",
+      description: "Connect with professional traders in our exclusive community."
+    },
+    {
+      icon: <BarChart3 size={32} />,
+      title: "Portfolio Management",
+      description: "Track and manage investments with comprehensive analytics."
+    },
+    {
+      icon: <Shield size={32} />,
+      title: "Premium Support",
+      description: "24/7 dedicated support from trading experts and professionals."
     }
   ];
 
-  const plans = [
+  const pricingPlans = [
     {
       name: "Starter",
-      price: "₹499",
+      price: "₹999",
       period: "per month",
       features: [
         "Basic Trading Tools",
@@ -87,7 +54,7 @@ const LandingPage = () => {
     },
     {
       name: "Professional",
-      price: "₹1,499",
+      price: "₹1,999",
       period: "per month",
       features: [
         "All Starter Features",
@@ -116,7 +83,7 @@ const LandingPage = () => {
   ];
 
   return (
-    <div style={{ overflowX: 'hidden', background: 'var(--background-color)' }}>
+    <div style={{ overflowX: 'hidden', background: '#ffffff' }}>
       {/* Navigation */}
       <motion.nav 
         initial={{ opacity: 0, y: -20 }}
@@ -128,9 +95,9 @@ const LandingPage = () => {
           left: 0,
           right: 0,
           zIndex: 1000,
-          background: 'rgba(255, 255, 255, 0.95)',
+          background: 'rgba(255, 255, 255, 0.98)',
           backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--border-color)',
+          borderBottom: '1px solid #e2e8f0',
           padding: '1rem 2rem',
           display: 'flex',
           justifyContent: 'space-between',
@@ -139,306 +106,284 @@ const LandingPage = () => {
       >
         <motion.div 
           style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-          whileHover={{ scale: 1.05 }}
+          whileHover={{ scale: 1.02 }}
         >
-          <div style={{
-            width: '40px',
-            height: '40px',
-            background: 'var(--primary-color)',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '18px'
-          }}>
-            T
-          </div>
-          <span style={{ 
-            color: 'var(--text-primary)', 
-            fontSize: '1.5rem', 
-            fontWeight: '700',
-            letterSpacing: '-0.025em'
-          }}>
-            TradePro
-          </span>
+          <img 
+            src={v4Logo} 
+            alt="V4 Fintech Solutions" 
+            style={{ 
+              height: '70px', 
+              width: 'auto',
+              borderRadius: '12px',
+              background: 'white',
+              padding: '8px'
+            }}
+          />
         </motion.div>
         
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <Link to="/login" style={{
-            color: 'var(--text-secondary)',
+            color: '#475569',
             textDecoration: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '6px',
+            padding: '0.75rem 1.5rem',
+            borderRadius: '8px',
             fontWeight: '500',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            fontSize: '0.95rem'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.color = '#00d4aa';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.color = '#475569';
           }}>
             Sign In
           </Link>
           <Link to="/signup" style={{
-            background: 'var(--primary-color)',
-            color: 'white',
-            textDecoration: 'none',
-            padding: '0.75rem 1.5rem',
+            color: '#ffffff',
             borderRadius: '8px',
+            padding: '0.75rem 1.5rem',
+            background: '#00d4aa',
+            textDecoration: 'none',
             fontWeight: '600',
             transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
+            fontSize: '0.95rem'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#00b894';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = '#00d4aa';
           }}>
             Get Started
-            <ArrowRight size={16} />
           </Link>
         </div>
       </motion.nav>
 
       {/* Hero Section */}
-      <section style={{ 
+      <section style={{
         padding: '8rem 2rem 6rem',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+        textAlign: 'center',
+        background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)',
         minHeight: '100vh',
         display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
         alignItems: 'center',
-        textAlign: 'center',
-        position: 'relative'
+        justifyContent: 'center'
       }}>
-        {/* Background Pattern */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232563eb' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          opacity: 0.5
-        }} />
-        
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          style={{ position: 'relative', zIndex: 2 }}
+          transition={{ duration: 0.8 }}
+          style={{ maxWidth: '1000px', margin: '0 auto' }}
         >
-          <motion.h1 
-            style={{ 
-              color: 'var(--text-primary)',
-              fontSize: 'clamp(2.5rem, 5vw, 4rem)',
-              fontWeight: '800',
-              lineHeight: '1.1',
-              marginBottom: '1.5rem',
-              letterSpacing: '-0.025em'
-            }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
+          <h1 style={{ 
+            color: '#0f172a',
+            fontSize: 'clamp(2.5rem, 6vw, 4rem)',
+            fontWeight: '800',
+            marginBottom: '1.5rem',
+            letterSpacing: '-0.025em',
+            lineHeight: '1.2'
+          }}>
             Trade Smarter with
+            <br />
             <span style={{ 
-              color: 'var(--primary-color)',
-              display: 'block'
+              color: '#00d4aa'
             }}>
               Professional Tools
             </span>
-          </motion.h1>
+          </h1>
           
-          <motion.p 
-            style={{ 
-              color: 'var(--text-secondary)',
-              fontSize: 'clamp(1.1rem, 2.5vw, 1.3rem)',
-              maxWidth: '700px',
-              margin: '0 auto 3rem',
-              lineHeight: '1.6'
-            }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-          >
-            Connect multiple broker accounts, track your portfolio performance,
-            and make informed trading decisions with real-time market data and advanced analytics.
-          </motion.p>
+          <p style={{ 
+            color: '#475569',
+            fontSize: '1.25rem',
+            maxWidth: '600px',
+            margin: '0 auto 3rem',
+            lineHeight: '1.6',
+            fontWeight: '400'
+          }}>
+            Join thousands of traders who trust V4 Fintech Solutions for their trading journey. 
+            Experience the future of trading with our advanced platform.
+          </p>
 
-          <motion.div 
-            style={{ 
-              display: 'flex', 
-              gap: '1rem', 
-              justifyContent: 'center',
-              flexWrap: 'wrap'
-            }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-          >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '4rem' }}>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Link to="/signup" style={{ 
                 padding: '1rem 2rem',
                 fontSize: '1.1rem',
-                background: 'var(--primary-color)',
-                color: 'white',
+                background: '#00d4aa',
+                color: '#ffffff',
                 textDecoration: 'none',
                 borderRadius: '8px',
                 fontWeight: '600',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                boxShadow: 'var(--shadow-lg)'
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#00b894';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#00d4aa';
               }}>
                 Start Trading Free
-                <ArrowRight size={18} />
+                <ArrowRight size={20} />
               </Link>
             </motion.div>
             
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Link to="/login" style={{ 
                 padding: '1rem 2rem',
                 fontSize: '1.1rem',
-                background: 'white',
-                color: 'var(--text-primary)',
+                background: 'transparent',
+                color: '#00d4aa',
                 textDecoration: 'none',
                 borderRadius: '8px',
                 fontWeight: '600',
-                border: '2px solid var(--border-color)',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.5rem',
+                border: '2px solid #00d4aa',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#00d4aa';
+                e.target.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent';
+                e.target.style.color = '#00d4aa';
               }}>
                 View Demo
               </Link>
             </motion.div>
-          </motion.div>
-        </motion.div>
+          </div>
 
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1 }}
-          style={{
-            display: 'flex',
-            gap: '3rem',
-            marginTop: '4rem',
-            flexWrap: 'wrap',
-            justifyContent: 'center'
-          }}
-        >
-          {[
-            { number: '50K+', label: 'Active Traders' },
-            { number: '₹500Cr+', label: 'Trading Volume' },
-            { number: '99.9%', label: 'Uptime' },
-            { number: '24/7', label: 'Support' }
-          ].map((stat, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 1.2 + index * 0.1 }}
-              style={{ textAlign: 'center' }}
-            >
-              <div style={{
-                fontSize: '2rem',
-                fontWeight: '800',
-                color: 'var(--primary-color)',
-                marginBottom: '0.5rem'
-              }}>
-                {stat.number}
+          {/* Stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            style={{ 
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '2rem',
+              maxWidth: '800px',
+              margin: '0 auto'
+            }}
+          >
+            {[
+              { number: '50K+', label: 'Active Traders' },
+              { number: '₹100Cr+', label: 'Trading Volume' },
+              { number: '99.9%', label: 'Uptime' },
+              { number: '24/7', label: 'Support' }
+            ].map((stat, index) => (
+              <div key={index} style={{ textAlign: 'center' }}>
+                <div style={{ 
+                  color: '#00d4aa',
+                  fontSize: '2.5rem',
+                  fontWeight: '800',
+                  marginBottom: '0.5rem'
+                }}>
+                  {stat.number}
+                </div>
+                <div style={{ 
+                  color: '#64748b',
+                  fontSize: '0.95rem',
+                  fontWeight: '500'
+                }}>
+                  {stat.label}
+                </div>
               </div>
-              <div style={{
-                color: 'var(--text-secondary)',
-                fontSize: '0.9rem',
-                fontWeight: '500'
-              }}>
-                {stat.label}
-              </div>
-            </motion.div>
-          ))}
+            ))}
+          </motion.div>
         </motion.div>
       </section>
 
       {/* Features Section */}
-      <section style={{ 
-        padding: '6rem 2rem', 
-        background: 'white'
+      <section style={{
+        padding: '6rem 2rem',
+        background: '#ffffff'
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.8 }}
             viewport={{ once: true }}
             style={{ textAlign: 'center', marginBottom: '4rem' }}
           >
             <h2 style={{ 
-              color: 'var(--text-primary)',
-              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              fontSize: 'clamp(2rem, 5vw, 3rem)',
               fontWeight: '700',
               marginBottom: '1rem',
-              letterSpacing: '-0.025em'
+              color: '#0f172a'
             }}>
-              Why Choose TradePro?
+              Why Choose V4 Fintech Solutions?
             </h2>
-            <p style={{
-              color: 'var(--text-secondary)',
-              fontSize: '1.2rem',
+            <p style={{ 
+              color: '#64748b',
+              fontSize: '1.1rem',
               maxWidth: '600px',
               margin: '0 auto',
               lineHeight: '1.6'
             }}>
-              Experience the future of trading with our comprehensive platform designed for professionals
+              Experience the perfect blend of technology and expertise for your trading success
             </p>
           </motion.div>
 
-          <motion.div 
-            style={{ 
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-              gap: '2rem'
-            }}
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
-          >
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+            gap: '2rem'
+          }}>
             {features.map((feature, index) => (
               <motion.div
                 key={index}
-                variants={fadeInUp}
-                whileHover={{ y: -8, transition: { duration: 0.2 } }}
-                style={{ 
-                  background: 'white',
-                  padding: '2.5rem',
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                style={{
+                  background: '#ffffff',
+                  padding: '2rem',
                   borderRadius: '12px',
-                  border: '1px solid var(--border-color)',
-                  boxShadow: 'var(--shadow-sm)',
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer'
+                  border: '1px solid #e2e8f0',
+                  transition: 'all 0.2s ease',
+                  textAlign: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.borderColor = '#00d4aa';
+                  e.target.style.transform = 'translateY(-4px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.borderColor = '#e2e8f0';
+                  e.target.style.transform = 'translateY(0)';
                 }}
               >
                 <div style={{
                   width: '60px',
                   height: '60px',
-                  background: 'var(--primary-color)',
+                  background: '#f1f5f9',
                   borderRadius: '12px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: '1.5rem',
-                  color: 'white'
+                  margin: '0 auto 1.5rem',
+                  color: '#00d4aa'
                 }}>
                   {feature.icon}
                 </div>
                 <h3 style={{ 
-                  color: 'var(--text-primary)', 
-                  marginBottom: '1rem', 
                   fontSize: '1.25rem',
-                  fontWeight: '600'
+                  fontWeight: '600',
+                  marginBottom: '1rem',
+                  color: '#0f172a'
                 }}>
                   {feature.title}
                 </h3>
                 <p style={{ 
-                  color: 'var(--text-secondary)', 
+                  color: '#64748b',
                   lineHeight: '1.6',
                   fontSize: '0.95rem'
                 }}>
@@ -446,69 +391,69 @@ const LandingPage = () => {
                 </p>
               </motion.div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* Pricing Section */}
       <section style={{
         padding: '6rem 2rem',
-        background: 'var(--background-color)'
+        background: '#f8fafc'
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.8 }}
             viewport={{ once: true }}
             style={{ textAlign: 'center', marginBottom: '4rem' }}
           >
             <h2 style={{ 
-              color: 'var(--text-primary)',
-              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              fontSize: 'clamp(2rem, 5vw, 3rem)',
               fontWeight: '700',
               marginBottom: '1rem',
-              letterSpacing: '-0.025em'
+              color: '#0f172a'
             }}>
               Choose Your Plan
             </h2>
-            <p style={{
-              color: 'var(--text-secondary)',
-              fontSize: '1.2rem',
+            <p style={{ 
+              color: '#64748b',
+              fontSize: '1.1rem',
               maxWidth: '600px',
               margin: '0 auto',
               lineHeight: '1.6'
             }}>
-              Start with our free trial and upgrade as you grow
+              Start with our free plan and upgrade as you grow
             </p>
           </motion.div>
 
-          <motion.div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: '2rem',
-              maxWidth: '1000px',
-              margin: '0 auto'
-            }}
-            variants={staggerContainer}
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true }}
-          >
-            {plans.map((plan, index) => (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '2rem',
+            alignItems: 'start'
+          }}>
+            {pricingPlans.map((plan, index) => (
               <motion.div
                 key={index}
-                variants={fadeInUp}
-                whileHover={{ y: -8, transition: { duration: 0.2 } }}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                viewport={{ once: true }}
                 style={{
-                  background: plan.popular ? 'white' : 'white',
-                  border: plan.popular ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
-                  borderRadius: '16px',
-                  padding: '2.5rem',
+                  background: plan.popular ? '#00d4aa' : '#ffffff',
+                  padding: '2rem',
+                  borderRadius: '12px',
+                  border: plan.popular ? 'none' : '1px solid #e2e8f0',
+                  transition: 'all 0.2s ease',
                   position: 'relative',
-                  boxShadow: plan.popular ? 'var(--shadow-lg)' : 'var(--shadow-sm)',
-                  transition: 'all 0.3s ease'
+                  transform: plan.popular ? 'scale(1.02)' : 'scale(1)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = plan.popular ? 'scale(1.03)' : 'scale(1.01)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = plan.popular ? 'scale(1.02)' : 'scale(1)';
                 }}
               >
                 {plan.popular && (
@@ -517,11 +462,11 @@ const LandingPage = () => {
                     top: '-12px',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    background: 'var(--primary-color)',
-                    color: 'white',
-                    padding: '0.5rem 1.5rem',
+                    background: '#ffffff',
+                    color: '#00d4aa',
+                    padding: '0.5rem 1rem',
                     borderRadius: '20px',
-                    fontSize: '0.875rem',
+                    fontSize: '0.8rem',
                     fontWeight: '600'
                   }}>
                     Most Popular
@@ -530,116 +475,134 @@ const LandingPage = () => {
                 
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                   <h3 style={{ 
-                    color: 'var(--text-primary)', 
                     fontSize: '1.5rem',
-                    fontWeight: '700',
-                    marginBottom: '1rem'
+                    fontWeight: '600',
+                    marginBottom: '1rem',
+                    color: plan.popular ? '#ffffff' : '#0f172a'
                   }}>
                     {plan.name}
                   </h3>
-                  <div style={{
-                    fontSize: '3rem',
-                    fontWeight: '800',
-                    color: 'var(--primary-color)',
-                    marginBottom: '0.5rem'
-                  }}>
-                    {plan.price}
-                  </div>
-                  <div style={{
-                    color: 'var(--text-secondary)',
-                    fontSize: '1rem'
-                  }}>
-                    {plan.period}
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <span style={{ 
+                      fontSize: '2.5rem',
+                      fontWeight: '800',
+                      color: plan.popular ? '#ffffff' : '#0f172a'
+                    }}>
+                      {plan.price}
+                    </span>
+                    <span style={{ 
+                      fontSize: '0.9rem',
+                      color: plan.popular ? 'rgba(255, 255, 255, 0.8)' : '#64748b'
+                    }}>
+                      /{plan.period}
+                    </span>
                   </div>
                 </div>
-
-                <ul style={{
-                  listStyle: 'none',
-                  padding: 0,
-                  margin: '0 0 2rem 0'
-                }}>
+                
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0' }}>
                   {plan.features.map((feature, featureIndex) => (
                     <li key={featureIndex} style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.75rem',
                       marginBottom: '1rem',
-                      color: 'var(--text-secondary)',
-                      fontSize: '0.95rem'
+                      color: plan.popular ? '#ffffff' : '#374151',
+                      fontSize: '0.9rem'
                     }}>
-                      <CheckCircle size={18} color="var(--success-color)" />
+                      <div style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        background: plan.popular ? '#ffffff' : '#00d4aa',
+                        flexShrink: 0
+                      }} />
                       {feature}
                     </li>
                   ))}
                 </ul>
-
-                <Link to="/signup" style={{
-                  width: '100%',
-                  padding: '1rem',
-                  background: plan.popular ? 'var(--primary-color)' : 'white',
-                  color: plan.popular ? 'white' : 'var(--primary-color)',
-                  textDecoration: 'none',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  textAlign: 'center',
-                  display: 'block',
-                  border: plan.popular ? 'none' : '2px solid var(--primary-color)',
-                  transition: 'all 0.2s ease'
-                }}>
-                  Get Started
-                </Link>
+                
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Link to="/signup" style={{ 
+                    width: '100%',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.95rem',
+                    background: plan.popular ? '#ffffff' : '#00d4aa',
+                    color: plan.popular ? '#00d4aa' : '#ffffff',
+                    textDecoration: 'none',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    display: 'inline-block',
+                    textAlign: 'center',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.opacity = '0.9';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.opacity = '1';
+                  }}>
+                    Get Started
+                  </Link>
+                </motion.div>
               </motion.div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section style={{ 
+      <section style={{
         padding: '6rem 2rem',
-        background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%)',
+        background: '#00d4aa',
         textAlign: 'center'
       }}>
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.8 }}
           viewport={{ once: true }}
+          style={{ maxWidth: '800px', margin: '0 auto' }}
         >
           <h2 style={{ 
-            color: 'white',
-            fontSize: 'clamp(2rem, 4vw, 3rem)',
+            color: '#ffffff',
+            fontSize: 'clamp(2rem, 5vw, 3rem)',
             fontWeight: '700',
-            marginBottom: '1rem',
-            letterSpacing: '-0.025em'
+            marginBottom: '1.5rem'
           }}>
             Ready to Start Trading?
           </h2>
           
           <p style={{ 
-            color: 'rgba(255, 255, 255, 0.9)',
-            fontSize: '1.2rem',
+            color: '#ffffff',
+            fontSize: '1.1rem',
             maxWidth: '600px',
-            margin: '0 auto 3rem',
-            lineHeight: '1.6'
+            margin: '0 auto 2rem',
+            lineHeight: '1.6',
+            opacity: 0.9
           }}>
-            Join thousands of traders who have already chosen TradePro
+            Join thousands of traders who have already chosen V4 Fintech Solutions
             for their trading journey.
           </p>
 
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Link to="/signup" style={{ 
-              padding: '1.2rem 3rem',
-              fontSize: '1.2rem',
-              background: 'white',
-              color: 'var(--primary-color)',
+              padding: '1rem 2rem',
+              fontSize: '1.1rem',
+              background: '#ffffff',
+              color: '#00d4aa',
               textDecoration: 'none',
               borderRadius: '8px',
-              fontWeight: '700',
+              fontWeight: '600',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.75rem',
-              boxShadow: 'var(--shadow-xl)'
+              gap: '0.5rem',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.opacity = '0.9';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.opacity = '1';
             }}>
               Create Free Account
               <ArrowRight size={20} />
@@ -650,8 +613,8 @@ const LandingPage = () => {
 
       {/* Footer */}
       <footer style={{
-        background: 'white',
-        borderTop: '1px solid var(--border-color)',
+        background: '#1e293b',
+        borderTop: '1px solid #334155',
         padding: '3rem 2rem',
         textAlign: 'center'
       }}>
@@ -663,40 +626,30 @@ const LandingPage = () => {
             gap: '0.75rem',
             marginBottom: '1rem'
           }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              background: 'var(--primary-color)',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: '14px'
-            }}>
-              T
-            </div>
-            <span style={{ 
-              color: 'var(--text-primary)', 
-              fontSize: '1.25rem', 
-              fontWeight: '700'
-            }}>
-              TradePro
-            </span>
+            <img 
+              src={v4Logo} 
+              alt="V4 Fintech Solutions" 
+              style={{ 
+                height: '60px', 
+                width: 'auto',
+                borderRadius: '8px',
+                background: 'white',
+                padding: '6px'
+              }}
+            />
           </div>
           <p style={{ 
-            color: 'var(--text-secondary)', 
-            marginBottom: '1rem',
+            color: '#cbd5e1', 
+            marginBottom: '0.5rem',
             fontSize: '0.95rem'
           }}>
-            © 2024 TradePro. All rights reserved.
+            © 2024 V4 Fintech Solutions. All rights reserved.
           </p>
           <p style={{ 
-            color: 'var(--text-muted)', 
+            color: '#94a3b8', 
             fontSize: '0.875rem'
           }}>
-            Trade smarter, not harder
+            Where Investment Meets Innovation
           </p>
         </div>
       </footer>

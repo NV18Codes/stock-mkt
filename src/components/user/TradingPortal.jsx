@@ -1,16 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import SegmentSelection from './SegmentSelection';
-import OptionTable from './OptionTable';
-import BuySellButtons from './BuySellButtons';
+import OrderForm from './OrderForm';
 import ChartArea from './ChartArea';
 import { 
-  fetchOptionExpiries, 
-  fetchOptionChain, 
-  fetchUnderlyings,
   placeTradeOrder,
   getPositions,
-  getOrderHistory,
-  getLTPData
+  getOrderHistory
 } from '../../api/trading';
 import axios from 'axios';
 import { Line } from 'react-chartjs-2';
@@ -62,21 +57,12 @@ const TradingPortal = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedSegment, setSelectedSegment] = useState('EQUITY');
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [optionChain, setOptionChain] = useState([]);
-  const [optionLoading, setOptionLoading] = useState(false);
-  const [underlyings, setUnderlyings] = useState([]);
-  const [underlying, setUnderlying] = useState('NIFTY');
-  const [expiries, setExpiries] = useState([]);
-  const [expiry, setExpiry] = useState('');
-  const [refreshInterval, setRefreshInterval] = useState(5000); // 5 seconds default
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const pollingRef = useRef(null);
   const [clearBrokerStatus, setClearBrokerStatus] = useState('');
   const [clearBrokerLoading, setClearBrokerLoading] = useState(false);
   const [portfolioData, setPortfolioData] = useState(null);
   const [positions, setPositions] = useState([]);
   const [dematLimit, setDematLimit] = useState(null);
+  const [orderStatus, setOrderStatus] = useState('');
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -152,102 +138,24 @@ const TradingPortal = () => {
     return data;
   };
 
-  // Fetch underlyings on mount
-  useEffect(() => {
-    const fetchAllUnderlyings = async () => {
-      try {
-        const res = await fetchUnderlyings();
-        if (res && res.success && Array.isArray(res.data)) {
-          setUnderlyings(res.data);
-          setUnderlying(res.data[0]);
-          setError('');
-        } else {
-          if (!res.error || !res.error.includes('403')) {
-            setError('Failed to fetch underlyings');
-          }
-        }
-      } catch (err) {
-        console.error('Error in fetchAllUnderlyings:', err);
-      }
-    };
-    fetchAllUnderlyings();
-  }, []);
-
-  // Fetch expiries when underlying changes
-  useEffect(() => {
-    if (!underlying) return;
-    const fetchExpiries = async () => {
-      try {
-        const res = await fetchOptionExpiries(underlying);
-        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-          setExpiries(res.data);
-          setExpiry(res.data[0]);
-          setError('');
-        } else {
-          setExpiries([]);
-          setExpiry('');
-          if (!res.error || !res.error.includes('403')) {
-            setError('No expiries found for selected underlying');
-          }
-        }
-      } catch (err) {
-        console.error('Error in fetchExpiries:', err);
-      }
-    };
-    fetchExpiries();
-  }, [underlying]);
-
-  // Fetch option chain (manual or interval)
-  const fetchChain = async () => {
-    if (!underlying || !expiry) return;
-    setOptionLoading(true);
+  const handleOrderSubmit = async (orderData) => {
     try {
-      const res = await fetchOptionChain(underlying, expiry);
-      if (res && res.success && Array.isArray(res.data)) {
-        setOptionChain(res.data);
-        setError('');
-      } else {
-        setOptionChain([]);
-        if (!res.error || !res.error.includes('403')) {
-          setError(res.error || 'Failed to fetch option chain');
-        }
-      }
-    } catch (err) {
-      console.error('Error in fetchChain:', err);
-      setOptionChain([]);
-    } finally {
-      setOptionLoading(false);
-    }
-  };
-
-  // Auto-refresh option chain (controlled by user)
-  useEffect(() => {
-    if (!autoRefresh) return;
-    fetchChain();
-    pollingRef.current = setInterval(fetchChain, refreshInterval);
-    return () => clearInterval(pollingRef.current);
-  }, [autoRefresh, refreshInterval, underlying, expiry]);
-
-  // Manual refresh handler
-  const handleManualRefresh = () => {
-    fetchChain();
-  };
-
-  const handleOptionSelect = (option) => {
-    setSelectedOption(option);
-  };
-
-  const handleTrade = async (tradeInfo) => {
-    try {
-      console.log('Placing trade:', tradeInfo);
-      // Here you would call your trading API
-      // await placeTradeOrder(tradeInfo);
+      setOrderStatus('Placing order...');
+      console.log('Placing order:', orderData);
       
-      // For now, just log the trade
-      console.log('Trade placed successfully:', tradeInfo);
+      // Here you would call your trading API
+      // await placeTradeOrder(orderData);
+      
+      // For now, just log the order
+      console.log('Order placed successfully:', orderData);
+      setOrderStatus('Order placed successfully!');
+      
+      // Clear status after 3 seconds
+      setTimeout(() => setOrderStatus(''), 3000);
     } catch (error) {
-      console.error('Error placing trade:', error);
-      throw error;
+      console.error('Error placing order:', error);
+      setOrderStatus('Failed to place order. Please try again.');
+      setTimeout(() => setOrderStatus(''), 5000);
     }
   };
 
@@ -517,25 +425,6 @@ const TradingPortal = () => {
           </h3>
           <div style={{ display: 'grid', gap: '0.8em' }}>
             <button
-              onClick={handleManualRefresh}
-              disabled={optionLoading}
-              style={{
-                width: '100%',
-                padding: '0.8em',
-                background: '#007bff',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: 'clamp(12px, 2.5vw, 14px)',
-                fontWeight: 600,
-                cursor: optionLoading ? 'not-allowed' : 'pointer',
-                opacity: optionLoading ? 0.6 : 1,
-                transition: 'all 0.3s ease'
-              }}
-            >
-              {optionLoading ? 'Refreshing...' : 'Refresh Data'}
-            </button>
-            <button
               onClick={handleClearBroker}
               disabled={clearBrokerLoading}
               style={{
@@ -558,107 +447,25 @@ const TradingPortal = () => {
         </div>
       </div>
 
-      {/* Market Data Controls */}
-      <div style={{ 
-        padding: 'clamp(1em, 3vw, 1.5em)', 
-        background: '#fff', 
-        borderRadius: '12px', 
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-        border: '1px solid #e0e0e0',
-        marginBottom: '2em'
-      }}>
+      {/* Order Status */}
+      {orderStatus && (
         <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1em'
+          background: orderStatus.includes('successfully') ? '#d4edda' : orderStatus.includes('Failed') ? '#f8d7da' : '#e3f2fd',
+          color: orderStatus.includes('successfully') ? '#155724' : orderStatus.includes('Failed') ? '#721c24' : '#1976d2',
+          padding: 'clamp(0.8em, 2vw, 1em)', 
+          borderRadius: '8px', 
+          marginBottom: '1.5em', 
+          border: orderStatus.includes('successfully') ? '1px solid #c3e6cb' : orderStatus.includes('Failed') ? '1px solid #f5c6cb' : '1px solid #bbdefb', 
+          fontSize: 'clamp(12px, 2.5vw, 14px)',
+          fontWeight: 500,
+          textAlign: 'center'
         }}>
-          <h3 style={{ 
-            color: '#2c3e50', 
-            margin: 0, 
-            fontSize: 'clamp(1.1em, 3vw, 1.3em)',
-            fontWeight: 600
-          }}>
-            Market Data
-          </h3>
-          
-          <div style={{ 
-            display: 'flex', 
-            gap: '1em', 
-            alignItems: 'center',
-            flexWrap: 'wrap'
-          }}>
-            <select
-              value={underlying}
-              onChange={(e) => setUnderlying(e.target.value)}
-              style={{
-                padding: '0.5em',
-                border: '1px solid #e0e0e0',
-                borderRadius: '6px',
-                fontSize: 'clamp(12px, 2.5vw, 14px)',
-                background: '#fff'
-              }}
-            >
-              {underlyings.map(und => (
-                <option key={und} value={und}>{und}</option>
-              ))}
-            </select>
-            
-            <select
-              value={expiry}
-              onChange={(e) => setExpiry(e.target.value)}
-              style={{
-                padding: '0.5em',
-                border: '1px solid #e0e0e0',
-                borderRadius: '6px',
-                fontSize: 'clamp(12px, 2.5vw, 14px)',
-                background: '#fff'
-              }}
-            >
-              {expiries.map(exp => (
-                <option key={exp} value={exp}>{exp}</option>
-              ))}
-            </select>
-            
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.5em',
-              fontSize: 'clamp(12px, 2.5vw, 14px)'
-            }}>
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-                style={{ transform: 'scale(1.2)' }}
-              />
-              Auto Refresh
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* Option Chain */}
-      <div style={{ marginBottom: '2em' }}>
-        <OptionTable
-          optionChain={optionChain}
-          loading={optionLoading}
-          error={error}
-          onOptionSelect={handleOptionSelect}
-          onRefresh={handleManualRefresh}
-        />
-      </div>
-
-      {/* Buy/Sell Buttons */}
-      {selectedOption && (
-        <div style={{ marginBottom: '2em' }}>
-          <BuySellButtons
-            selectedOption={selectedOption}
-            onTrade={handleTrade}
-          />
+          {orderStatus}
         </div>
       )}
+
+      {/* Order Form */}
+      <OrderForm onOrderSubmit={handleOrderSubmit} />
 
       {/* TradingView Chart */}
       <div style={{ marginBottom: '2em' }}>

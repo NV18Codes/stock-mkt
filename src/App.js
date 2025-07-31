@@ -40,24 +40,40 @@ class ErrorBoundary extends React.Component {
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
-          background: '#f8f9fa',
+          background: 'var(--gradient-bg)',
           padding: '2rem',
           textAlign: 'center'
         }}>
-          <div>
-            <h1 style={{ color: '#dc3545', marginBottom: '1rem' }}>Something went wrong</h1>
-            <p style={{ color: '#6c757d', marginBottom: '1rem' }}>
+          <div style={{
+            background: 'var(--gradient-card)',
+            padding: '2rem',
+            borderRadius: '12px',
+            border: '1px solid var(--border-primary)',
+            boxShadow: 'var(--shadow-lg)'
+          }}>
+            <h1 style={{ color: 'var(--danger-color)', marginBottom: '1rem' }}>Something went wrong</h1>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
               {this.state.error?.message || 'An unexpected error occurred'}
             </p>
             <button 
               onClick={() => window.location.reload()} 
               style={{
-                background: '#007bff',
-                color: '#fff',
+                background: 'var(--gradient-primary)',
+                color: 'var(--text-inverse)',
                 border: 'none',
-                padding: '0.5rem 1rem',
-                borderRadius: '4px',
-                cursor: 'pointer'
+                padding: '0.75rem 1.5rem',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = 'var(--shadow-lg)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = 'none';
               }}
             >
               Reload Page
@@ -79,26 +95,48 @@ const TestComponent = () => {
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center',
-      background: '#f8f9fa',
-      color: '#007bff',
+      background: 'var(--gradient-bg)',
+      color: 'var(--text-primary)',
       fontSize: '2rem',
       fontWeight: 'bold'
     }}>
-      <div style={{ textAlign: 'center' }}>
-        <h1>🚀 React App is Working!</h1>
-        <p style={{ fontSize: '1rem', marginTop: '1rem', color: '#6c757d' }}>
+      <div style={{ 
+        textAlign: 'center',
+        background: 'var(--gradient-card)',
+        padding: '2rem',
+        borderRadius: '12px',
+        border: '1px solid var(--border-primary)',
+        boxShadow: 'var(--shadow-lg)'
+      }}>
+        <h1 style={{ 
+          background: 'var(--gradient-primary)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>🚀 React App is Working!</h1>
+        <p style={{ fontSize: '1rem', marginTop: '1rem', color: 'var(--text-secondary)' }}>
           If you can see this, React is rendering correctly.
         </p>
         <button 
           onClick={() => window.location.href = '/landing'} 
           style={{
-            background: '#007bff',
-            color: '#fff',
+            background: 'var(--gradient-primary)',
+            color: 'var(--text-inverse)',
             border: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
+            padding: '0.75rem 1.5rem',
+            borderRadius: '8px',
             cursor: 'pointer',
-            marginTop: '1rem'
+            marginTop: '1rem',
+            fontWeight: '600',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = 'var(--shadow-lg)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = 'none';
           }}
         >
           Go to Landing Page
@@ -118,22 +156,29 @@ const ProtectedRoute = ({ children, role: requiredRole }) => {
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'center',
-        background: '#f8f9fa',
-        color: '#007bff',
+        background: 'var(--gradient-bg)',
+        color: 'var(--text-primary)',
         fontSize: '1.2em',
         fontWeight: 500
       }}>
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ 
+          textAlign: 'center',
+          background: 'var(--gradient-card)',
+          padding: '2rem',
+          borderRadius: '12px',
+          border: '1px solid var(--border-primary)',
+          boxShadow: 'var(--shadow-lg)'
+        }}>
           <div className="loading-spinner" style={{
             width: '40px',
             height: '40px',
-            border: '4px solid #e3e3e3',
-            borderTop: '4px solid #007bff',
+            border: '4px solid var(--bg-tertiary)',
+            borderTop: '4px solid var(--primary-color)',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
             margin: '0 auto 1em'
           }} />
-          <p>Loading...</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
         </div>
       </div>
     );
@@ -220,8 +265,8 @@ function App() {
         <Router>
           <div style={{ 
             minHeight: '100vh', 
-            background: '#f8f9fa',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif'
+            background: 'var(--gradient-bg)',
+            fontFamily: 'var(--font-family)'
           }}>
             <AppRoutes />
           </div>

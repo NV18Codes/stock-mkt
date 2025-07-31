@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { signup } from '../../api/auth';
 import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaPhone, FaChartLine, FaArrowLeft } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
+import v4Logo from '../../assets/logo-V4.png';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -78,7 +79,7 @@ const Signup = () => {
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'var(--gradient-bg)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -93,7 +94,7 @@ const Signup = () => {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+        background: `url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%2300d4aa" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
         animation: 'float 20s ease-in-out infinite'
       }} />
 
@@ -102,7 +103,7 @@ const Signup = () => {
         position: 'absolute',
         top: '2rem',
         left: '2rem',
-        color: '#fff',
+        color: 'var(--text-primary)',
         textDecoration: 'none',
         display: 'flex',
         alignItems: 'center',
@@ -110,22 +111,36 @@ const Signup = () => {
         fontSize: '1rem',
         fontWeight: '500',
         zIndex: 10,
-        transition: 'all 0.3s ease'
+        transition: 'all 0.3s ease',
+        background: 'rgba(255, 255, 255, 0.05)',
+        padding: '0.5rem 1rem',
+        borderRadius: '8px',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
+      }}
+      onMouseEnter={(e) => {
+        e.target.style.background = 'rgba(0, 212, 170, 0.1)';
+        e.target.style.borderColor = 'var(--primary-color)';
+      }}
+      onMouseLeave={(e) => {
+        e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+        e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
       }}>
         <FaArrowLeft />
         Back to Home
       </Link>
 
       <div style={{
-        background: 'rgba(255, 255, 255, 0.95)',
+        background: 'var(--gradient-card)',
         backdropFilter: 'blur(20px)',
         borderRadius: '20px',
-        boxShadow: '0 25px 50px rgba(0, 0, 0, 0.2)',
+        boxShadow: 'var(--shadow-xl)',
         padding: '3rem 2.5rem',
         width: '100%',
         maxWidth: '500px',
         position: 'relative',
-        zIndex: 2
+        zIndex: 2,
+        border: '1px solid var(--border-primary)'
       }}>
         {/* Header */}
         <div style={{ 
@@ -135,20 +150,30 @@ const Signup = () => {
           <div style={{
             width: '80px',
             height: '80px',
-            background: 'linear-gradient(135deg, #667eea, #764ba2)',
+            background: 'white',
             borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 1.5rem',
             fontSize: '2rem',
-            color: '#fff',
-            boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)'
+            color: 'var(--text-inverse)',
+            boxShadow: '0 10px 30px rgba(0, 212, 170, 0.3)',
+            border: '2px solid var(--primary-color)',
+            padding: '8px'
           }}>
-            <FaChartLine />
+            <img 
+              src={v4Logo} 
+              alt="V4 Fintech Solutions" 
+              style={{ 
+                height: '80px', 
+                width: 'auto',
+                borderRadius: '50%'
+              }}
+            />
           </div>
           <h1 style={{ 
-            color: '#333', 
+            color: 'var(--text-primary)', 
             fontSize: 'clamp(1.5rem, 3vw, 2rem)', 
             fontWeight: 'bold',
             marginBottom: '0.5rem'
@@ -156,25 +181,26 @@ const Signup = () => {
             Create Your Account
           </h1>
           <p style={{ 
-            color: '#666', 
+            color: '#475569', 
             fontSize: '1rem',
-            margin: 0
+            margin: 0,
+            fontWeight: '500'
           }}>
-            Join thousands of traders and start your journey
+            Join V4 Fintech Solutions and start your trading journey
           </p>
         </div>
 
         {/* Error Message */}
         {error && (
           <div style={{ 
-            background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
-            color: '#fff',
+            background: 'linear-gradient(135deg, var(--danger-color), var(--danger-hover))',
+            color: 'var(--text-inverse)',
             padding: '1rem',
             borderRadius: '10px',
             marginBottom: '1.5rem',
             textAlign: 'center',
             fontSize: '0.9rem',
-            boxShadow: '0 5px 15px rgba(255, 107, 107, 0.3)'
+            boxShadow: '0 5px 15px rgba(239, 68, 68, 0.3)'
           }}>
             {error}
           </div>
@@ -185,7 +211,7 @@ const Signup = () => {
           {/* Full Name Field */}
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ 
-              color: '#333', 
+              color: 'var(--text-primary)', 
               fontWeight: '600',
               fontSize: '0.9rem',
               marginBottom: '0.5rem',
@@ -199,7 +225,7 @@ const Signup = () => {
                 left: '1rem', 
                 top: '50%', 
                 transform: 'translateY(-50%)', 
-                color: '#667eea', 
+                color: 'var(--primary-color)', 
                 fontSize: '1.1rem' 
               }} />
               <input
@@ -212,20 +238,23 @@ const Signup = () => {
                 style={{
                   width: '100%',
                   padding: '1rem 1rem 1rem 3rem',
-                  border: '2px solid #e1e5e9',
+                  border: '2px solid var(--border-primary)',
                   borderRadius: '10px',
                   fontSize: '1rem',
-                  background: '#fff',
+                  background: 'var(--bg-surface)',
+                  color: 'var(--text-primary)',
                   transition: 'all 0.3s ease',
                   boxSizing: 'border-box'
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#667eea';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  e.target.style.borderColor = 'var(--primary-color)';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 212, 170, 0.1)';
+                  e.target.style.background = 'var(--bg-tertiary)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = '#e1e5e9';
+                  e.target.style.borderColor = 'var(--border-primary)';
                   e.target.style.boxShadow = 'none';
+                  e.target.style.background = 'var(--bg-surface)';
                 }}
               />
             </div>
@@ -234,7 +263,7 @@ const Signup = () => {
           {/* Phone Number Field */}
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ 
-              color: '#333', 
+              color: 'var(--text-primary)', 
               fontWeight: '600',
               fontSize: '0.9rem',
               marginBottom: '0.5rem',
@@ -248,7 +277,7 @@ const Signup = () => {
                 left: '1rem', 
                 top: '50%', 
                 transform: 'translateY(-50%)', 
-                color: '#667eea', 
+                color: 'var(--primary-color)', 
                 fontSize: '1.1rem' 
               }} />
               <input
@@ -262,20 +291,23 @@ const Signup = () => {
                 style={{
                   width: '100%',
                   padding: '1rem 1rem 1rem 3rem',
-                  border: '2px solid #e1e5e9',
+                  border: '2px solid var(--border-primary)',
                   borderRadius: '10px',
                   fontSize: '1rem',
-                  background: '#fff',
+                  background: 'var(--bg-surface)',
+                  color: 'var(--text-primary)',
                   transition: 'all 0.3s ease',
                   boxSizing: 'border-box'
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#667eea';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  e.target.style.borderColor = 'var(--primary-color)';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 212, 170, 0.1)';
+                  e.target.style.background = 'var(--bg-tertiary)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = '#e1e5e9';
+                  e.target.style.borderColor = 'var(--border-primary)';
                   e.target.style.boxShadow = 'none';
+                  e.target.style.background = 'var(--bg-surface)';
                 }}
               />
             </div>
@@ -284,7 +316,7 @@ const Signup = () => {
           {/* Email Field */}
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ 
-              color: '#333', 
+              color: 'var(--text-primary)', 
               fontWeight: '600',
               fontSize: '0.9rem',
               marginBottom: '0.5rem',
@@ -298,7 +330,7 @@ const Signup = () => {
                 left: '1rem', 
                 top: '50%', 
                 transform: 'translateY(-50%)', 
-                color: '#667eea', 
+                color: 'var(--primary-color)', 
                 fontSize: '1.1rem' 
               }} />
               <input
@@ -311,20 +343,23 @@ const Signup = () => {
                 style={{
                   width: '100%',
                   padding: '1rem 1rem 1rem 3rem',
-                  border: '2px solid #e1e5e9',
+                  border: '2px solid var(--border-primary)',
                   borderRadius: '10px',
                   fontSize: '1rem',
-                  background: '#fff',
+                  background: 'var(--bg-surface)',
+                  color: 'var(--text-primary)',
                   transition: 'all 0.3s ease',
                   boxSizing: 'border-box'
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#667eea';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  e.target.style.borderColor = 'var(--primary-color)';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 212, 170, 0.1)';
+                  e.target.style.background = 'var(--bg-tertiary)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = '#e1e5e9';
+                  e.target.style.borderColor = 'var(--border-primary)';
                   e.target.style.boxShadow = 'none';
+                  e.target.style.background = 'var(--bg-surface)';
                 }}
               />
             </div>
@@ -333,7 +368,7 @@ const Signup = () => {
           {/* Password Field */}
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ 
-              color: '#333', 
+              color: 'var(--text-primary)', 
               fontWeight: '600',
               fontSize: '0.9rem',
               marginBottom: '0.5rem',
@@ -347,7 +382,7 @@ const Signup = () => {
                 left: '1rem', 
                 top: '50%', 
                 transform: 'translateY(-50%)', 
-                color: '#667eea', 
+                color: 'var(--primary-color)', 
                 fontSize: '1.1rem' 
               }} />
               <input
@@ -361,20 +396,23 @@ const Signup = () => {
                 style={{
                   width: '100%',
                   padding: '1rem 1rem 1rem 3rem',
-                  border: '2px solid #e1e5e9',
+                  border: '2px solid var(--border-primary)',
                   borderRadius: '10px',
                   fontSize: '1rem',
-                  background: '#fff',
+                  background: 'var(--bg-surface)',
+                  color: 'var(--text-primary)',
                   transition: 'all 0.3s ease',
                   boxSizing: 'border-box'
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#667eea';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  e.target.style.borderColor = 'var(--primary-color)';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 212, 170, 0.1)';
+                  e.target.style.background = 'var(--bg-tertiary)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = '#e1e5e9';
+                  e.target.style.borderColor = 'var(--border-primary)';
                   e.target.style.boxShadow = 'none';
+                  e.target.style.background = 'var(--bg-surface)';
                 }}
               />
               <button
@@ -387,7 +425,7 @@ const Signup = () => {
                   transform: 'translateY(-50%)',
                   background: 'none',
                   border: 'none',
-                  color: '#667eea',
+                  color: 'var(--primary-color)',
                   fontSize: '1.1rem',
                   cursor: 'pointer',
                   padding: '0.25rem'
@@ -402,7 +440,7 @@ const Signup = () => {
           {/* Confirm Password Field */}
           <div style={{ marginBottom: '2rem' }}>
             <label style={{ 
-              color: '#333', 
+              color: 'var(--text-primary)', 
               fontWeight: '600',
               fontSize: '0.9rem',
               marginBottom: '0.5rem',
@@ -416,7 +454,7 @@ const Signup = () => {
                 left: '1rem', 
                 top: '50%', 
                 transform: 'translateY(-50%)', 
-                color: '#667eea', 
+                color: 'var(--primary-color)', 
                 fontSize: '1.1rem' 
               }} />
               <input
@@ -430,20 +468,23 @@ const Signup = () => {
                 style={{
                   width: '100%',
                   padding: '1rem 1rem 1rem 3rem',
-                  border: '2px solid #e1e5e9',
+                  border: '2px solid var(--border-primary)',
                   borderRadius: '10px',
                   fontSize: '1rem',
-                  background: '#fff',
+                  background: 'var(--bg-surface)',
+                  color: 'var(--text-primary)',
                   transition: 'all 0.3s ease',
                   boxSizing: 'border-box'
                 }}
                 onFocus={(e) => {
-                  e.target.style.borderColor = '#667eea';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  e.target.style.borderColor = 'var(--primary-color)';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 212, 170, 0.1)';
+                  e.target.style.background = 'var(--bg-tertiary)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = '#e1e5e9';
+                  e.target.style.borderColor = 'var(--border-primary)';
                   e.target.style.boxShadow = 'none';
+                  e.target.style.background = 'var(--bg-surface)';
                 }}
               />
               <button
@@ -456,7 +497,7 @@ const Signup = () => {
                   transform: 'translateY(-50%)',
                   background: 'none',
                   border: 'none',
-                  color: '#667eea',
+                  color: 'var(--primary-color)',
                   fontSize: '1.1rem',
                   cursor: 'pointer',
                   padding: '0.25rem'
@@ -475,27 +516,27 @@ const Signup = () => {
             style={{
               width: '100%',
               padding: '1rem',
-              background: 'linear-gradient(135deg, #667eea, #764ba2)',
-              color: '#fff',
+              background: 'var(--gradient-primary)',
+              color: 'var(--text-inverse)',
               border: 'none',
               borderRadius: '10px',
               fontSize: '1.1rem',
               fontWeight: '600',
               cursor: loading ? 'not-allowed' : 'pointer',
               transition: 'all 0.3s ease',
-              boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)',
+              boxShadow: '0 10px 30px rgba(0, 212, 170, 0.3)',
               marginBottom: '2rem'
             }}
             onMouseEnter={(e) => {
               if (!loading) {
                 e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 15px 40px rgba(102, 126, 234, 0.4)';
+                e.target.style.boxShadow = '0 15px 40px rgba(0, 212, 170, 0.4)';
               }
             }}
             onMouseLeave={(e) => {
               if (!loading) {
                 e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 10px 30px rgba(102, 126, 234, 0.3)';
+                e.target.style.boxShadow = '0 10px 30px rgba(0, 212, 170, 0.3)';
               }
             }}
           >
@@ -505,15 +546,21 @@ const Signup = () => {
           {/* Login Link */}
           <div style={{ 
             textAlign: 'center', 
-            color: '#666',
+            color: 'var(--text-secondary)',
             fontSize: '0.95rem'
           }}>
             Already have an account?{' '}
             <Link to="/login" style={{ 
-              color: '#667eea', 
+              color: 'var(--primary-color)', 
               fontWeight: '600',
               textDecoration: 'none',
               transition: 'color 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.color = 'var(--primary-light)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.color = 'var(--primary-color)';
             }}>
               Sign In
             </Link>

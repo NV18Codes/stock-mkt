@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { getAdminDashboardStats, getAdminUsers } from '../../api/admin';
 import { useAuth } from '../../context/AuthContext';
-import APIStatusDebugger from '../common/APIStatusDebugger';
 
 const AdminDashboard = () => {
   const { user: currentUser } = useAuth();
@@ -532,15 +531,7 @@ const AdminDashboard = () => {
         )}
       </motion.div>
 
-      {/* API Status Debugger */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-        style={{ marginTop: '2em' }}
-      >
-        <APIStatusDebugger />
-      </motion.div>
+
     </motion.div>
   );
 };

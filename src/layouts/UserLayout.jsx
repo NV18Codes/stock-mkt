@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import v4Logo from '../assets/logo-V4.png';
 
 const UserLayout = () => {
   const { user, logout } = useAuth();
@@ -29,32 +30,33 @@ const UserLayout = () => {
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: '#f8f9fa', 
-      color: '#333', 
+      background: 'var(--gradient-bg)', 
+      color: 'var(--text-primary)', 
       display: 'flex',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      fontFamily: 'var(--font-family)'
     }}>
       {/* Sidebar */}
       <div style={{
         width: isSidebarCollapsed ? '80px' : '280px',
-        background: '#ffffff',
+        background: 'var(--gradient-card)',
         padding: isSidebarCollapsed ? '1.5em 0.5em' : '2em 1.5em',
-        borderRight: '1px solid #e0e0e0',
+        borderRight: '1px solid var(--border-primary)',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '2px 0 10px rgba(0,0,0,0.1)',
+        boxShadow: 'var(--shadow-lg)',
         transition: 'all 0.3s ease',
         position: 'sticky',
         top: 0,
         height: '100vh',
-        overflowY: 'auto'
+        overflowY: 'auto',
+        backdropFilter: 'blur(10px)'
       }}>
         {/* Header */}
         <div style={{ 
           marginBottom: '2em', 
           textAlign: 'center',
           paddingBottom: '1.5em',
-          borderBottom: '1px solid #e0e0e0'
+          borderBottom: '1px solid var(--border-primary)'
         }}>
           {!isSidebarCollapsed && (
             <>
@@ -62,20 +64,30 @@ const UserLayout = () => {
                 width: '60px',
                 height: '60px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #007bff, #0056b3)',
+                background: 'white',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 1em',
-                color: '#fff',
+                color: 'var(--text-inverse)',
                 fontSize: '1.5em',
                 fontWeight: 600,
-                boxShadow: '0 4px 12px rgba(0,123,255,0.3)'
+                boxShadow: '0 4px 12px rgba(0, 212, 170, 0.3)',
+                border: '2px solid var(--primary-color)',
+                padding: '6px'
               }}>
-                {getInitials(user?.name)}
+                <img 
+                  src={v4Logo} 
+                  alt="V4 Fintech Solutions" 
+                  style={{ 
+                    height: '55px', 
+                    width: 'auto',
+                    borderRadius: '50%'
+                  }}
+                />
               </div>
               <h3 style={{ 
-                color: '#2c3e50', 
+                color: 'var(--text-primary)', 
                 margin: '0 0 0.5em 0', 
                 fontWeight: 600, 
                 fontSize: '1.2em' 
@@ -83,7 +95,7 @@ const UserLayout = () => {
                 Welcome back,
               </h3>
               <p style={{ 
-                color: '#6c757d', 
+                color: 'var(--text-secondary)', 
                 margin: 0, 
                 fontSize: '0.9em',
                 fontWeight: 500
@@ -96,8 +108,8 @@ const UserLayout = () => {
                 gap: '0.3em',
                 marginTop: '0.5em',
                 padding: '0.3em 0.8em',
-                background: '#d4edda',
-                color: '#155724',
+                background: 'var(--gradient-secondary)',
+                color: 'var(--text-inverse)',
                 borderRadius: '20px',
                 fontSize: '0.8em',
                 fontWeight: 600
@@ -106,7 +118,7 @@ const UserLayout = () => {
                   width: '6px',
                   height: '6px',
                   borderRadius: '50%',
-                  background: '#28a745'
+                  background: 'var(--text-inverse)'
                 }}></span>
                 Active
               </div>
@@ -118,17 +130,27 @@ const UserLayout = () => {
               width: '40px',
               height: '40px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #007bff, #0056b3)',
+              background: 'white',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto',
-              color: '#fff',
+              color: 'var(--text-inverse)',
               fontSize: '1.2em',
               fontWeight: 600,
-              boxShadow: '0 4px 12px rgba(0,123,255,0.3)'
+              boxShadow: '0 4px 12px rgba(0, 212, 170, 0.3)',
+              border: '2px solid var(--primary-color)',
+              padding: '4px'
             }}>
-              {getInitials(user?.name)}
+              <img 
+                src={v4Logo} 
+                alt="V4 Fintech Solutions" 
+                style={{ 
+                  height: '40px', 
+                  width: 'auto',
+                  borderRadius: '50%'
+                }}
+              />
             </div>
           )}
         </div>
@@ -146,8 +168,8 @@ const UserLayout = () => {
             style={({ isActive }) => ({
               padding: isSidebarCollapsed ? '1em 0.5em' : '1em 1.2em',
               borderRadius: '8px',
-              color: isActive ? '#fff' : '#495057',
-              background: isActive ? 'linear-gradient(135deg, #007bff, #0056b3)' : 'transparent',
+              color: isActive ? 'var(--text-inverse)' : 'var(--text-secondary)',
+              background: isActive ? 'var(--gradient-primary)' : 'transparent',
               textDecoration: 'none',
               transition: 'all 0.3s ease',
               fontWeight: isActive ? 600 : 500,
@@ -156,7 +178,7 @@ const UserLayout = () => {
               alignItems: 'center',
               gap: isSidebarCollapsed ? '0' : '0.8em',
               fontSize: '0.95em',
-              boxShadow: isActive ? '0 2px 8px rgba(0,123,255,0.3)' : 'none'
+              boxShadow: isActive ? '0 2px 8px rgba(0, 212, 170, 0.3)' : 'none'
             })}
           >
             <span style={{ fontSize: '1.2em' }}>📈</span>
@@ -168,8 +190,8 @@ const UserLayout = () => {
             style={({ isActive }) => ({
               padding: isSidebarCollapsed ? '1em 0.5em' : '1em 1.2em',
               borderRadius: '8px',
-              color: isActive ? '#fff' : '#495057',
-              background: isActive ? 'linear-gradient(135deg, #007bff, #0056b3)' : 'transparent',
+              color: isActive ? 'var(--text-inverse)' : 'var(--text-secondary)',
+              background: isActive ? 'var(--gradient-primary)' : 'transparent',
               textDecoration: 'none',
               transition: 'all 0.3s ease',
               fontWeight: isActive ? 600 : 500,
@@ -178,7 +200,7 @@ const UserLayout = () => {
               alignItems: 'center',
               gap: isSidebarCollapsed ? '0' : '0.8em',
               fontSize: '0.95em',
-              boxShadow: isActive ? '0 2px 8px rgba(0,123,255,0.3)' : 'none'
+              boxShadow: isActive ? '0 2px 8px rgba(0, 212, 170, 0.3)' : 'none'
             })}
           >
             <span style={{ fontSize: '1.2em' }}>🏦</span>
@@ -190,8 +212,8 @@ const UserLayout = () => {
             style={({ isActive }) => ({
               padding: isSidebarCollapsed ? '1em 0.5em' : '1em 1.2em',
               borderRadius: '8px',
-              color: isActive ? '#fff' : '#495057',
-              background: isActive ? 'linear-gradient(135deg, #007bff, #0056b3)' : 'transparent',
+              color: isActive ? 'var(--text-inverse)' : 'var(--text-secondary)',
+              background: isActive ? 'var(--gradient-primary)' : 'transparent',
               textDecoration: 'none',
               transition: 'all 0.3s ease',
               fontWeight: isActive ? 600 : 500,
@@ -200,7 +222,7 @@ const UserLayout = () => {
               alignItems: 'center',
               gap: isSidebarCollapsed ? '0' : '0.8em',
               fontSize: '0.95em',
-              boxShadow: isActive ? '0 2px 8px rgba(0,123,255,0.3)' : 'none'
+              boxShadow: isActive ? '0 2px 8px rgba(0, 212, 170, 0.3)' : 'none'
             })}
           >
             <span style={{ fontSize: '1.2em' }}>👤</span>
@@ -212,8 +234,8 @@ const UserLayout = () => {
         <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           style={{
-            background: '#f8f9fa',
-            border: '1px solid #e0e0e0',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border-primary)',
             borderRadius: '6px',
             padding: '0.5em',
             cursor: 'pointer',
@@ -221,9 +243,18 @@ const UserLayout = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'all 0.3s ease'
+            transition: 'all 0.3s ease',
+            color: 'var(--text-primary)'
           }}
           title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          onMouseEnter={(e) => {
+            e.target.style.borderColor = 'var(--primary-color)';
+            e.target.style.background = 'var(--bg-tertiary)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.borderColor = 'var(--border-primary)';
+            e.target.style.background = 'var(--bg-surface)';
+          }}
         >
           <span style={{ fontSize: '1.2em' }}>
             {isSidebarCollapsed ? '→' : '←'}
@@ -235,8 +266,8 @@ const UserLayout = () => {
           onClick={handleLogout}
           style={{
             width: '100%',
-            background: 'linear-gradient(135deg, #dc3545, #c82333)',
-            color: '#fff',
+            background: 'linear-gradient(135deg, var(--danger-color), var(--danger-hover))',
+            color: 'var(--text-inverse)',
             border: 'none',
             padding: isSidebarCollapsed ? '1em 0.5em' : '1em 1.2em',
             borderRadius: '8px',
@@ -248,7 +279,15 @@ const UserLayout = () => {
             alignItems: 'center',
             justifyContent: 'center',
             gap: isSidebarCollapsed ? '0' : '0.5em',
-            boxShadow: '0 2px 8px rgba(220,53,69,0.3)'
+            boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.3)';
           }}
         >
           <span style={{ fontSize: '1.2em' }}>🚪</span>
@@ -259,26 +298,27 @@ const UserLayout = () => {
       {/* Main Content */}
       <div style={{ 
         flex: 1, 
-        background: '#f8f9fa', 
+        background: 'var(--gradient-bg)', 
         overflowY: 'auto',
         minHeight: '100vh'
       }}>
         {/* Top Bar */}
         <div style={{
-          background: '#fff',
+          background: 'var(--gradient-card)',
           padding: '1em 2em',
-          borderBottom: '1px solid #e0e0e0',
+          borderBottom: '1px solid var(--border-primary)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+          boxShadow: 'var(--shadow-md)',
           position: 'sticky',
           top: 0,
-          zIndex: 100
+          zIndex: 100,
+          backdropFilter: 'blur(10px)'
         }}>
           <div>
             <h1 style={{ 
-              color: '#2c3e50', 
+              color: 'var(--text-primary)', 
               margin: 0, 
               fontSize: '1.5em',
               fontWeight: 600
@@ -286,7 +326,7 @@ const UserLayout = () => {
               {getActiveRouteName()}
             </h1>
             <p style={{ 
-              color: '#6c757d', 
+              color: 'var(--text-secondary)', 
               margin: '0.2em 0 0 0', 
               fontSize: '0.9em' 
             }}>
@@ -303,7 +343,7 @@ const UserLayout = () => {
               textAlign: 'right'
             }}>
               <p style={{ 
-                color: '#2c3e50', 
+                color: 'var(--text-primary)', 
                 margin: 0, 
                 fontSize: '0.9em',
                 fontWeight: 500
@@ -311,7 +351,7 @@ const UserLayout = () => {
                 {user?.email || 'user@example.com'}
               </p>
               <p style={{ 
-                color: '#6c757d', 
+                color: 'var(--text-secondary)', 
                 margin: 0, 
                 fontSize: '0.8em' 
               }}>
@@ -328,14 +368,15 @@ const UserLayout = () => {
               width: '40px',
               height: '40px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #007bff, #0056b3)',
+              background: 'var(--gradient-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#fff',
+              color: 'var(--text-inverse)',
               fontSize: '1em',
               fontWeight: 600,
-              boxShadow: '0 2px 8px rgba(0,123,255,0.3)'
+              boxShadow: '0 2px 8px rgba(0, 212, 170, 0.3)',
+              border: '2px solid var(--primary-color)'
             }}>
               {getInitials(user?.name)}
             </div>
