@@ -59,8 +59,7 @@ const AdminTradingPortal = () => {
 
     const fetchSegments = async () => {
       try {
-        const API_URL = process.env.REACT_APP_API_URL || 'https://apistocktrading-production.up.railway.app/api';
-        const response = await axios.get(`${API_URL}/admin/segments`);
+        const response = await axios.get('/api/admin/segments');
         if (response.data && response.data.data && Array.isArray(response.data.data)) {
           setSegments(response.data.data);
         }

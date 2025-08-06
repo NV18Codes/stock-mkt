@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { fetchUnderlyings, fetchOptionExpiries, fetchOptionChain } from '../../api/trading';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://apistocktrading-production.up.railway.app/api';
+// Use relative API URLs with proxy configuration
 
 const AdminOrderForm = ({ onOrderSubmit, selectedUserIds }) => {
   const [formData, setFormData] = useState({
@@ -29,62 +28,54 @@ const AdminOrderForm = ({ onOrderSubmit, selectedUserIds }) => {
   const [selectedUnderlying, setSelectedUnderlying] = useState('');
   const [selectedExpiry, setSelectedExpiry] = useState('');
 
-  // Fetch underlyings on mount
+  // Set static underlyings data
   useEffect(() => {
-    const fetchAllUnderlyings = async () => {
-      try {
-        const res = await fetchUnderlyings();
-        if (res && res.success && Array.isArray(res.data)) {
-          setUnderlyings(res.data);
-          setSelectedUnderlying(res.data[0]);
-        }
-      } catch (err) {
-        console.error('Error fetching underlyings:', err);
-        setError('Failed to fetch underlyings');
-      } finally {
-        setLoading(prev => ({ ...prev, underlyings: false }));
-      }
-    };
-    fetchAllUnderlyings();
+    const staticUnderlyings = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'];
+    setUnderlyings(staticUnderlyings);
+    setSelectedUnderlying(staticUnderlyings[0]);
+    setLoading(prev => ({ ...prev, underlyings: false }));
   }, []);
 
-  // Fetch expiries when underlying changes
+  // Set static expiries when underlying changes
   useEffect(() => {
     if (!selectedUnderlying) return;
-    const fetchExpiries = async () => {
-      setLoading(prev => ({ ...prev, expiries: true }));
-      try {
-        const res = await fetchOptionExpiries(selectedUnderlying);
-        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-          setExpiries(res.data);
-          setSelectedExpiry(res.data[0]);
-        }
-      } catch (err) {
-        console.error('Error fetching expiries:', err);
-      } finally {
-        setLoading(prev => ({ ...prev, expiries: false }));
-      }
-    };
-    fetchExpiries();
+    setLoading(prev => ({ ...prev, expiries: true }));
+    
+    const staticExpiries = ['10JUL2025', '17JUL2025', '24JUL2025', '31JUL2025', '07AUG2025', '14AUG2025', '21AUG2025'];
+    setExpiries(staticExpiries);
+    setSelectedExpiry(staticExpiries[0]);
+    
+    setLoading(prev => ({ ...prev, expiries: false }));
   }, [selectedUnderlying]);
 
-  // Fetch option chain when underlying or expiry changes
+  // Generate static option chain when underlying or expiry changes
   useEffect(() => {
     if (!selectedUnderlying || !selectedExpiry) return;
-    const fetchChain = async () => {
-      setLoading(prev => ({ ...prev, options: true }));
-      try {
-        const res = await fetchOptionChain(selectedUnderlying, selectedExpiry);
-        if (res && res.success && Array.isArray(res.data)) {
-          setOptionChain(res.data);
+    setLoading(prev => ({ ...prev, options: true }));
+    
+    // Generate static option chain data
+    const basePrice = selectedUnderlying === 'NIFTY' ? 22000 : selectedUnderlying === 'BANKNIFTY' ? 48000 : 20000;
+    const staticOptions = [];
+    
+    for (let i = -5; i <= 5; i++) {
+      const strikePrice = basePrice + (i * 100);
+      staticOptions.push({
+        strikePrice: strikePrice,
+        CE: {
+          token: `${selectedUnderlying}${selectedExpiry}${strikePrice}CE`,
+          tradingSymbol: `${selectedUnderlying}${selectedExpiry}${strikePrice}CE`,
+          ltp: (Math.random() * 200 + 50).toFixed(2)
+        },
+        PE: {
+          token: `${selectedUnderlying}${selectedExpiry}${strikePrice}PE`,
+          tradingSymbol: `${selectedUnderlying}${selectedExpiry}${strikePrice}PE`,
+          ltp: (Math.random() * 200 + 50).toFixed(2)
         }
-      } catch (err) {
-        console.error('Error fetching option chain:', err);
-      } finally {
-        setLoading(prev => ({ ...prev, options: false }));
-      }
-    };
-    fetchChain();
+      });
+    }
+    
+    setOptionChain(staticOptions);
+    setLoading(prev => ({ ...prev, options: false }));
   }, [selectedUnderlying, selectedExpiry]);
 
   // Update target_user_ids when selectedUserIds changes

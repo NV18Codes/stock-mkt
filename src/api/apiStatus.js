@@ -109,7 +109,7 @@ export class APIStatusChecker {
       '/admin/users',
       '/admin/segments',
       '/admin/trades',
-      '/admin/dashboard/stats'
+      '/admin/stats'
     ];
 
     for (const endpoint of endpoints) {

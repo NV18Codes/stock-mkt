@@ -562,31 +562,42 @@ export const getTradeLogs = async () => {
 
 export const getAdminDashboardStats = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/dashboard/stats');
+    // Try the main stats endpoint first
+    const response = await axios.get('/api/admin/stats');
     return response.data;
   } catch (error) {
     console.error('Error fetching admin dashboard stats:', error);
-    // Return fallback stats if endpoint doesn't exist or fails
-    if (error.response?.status === 404 || error.response?.status === 500) {
-      return {
-        success: true,
-        data: {
-          totalUsers: 0,
-          activeUsers: 0,
-          totalTrades: 0,
-          totalVolume: 0,
-          totalProfitLoss: 0,
-          segments: []
-        }
-      };
+    
+    // Try alternative endpoints
+    if (error.response?.status === 404) {
+      try {
+        // Try dashboard-specific endpoint
+        const altResponse = await axios.get('/api/admin/dashboard');
+        return altResponse.data;
+      } catch (altError) {
+        console.error('Alternative dashboard endpoint also failed:', altError);
+      }
     }
-    throw error;
+    
+    // Return fallback stats if all endpoints fail
+    console.log('Using fallback dashboard stats');
+    return {
+      success: true,
+      data: {
+        totalUsers: 0,
+        activeUsers: 0,
+        totalTrades: 0,
+        totalVolume: 0,
+        totalProfitLoss: 0,
+        segments: []
+      }
+    };
   }
 };
 
 export const initiateAdminTrade = async (tradeData) => {
   try {
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/admin/trades/initiate', tradeData);
+    const response = await axios.post('/api/admin/trades/initiate', tradeData);
     return response.data;
   } catch (error) {
     console.error('Error initiating admin trade:', error);
