@@ -4,7 +4,7 @@ import axios from 'axios';
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token && config.url && config.url.startsWith('https://apistocktrading-production.up.railway.app/api')) {
+    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://apistocktrading-production.up.railway.app/api'))) {
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
       // Add additional headers for better compatibility
@@ -228,7 +228,7 @@ export const getPositions = async () => {
 // Get order history
 export const getOrderHistory = async () => {
     try {
-        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/trading/order-history');
+        const response = await axios.get('/api/trading/order-history');
         return response.data;
     } catch (error) {
         console.error('Error fetching order history:', error);

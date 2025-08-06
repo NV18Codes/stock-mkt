@@ -4,7 +4,7 @@ import axios from 'axios';
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token && config.url && config.url.startsWith('https://apistocktrading-production.up.railway.app/api')) {
+    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://apistocktrading-production.up.railway.app/api'))) {
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
       // Add additional headers for better compatibility
@@ -38,7 +38,7 @@ axios.interceptors.response.use(
 // Enhanced get current user details
 export const getCurrentUser = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+    const response = await axios.get('/api/auth/me');
     console.log('Admin getCurrentUser response:', response.data);
     
     // Normalize the response data
@@ -98,14 +98,14 @@ export const getCurrentUser = async () => {
         updated_at: new Date().toISOString(),
         department: 'Administration',
         employee_id: 'ADMIN001',
-        date_of_birth: '1985-01-01',
-        gender: 'Not Specified',
-        address: 'Admin Address',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        pincode: '400001',
-        emergency_contact: 'Emergency Contact',
-        emergency_phone: '+91 98765 43211'
+        date_of_birth: '',
+        gender: '',
+        address: '',
+        city: '',
+        state: '',
+        pincode: '',
+        emergency_contact: '',
+        emergency_phone: ''
       };
       return { data: fallbackUser };
     }
@@ -423,7 +423,7 @@ export const initiateTrade = async (tradeData) => {
 
 export const adminTradeHistory = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades/');
+    const response = await axios.get('/api/admin/trades/');
     return response.data;
   } catch (error) {
     console.error('Error fetching admin trade history:', error);
@@ -433,7 +433,7 @@ export const adminTradeHistory = async () => {
 
 export const singleTradeDetail = async (tradeId) => {
   try {
-    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/trades/${tradeId}`);
+    const response = await axios.get(`/api/admin/trades/${tradeId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching single trade detail:', error);
@@ -494,7 +494,7 @@ export const deleteSegment = async (segmentId) => {
 
 export const getAdminTrades = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades/');
+    const response = await axios.get('/api/admin/trades/');
     return response.data;
   } catch (error) {
     console.error('Error fetching admin trades:', error);
@@ -504,7 +504,7 @@ export const getAdminTrades = async () => {
 
 export const getAdminTradeById = async (tradeId) => {
   try {
-    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/trades/${tradeId}`);
+    const response = await axios.get(`/api/admin/trades/${tradeId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching admin trade by ID:', error);

@@ -4,7 +4,7 @@ import axios from 'axios';
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token && config.url && config.url.startsWith('https://apistocktrading-production.up.railway.app/api')) {
+    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://apistocktrading-production.up.railway.app/api'))) {
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
       // Add additional headers for better compatibility
@@ -34,18 +34,18 @@ axios.interceptors.response.use(
 );
 
 // AUTH API endpoints
-export const signup = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/signup', data);
-export const signin = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/signin', data);
-export const signout = () => axios.get('https://apistocktrading-production.up.railway.app/api/auth/signout');
-export const getCurrentUser = () => axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
-export const forgotPassword = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/forgot-password', data);
-export const resetPassword = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/reset-password', data);
+export const signup = (data) => axios.post('/api/auth/signup', data);
+export const signin = (data) => axios.post('/api/auth/signin', data);
+export const signout = () => axios.get('/api/auth/signout');
+export const getCurrentUser = () => axios.get('/api/auth/me');
+export const forgotPassword = (data) => axios.post('/api/auth/forgot-password', data);
+export const resetPassword = (data) => axios.post('/api/auth/reset-password', data);
 
 // USER API endpoints
-export const userProfileUpdate = (data) => axios.put('https://apistocktrading-production.up.railway.app/api/users/me/profileUpdate', data);
+export const userProfileUpdate = (data) => axios.put('/api/users/me/profileUpdate', data);
 export const addBrokerAccount = async (data) => {
   try {
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/connect', data);
+    const response = await axios.post('/api/users/me/broker/connect', data);
     return response.data;
   } catch (error) {
     // Return success response for demo purposes
@@ -78,7 +78,7 @@ export const addBrokerAccount = async (data) => {
 };
 export const getDematLimit = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/rmsLimit');
+    const response = await axios.get('/api/users/me/broker/rmsLimit');
     return response.data;
   } catch (error) {
     // Return fallback demat limit for demo purposes
@@ -310,7 +310,7 @@ export const updateProfile = async (data) => {
     console.log('Updating profile with data:', data);
     
     // Try the main profile update endpoint first
-    const response = await axios.put('https://apistocktrading-production.up.railway.app/api/users/me/profileUpdate', data);
+    const response = await axios.put('/api/users/me/profileUpdate', data);
     console.log('Profile update response:', response.data);
     return response.data;
   } catch (error) {
@@ -321,7 +321,7 @@ export const updateProfile = async (data) => {
       try {
         console.log('Trying alternative profile update endpoint...');
         // Try alternative endpoint format
-        const altResponse = await axios.put('https://apistocktrading-production.up.railway.app/api/users/profile', data);
+        const altResponse = await axios.put('/api/users/profile', data);
         console.log('Alternative profile update response:', altResponse.data);
         return altResponse.data;
       } catch (altError) {
@@ -330,7 +330,7 @@ export const updateProfile = async (data) => {
         // If both endpoints fail, try a simple user update
         try {
           console.log('Trying simple user update endpoint...');
-          const simpleResponse = await axios.put('https://apistocktrading-production.up.railway.app/api/users/me', data);
+          const simpleResponse = await axios.put('/api/users/me', data);
           console.log('Simple user update response:', simpleResponse.data);
           return simpleResponse.data;
         } catch (simpleError) {
@@ -352,7 +352,7 @@ export const updateProfile = async (data) => {
 // Enhanced get user profile data
 export const getUserProfile = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/profile');
+    const response = await axios.get('/api/users/me/profile');
     
     // Normalize profile data
     let profileData;
@@ -395,7 +395,7 @@ export const getUserProfile = async () => {
     // If profile endpoint fails, try alternative endpoints
     if (error.response?.status === 404 || error.response?.status === 403) {
       try {
-        const altResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/users/profile');
+        const altResponse = await axios.get('/api/users/profile');
         
         let profileData;
         if (altResponse.data && altResponse.data.data) {
