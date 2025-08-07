@@ -41,6 +41,7 @@ export const getCurrentUser = () => axios.get('/api/auth/me');
 export const forgotPassword = (data) => axios.post('/api/auth/forgot-password', data);
 export const resetPassword = (data) => axios.post('/api/auth/reset-password', data);
 
+
 // USER API endpoints
 export const userProfileUpdate = (data) => axios.put('/api/users/me/profileUpdate', data);
 export const addBrokerAccount = async (data) => {
@@ -258,7 +259,6 @@ export const getCurrentUserEnhanced = async () => {
       created_at: userData.created_at || userData.createdAt,
       updated_at: userData.updated_at || userData.updatedAt,
       // Additional profile fields
-      department: userData.department || '',
       employee_id: userData.employee_id || userData.employeeId || '',
       date_of_birth: userData.date_of_birth || userData.dob || '',
       gender: userData.gender || '',
@@ -287,7 +287,6 @@ export const getCurrentUserEnhanced = async () => {
         current_segment_id: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        department: 'IT',
         employee_id: 'EMP001',
         date_of_birth: '1990-01-01',
         gender: 'Not Specified',

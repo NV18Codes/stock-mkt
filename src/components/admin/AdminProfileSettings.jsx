@@ -1,86 +1,75 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { 
+  Settings, 
   User, 
   Mail, 
   Phone, 
-  MapPin, 
-  Calendar, 
-  Shield, 
-  Settings, 
+  Building2, 
   CreditCard, 
-  Building2,
-  Eye,
-  EyeOff,
-  CheckCircle,
-  AlertCircle,
+  CheckCircle, 
+  X, 
   Plus,
-  Trash2,
-  RefreshCw
+  Shield,
+  AlertCircle,
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
+import { updateProfile, getUserProfile } from '../../api/auth';
 import { 
-  updateProfile, 
-  forgotPassword, 
-  resetPassword, 
-  getUserProfile,
-  addBrokerAccount,
-  fetchMyBrokerProfile,
-  clearBrokerProfile,
-  verifyBrokerConnection
+  addBrokerAccount, 
+  fetchMyBrokerProfile, 
+  clearBrokerProfile 
 } from '../../api/auth';
 import { verifyBrokerTOTP, verifyBrokerMPIN } from '../../api/broker';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios'; // Added axios import
 
 const AdminProfileSettings = () => {
-  const { user: currentUser, refreshUser } = useAuth();
+  const { role } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    role: 'Admin',
-    department: '',
     employeeId: '',
-    dateOfBirth: '',
-    gender: '',
+    designation: '',
     address: '',
     city: '',
     state: '',
-    pincode: ''
+    pincode: '',
+    panNumber: '',
+    aadharNumber: '',
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    nomineeName: '',
+    nomineeRelation: '',
+    nomineePhone: ''
   });
-
-  // Broker account states
+  
+  // Broker connection states
   const [brokerData, setBrokerData] = useState({
     broker: 'Angel One',
-    apiKey: '',
-    secretKey: '',
-    clientId: '',
+    broker_name: 'angelone',
+    broker_client_id: '',
+    broker_api_key: '',
+    broker_api_secret: '',
+    angelone_token: '',
     password: '',
     mpin: '',
     totp: ''
   });
-  const [showBrokerForm, setShowBrokerForm] = useState(false);
-  const [brokerProfile, setBrokerProfile] = useState(null);
-  const [brokerLoading, setBrokerLoading] = useState(false);
-  const [brokerStep, setBrokerStep] = useState(1); // 1: Basic Info, 2: TOTP, 3: MPIN
-  const [brokerSessionId, setBrokerSessionId] = useState(null);
   
+  const [brokerProfile, setBrokerProfile] = useState(null);
+  const [showBrokerForm, setShowBrokerForm] = useState(false);
+  const [brokerStep, setBrokerStep] = useState(1);
+  const [brokerSessionId, setBrokerSessionId] = useState(null);
+  const [brokerLoading, setBrokerLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
-  // Password reset states
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [showResetPassword, setShowResetPassword] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [resetData, setResetData] = useState({
-    email: '',
-    token: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
     fetchAdminProfile();
@@ -115,13 +104,16 @@ const AdminProfileSettings = () => {
     try {
       let response;
       
-      if (brokerStep === 1) {
-        // Step 1: Send basic credentials and get session ID for TOTP
-        response = await addBrokerAccount({
-          broker: brokerData.broker,
-          clientId: brokerData.clientId,
-          password: brokerData.password
-        });
+             if (brokerStep === 1) {
+         // Step 1: Send API credentials and get session ID for TOTP verification
+         response = await addBrokerAccount({
+           broker: brokerData.broker,
+           broker_name: brokerData.broker_name,
+           broker_client_id: brokerData.broker_client_id,
+           broker_api_key: brokerData.broker_api_key,
+           broker_api_secret: brokerData.broker_api_secret,
+           angelone_token: brokerData.angelone_token
+         });
         
         if (response && response.success) {
           // Store session ID for next step
@@ -152,15 +144,17 @@ const AdminProfileSettings = () => {
           setShowBrokerForm(false);
           setBrokerStep(1);
           setBrokerSessionId(null);
-          setBrokerData({
-            broker: 'Angel One',
-            apiKey: '',
-            secretKey: '',
-            clientId: '',
-            password: '',
-            mpin: '',
-            totp: ''
-          });
+                     setBrokerData({
+             broker: 'Angel One',
+             broker_name: 'angelone',
+             broker_client_id: '',
+             broker_api_key: '',
+             broker_api_secret: '',
+             angelone_token: '',
+             password: '',
+             mpin: '',
+             totp: ''
+           });
           await fetchBrokerProfile();
         }
       }
@@ -200,9 +194,11 @@ const AdminProfileSettings = () => {
     setShowBrokerForm(false);
     setBrokerData({
       broker: 'Angel One',
-      apiKey: '',
-      secretKey: '',
-      clientId: '',
+      broker_name: 'angelone',
+      broker_client_id: '',
+      broker_api_key: '',
+      broker_api_secret: '',
+      angelone_token: '',
       password: '',
       mpin: '',
       totp: ''
@@ -216,11 +212,8 @@ const AdminProfileSettings = () => {
       setLoading(true);
       setError('');
       
-      // Try to get profile from auth context first
-      let userData = currentUser;
-      
-      // If not available in context, fetch from API
-      if (!userData) {
+      // Fetch from API
+      let userData;
         try {
           const response = await getUserProfile();
           userData = response.data;
@@ -238,18 +231,10 @@ const AdminProfileSettings = () => {
               email: 'demo@example.com',
               phone: '+91 98765 43210',
               role: 'admin',
-              department: 'IT',
-              employee_id: 'EMP001',
-              date_of_birth: '',
-              gender: '',
-              address: '',
-              city: '',
-              state: '',
-              pincode: ''
+              employee_id: 'EMP001'
             };
           }
         }
-      }
       
       // Update form data with fetched user data
       setFormData({
@@ -257,14 +242,7 @@ const AdminProfileSettings = () => {
         email: userData.email || userData.email_address || '',
         phone: userData.phone || userData.phone_number || '',
         role: userData.role || userData.user_role || 'admin',
-        department: userData.department || '',
-        employeeId: userData.employee_id || userData.employeeId || '',
-        dateOfBirth: userData.date_of_birth || userData.dob || '',
-        gender: userData.gender || '',
-        address: userData.address || '',
-        city: userData.city || '',
-        state: userData.state || '',
-        pincode: userData.pincode || ''
+        employeeId: userData.employee_id || userData.employeeId || ''
       });
       
     } catch (err) {
@@ -277,14 +255,7 @@ const AdminProfileSettings = () => {
         email: 'demo@example.com',
         phone: '+91 98765 43210',
         role: 'admin',
-        department: 'IT',
-        employeeId: 'EMP001',
-        dateOfBirth: '',
-        gender: '',
-        address: '',
-        city: '',
-        state: '',
-        pincode: ''
+        employeeId: 'EMP001'
       });
     } finally {
       setLoading(false);
@@ -314,14 +285,7 @@ const AdminProfileSettings = () => {
       if (response && (response.success || response.message)) {
         setSuccess(response.message || 'Profile updated successfully!');
         
-        // Refresh user data in context if available
-        if (refreshUser) {
-          try {
-            await refreshUser();
-          } catch (refreshError) {
-            console.error('Error refreshing user data:', refreshError);
-          }
-        }
+
       } else {
         setSuccess('Profile updated successfully!');
       }
@@ -352,50 +316,6 @@ const AdminProfileSettings = () => {
       setTimeout(() => setError(''), 5000);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-    setPasswordLoading(true);
-    setError('');
-    setSuccess('');
-    try {
-      await forgotPassword({ email: forgotEmail });
-      setSuccess('Password reset link sent to your email!');
-      setShowForgotPassword(false);
-      setForgotEmail('');
-    } catch (err) {
-      console.error('Error sending forgot password:', err);
-      setError(err.response?.data?.message || 'Failed to send reset link');
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
-
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    if (resetData.newPassword !== resetData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    setPasswordLoading(true);
-    setError('');
-    setSuccess('');
-    try {
-      await resetPassword({
-        email: resetData.email,
-        token: resetData.token,
-        newPassword: resetData.newPassword
-      });
-      setSuccess('Password reset successfully!');
-      setShowResetPassword(false);
-      setResetData({ email: '', token: '', newPassword: '', confirmPassword: '' });
-    } catch (err) {
-      console.error('Error resetting password:', err);
-      setError(err.response?.data?.message || 'Failed to reset password');
-    } finally {
-      setPasswordLoading(false);
     }
   };
 
@@ -496,6 +416,67 @@ const AdminProfileSettings = () => {
         {/* Personal Information */}
         <div style={{ padding: '1.5em', background: '#fff', borderRadius: '8px', boxShadow: '0 1px 6px rgba(0,0,0,0.1)', border: '1px solid #e0e0e0' }}>
           <h2 style={{ color: '#2c3e50', marginBottom: '1em', fontWeight: 600, fontSize: '1.3em' }}>Personal Information</h2>
+          
+          {/* Password Management Section */}
+          <div style={{ 
+            padding: '1em', 
+            background: '#fff3cd', 
+            borderRadius: '6px', 
+            border: '1px solid #ffeaa7',
+            marginBottom: '1.5em'
+          }}>
+            <h3 style={{ 
+              color: '#856404', 
+              marginBottom: '0.5em', 
+              fontWeight: 600, 
+              fontSize: '1em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5em'
+            }}>
+              <span>🔐</span>
+              Password Management
+            </h3>
+            <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap' }}>
+              <Link to="/forgot-password" style={{
+                padding: '0.5em 1em',
+                background: '#007bff',
+                color: '#fff',
+                textDecoration: 'none',
+                borderRadius: '4px',
+                fontSize: 12,
+                fontWeight: 500,
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#0056b3';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#007bff';
+              }}>
+                Forgot Password
+              </Link>
+              <Link to="/reset-password" style={{
+                padding: '0.5em 1em',
+                background: '#28a745',
+                color: '#fff',
+                textDecoration: 'none',
+                borderRadius: '4px',
+                fontSize: 12,
+                fontWeight: 500,
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#1e7e34';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#28a745';
+              }}>
+                Reset Password
+              </Link>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '1em' }}>
               <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Full Name *</label>
@@ -562,93 +543,6 @@ const AdminProfileSettings = () => {
               </div>
             </div>
 
-            <div style={{ marginBottom: '1em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Department</label>
-              <input
-                type="text"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                placeholder="Enter department"
-                style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14, background: '#fff' }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '1em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Date of Birth</label>
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14, background: '#fff' }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '1em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Gender</label>
-              <select
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14, background: '#fff' }}
-              >
-                <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '1em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Address</label>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="Enter your address"
-                rows="3"
-                style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14, background: '#fff', resize: 'vertical' }}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8em', marginBottom: '1em' }}>
-              <div>
-                <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>City</label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  placeholder="City"
-                  style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14, background: '#fff' }}
-                />
-              </div>
-              <div>
-                <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>State</label>
-                <input
-                  type="text"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  placeholder="State"
-                  style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14, background: '#fff' }}
-                />
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '1.5em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Pincode</label>
-              <input
-                type="text"
-                name="pincode"
-                value={formData.pincode}
-                onChange={handleChange}
-                placeholder="Enter pincode"
-                style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14, background: '#fff' }}
-              />
-            </div>
-
             <button 
               type="submit" 
               disabled={saving}
@@ -661,12 +555,15 @@ const AdminProfileSettings = () => {
                 borderRadius: '6px',
                 fontSize: 14,
                 fontWeight: 600,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                marginBottom: '1em'
               }}
             >
               {saving ? 'Saving Changes...' : 'Save Changes'}
             </button>
           </form>
+
+
         </div>
 
         {/* Broker Account Section */}
@@ -929,7 +826,7 @@ const AdminProfileSettings = () => {
                           fontWeight: '500',
                           textAlign: 'center'
                         }}>
-                          {step === 1 ? 'Credentials' : step === 2 ? 'TOTP' : 'MPIN'}
+                          {step === 1 ? 'API Credentials' : step === 2 ? 'TOTP Verification' : 'MPIN Verification'}
                         </span>
                       </div>
                     ))}
@@ -952,103 +849,163 @@ const AdminProfileSettings = () => {
                     </div>
                   </div>
 
-                  {/* Step 1: Basic Credentials */}
+                  {/* Step 1: API Credentials */}
                   {brokerStep === 1 && (
-                    <>
-                      <div style={{ marginBottom: '1.5em' }}>
-                        <label style={{ 
-                          color: 'var(--text-primary)', 
-                          fontWeight: 600, 
-                          display: 'block', 
-                          marginBottom: '0.5em', 
-                          fontSize: 'clamp(12px, 2.5vw, 14px)' 
-                        }}>
-                          Select Broker *
-                        </label>
-                        <select
-                          name="broker"
-                          value={brokerData.broker}
-                          onChange={handleBrokerChange}
-                          required
-                          style={{ 
-                            width: '100%', 
-                            padding: '0.75em', 
-                            border: '1px solid var(--border-color)', 
-                            borderRadius: '8px', 
-                            fontSize: 'clamp(12px, 2.5vw, 14px)', 
-                            background: 'white',
-                            color: 'var(--text-primary)',
-                            transition: 'all 0.2s ease'
-                          }}
-                    >
-                      <option value="Angel One">Angel One</option>
-                      <option value="Zerodha">Zerodha</option>
-                      <option value="Upstox">Upstox</option>
-                      <option value="ICICI Direct">ICICI Direct</option>
-                    </select>
-                  </div>
+                     <>
+                       <div style={{ marginBottom: '1.5em' }}>
+                         <label style={{ 
+                           color: 'var(--text-primary)', 
+                           fontWeight: 600, 
+                           display: 'block', 
+                           marginBottom: '0.5em', 
+                           fontSize: 'clamp(12px, 2.5vw, 14px)' 
+                         }}>
+                           Select Broker *
+                         </label>
+                         <select
+                           name="broker"
+                           value={brokerData.broker}
+                           onChange={handleBrokerChange}
+                           required
+                           style={{ 
+                             width: '100%', 
+                             padding: '0.75em', 
+                             border: '1px solid var(--border-color)', 
+                             borderRadius: '8px', 
+                             fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                             background: 'white',
+                             color: 'var(--text-primary)',
+                             transition: 'all 0.2s ease'
+                           }}
+                     >
+                       <option value="Angel One">Angel One</option>
+                       <option value="Zerodha">Zerodha</option>
+                       <option value="Upstox">Upstox</option>
+                       <option value="ICICI Direct">ICICI Direct</option>
+                     </select>
+                   </div>
 
-                  <div style={{ marginBottom: '1.5em' }}>
-                    <label style={{ 
-                      color: 'var(--text-primary)', 
-                      fontWeight: 600, 
-                      display: 'block', 
-                      marginBottom: '0.5em', 
-                      fontSize: 'clamp(12px, 2.5vw, 14px)' 
-                    }}>
-                      Client ID *
-                    </label>
-                    <input
-                      type="text"
-                      name="clientId"
-                      value={brokerData.clientId}
-                      onChange={handleBrokerChange}
-                      placeholder="Enter your Client ID"
-                      required
-                      style={{ 
-                        width: '100%', 
-                        padding: '0.75em', 
-                        border: '1px solid var(--border-color)', 
-                        borderRadius: '8px', 
-                        fontSize: 'clamp(12px, 2.5vw, 14px)', 
-                        background: 'white',
-                        color: 'var(--text-primary)',
-                        transition: 'all 0.2s ease'
-                      }}
-                    />
-                  </div>
+                   <div style={{ marginBottom: '1.5em' }}>
+                     <label style={{ 
+                       color: 'var(--text-primary)', 
+                       fontWeight: 600, 
+                       display: 'block', 
+                       marginBottom: '0.5em', 
+                       fontSize: 'clamp(12px, 2.5vw, 14px)' 
+                     }}>
+                       Broker Client ID *
+                     </label>
+                     <input
+                       type="text"
+                       name="broker_client_id"
+                       value={brokerData.broker_client_id}
+                       onChange={handleBrokerChange}
+                       placeholder="Enter your Broker Client ID (e.g., Y69925)"
+                       required
+                       style={{ 
+                         width: '100%', 
+                         padding: '0.75em', 
+                         border: '1px solid var(--border-color)', 
+                         borderRadius: '8px', 
+                         fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                         background: 'white',
+                         color: 'var(--text-primary)',
+                         transition: 'all 0.2s ease'
+                       }}
+                     />
+                   </div>
 
-                  <div style={{ marginBottom: '2em' }}>
-                    <label style={{ 
-                      color: 'var(--text-primary)', 
-                      fontWeight: 600, 
-                      display: 'block', 
-                      marginBottom: '0.5em', 
-                      fontSize: 'clamp(12px, 2.5vw, 14px)' 
-                    }}>
-                      Password *
-                    </label>
-                    <input
-                      type="password"
-                      name="password"
-                      value={brokerData.password}
-                      onChange={handleBrokerChange}
-                      placeholder="Enter your password"
-                      required
-                      style={{ 
-                        width: '100%', 
-                        padding: '0.75em', 
-                        border: '1px solid var(--border-color)', 
-                        borderRadius: '8px', 
-                        fontSize: 'clamp(12px, 2.5vw, 14px)', 
-                        background: 'white',
-                        color: 'var(--text-primary)',
-                        transition: 'all 0.2s ease'
-                      }}
-                    />
-                  </div>
-                    </>
-                  )}
+                   <div style={{ marginBottom: '1.5em' }}>
+                     <label style={{ 
+                       color: 'var(--text-primary)', 
+                       fontWeight: 600, 
+                       display: 'block', 
+                       marginBottom: '0.5em', 
+                       fontSize: 'clamp(12px, 2.5vw, 14px)' 
+                     }}>
+                       Broker API Key *
+                     </label>
+                     <input
+                       type="text"
+                       name="broker_api_key"
+                       value={brokerData.broker_api_key}
+                       onChange={handleBrokerChange}
+                       placeholder="Enter your Broker API Key (e.g., lY8ntMyP)"
+                       required
+                       style={{ 
+                         width: '100%', 
+                         padding: '0.75em', 
+                         border: '1px solid var(--border-color)', 
+                         borderRadius: '8px', 
+                         fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                         background: 'white',
+                         color: 'var(--text-primary)',
+                         transition: 'all 0.2s ease'
+                       }}
+                     />
+                   </div>
+
+                   <div style={{ marginBottom: '1.5em' }}>
+                     <label style={{ 
+                       color: 'var(--text-primary)', 
+                       fontWeight: 600, 
+                       display: 'block', 
+                       marginBottom: '0.5em', 
+                       fontSize: 'clamp(12px, 2.5vw, 14px)' 
+                     }}>
+                       Broker API Secret *
+                     </label>
+                     <input
+                       type="password"
+                       name="broker_api_secret"
+                       value={brokerData.broker_api_secret}
+                       onChange={handleBrokerChange}
+                       placeholder="Enter your Broker API Secret (e.g., Smarttest@123)"
+                       required
+                       style={{ 
+                         width: '100%', 
+                         padding: '0.75em', 
+                         border: '1px solid var(--border-color)', 
+                         borderRadius: '8px', 
+                         fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                         background: 'white',
+                         color: 'var(--text-primary)',
+                         transition: 'all 0.2s ease'
+                       }}
+                     />
+                   </div>
+
+                   <div style={{ marginBottom: '1.5em' }}>
+                     <label style={{ 
+                       color: 'var(--text-primary)', 
+                       fontWeight: 600, 
+                       display: 'block', 
+                       marginBottom: '0.5em', 
+                       fontSize: 'clamp(12px, 2.5vw, 14px)' 
+                     }}>
+                       Angel One Token *
+                     </label>
+                     <input
+                       type="text"
+                       name="angelone_token"
+                       value={brokerData.angelone_token}
+                       onChange={handleBrokerChange}
+                       placeholder="Enter your Angel One Token (e.g., VXJB7SPIYYNI6CRUNCUZYWJFTA)"
+                       required
+                       style={{ 
+                         width: '100%', 
+                         padding: '0.75em', 
+                         border: '1px solid var(--border-color)', 
+                         borderRadius: '8px', 
+                         fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                         background: 'white',
+                         color: 'var(--text-primary)',
+                         transition: 'all 0.2s ease'
+                       }}
+                     />
+                   </div>
+                     </>
+                   )}
 
                   {/* Step 2: TOTP Verification */}
                   {brokerStep === 2 && (
@@ -1208,59 +1165,42 @@ const AdminProfileSettings = () => {
           )}
         </motion.div>
 
-        {/* Password Management Section */}
-        <div>
-          <div style={{ marginTop: '2em', padding: '1em', background: '#f8f9fa', borderRadius: '6px', border: '1px solid #e9ecef' }}>
-            <h3 style={{ color: '#2c3e50', marginBottom: '0.8em', fontWeight: 600, fontSize: '1.1em' }}>Password Management</h3>
-            
-            <div style={{ display: 'flex', gap: '0.8em', marginBottom: '0.8em' }}>
-              <button
-                type="button"
-                onClick={() => setShowForgotPassword(true)}
-                style={{
-                  flex: 1,
-                  padding: '0.6em',
-                  background: '#28a745',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Forgot Password
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setShowResetPassword(true)}
-                style={{
-                  flex: 1,
-                  padding: '0.6em',
-                  background: '#ffc107',
-                  color: '#212529',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Reset Password
-              </button>
-            </div>
-
-            <p style={{ color: '#6c757d', margin: 0, fontSize: 12 }}>
-              Use "Forgot Password" to receive a reset link via email, or "Reset Password" if you already have a reset token.
-            </p>
+        {/* Admin Information Section */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          style={{ 
+            marginTop: '2em',
+            padding: 'clamp(1em, 3vw, 1.5em)', 
+            background: 'white', 
+            borderRadius: '12px', 
+            boxShadow: 'var(--shadow-md)', 
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-primary)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5em', gap: '0.5em' }}>
+            <User size={24} />
+            <h2 style={{ 
+              color: 'var(--text-primary)', 
+              margin: 0, 
+              fontWeight: 600, 
+              fontSize: 'clamp(1.2em, 3vw, 1.4em)' 
+            }}>
+              Admin Information
+            </h2>
           </div>
-          <div style={{ marginTop: '1.5em', padding: '1em', background: '#e3f2fd', borderRadius: '6px', border: '1px solid #bbdefb' }}>
-            <h3 style={{ color: '#1976d2', marginBottom: '0.8em', fontWeight: 600, fontSize: '1.1em' }}>Admin Information</h3>
-            
+
+          <div style={{ 
+            padding: '1em', 
+            background: '#e3f2fd', 
+            borderRadius: '6px', 
+            border: '1px solid #bbdefb' 
+          }}>
             <div style={{ marginBottom: '0.5em' }}>
               <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Role: </span>
-              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>{formData.role}</span>
+              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12, textTransform: 'capitalize' }}>{role || formData.role}</span>
             </div>
             
             <div style={{ marginBottom: '0.5em' }}>
@@ -1268,139 +1208,15 @@ const AdminProfileSettings = () => {
               <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>{formData.employeeId || 'Not set'}</span>
             </div>
             
-            <div style={{ marginBottom: '0.5em' }}>
-              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Department: </span>
-              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>{formData.department || 'Not set'}</span>
-            </div>
-            
             <div>
               <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Access Level: </span>
               <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>Full Administrative Access</span>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      {/* Forgot Password Modal */}
-      {showForgotPassword && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', padding: '1.5em', maxWidth: '400px', width: '90%' }}>
-            <h3 style={{ color: '#2c3e50', marginBottom: '1em', fontWeight: 600, fontSize: '1.2em' }}>Forgot Password</h3>
-            <form onSubmit={handleForgotPassword}>
-              <div style={{ marginBottom: '1em' }}>
-                <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Email Address</label>
-                <input
-                  type="email"
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  required
-                  style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14 }}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '0.8em' }}>
-                <button
-                  type="submit"
-                  disabled={passwordLoading}
-                  style={{
-                    flex: 1,
-                    padding: '0.6em',
-                    background: '#007bff',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {passwordLoading ? 'Sending...' : 'Send Reset Link'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowForgotPassword(false)}
-                  style={{
-                    flex: 1,
-                    padding: '0.6em',
-                    background: '#6c757d',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* Reset Password Modal */}
-      {showResetPassword && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', padding: '1.5em', maxWidth: '400px', width: '90%' }}>
-            <h3 style={{ color: '#2c3e50', marginBottom: '1em', fontWeight: 600, fontSize: '1.2em' }}>Reset Password</h3>
-            <form onSubmit={handleResetPassword}>
-              <div style={{ marginBottom: '0.8em' }}>
-                <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Email Address</label>
-                <input type="email" value={resetData.email} onChange={(e) => setResetData({...resetData, email: e.target.value})} placeholder="Enter your email" required style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14 }} />
-              </div>
-              <div style={{ marginBottom: '0.8em' }}>
-                <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Reset Token</label>
-                <input type="text" value={resetData.token} onChange={(e) => setResetData({...resetData, token: e.target.value})} placeholder="Enter reset token" required style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14 }} />
-              </div>
-              <div style={{ marginBottom: '0.8em' }}>
-                <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>New Password</label>
-                <input type="password" value={resetData.newPassword} onChange={(e) => setResetData({...resetData, newPassword: e.target.value})} placeholder="Enter new password" required style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14 }} />
-              </div>
-              <div style={{ marginBottom: '1em' }}>
-                <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Confirm Password</label>
-                <input type="password" value={resetData.confirmPassword} onChange={(e) => setResetData({...resetData, confirmPassword: e.target.value})} placeholder="Confirm new password" required style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14 }} />
-              </div>
-              <div style={{ display: 'flex', gap: '0.8em' }}>
-                <button
-                  type="submit"
-                  disabled={passwordLoading}
-                  style={{
-                    flex: 1,
-                    padding: '0.6em',
-                    background: '#28a745',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {passwordLoading ? 'Resetting...' : 'Reset Password'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowResetPassword(false)}
-                  style={{
-                    flex: 1,
-                    padding: '0.6em',
-                    background: '#6c757d',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </motion.div>
   );
 };

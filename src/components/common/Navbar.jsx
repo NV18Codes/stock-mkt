@@ -125,9 +125,21 @@ const Navbar = () => {
               borderRadius: '12px',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(0, 212, 170, 0.2)',
-              fontSize: '0.95rem'
+              fontSize: '0.95rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.25rem'
             }}>
-              Welcome, {user?.name || 'User'}
+              <span>Welcome, {user?.name || 'User'}</span>
+              <span style={{ 
+                fontSize: '0.8rem', 
+                color: '#00d4aa', 
+                fontWeight: 600,
+                textTransform: 'capitalize'
+              }}>
+                {role || 'User'}
+              </span>
             </span>
             <button 
               style={{ 

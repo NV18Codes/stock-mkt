@@ -1,7 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { updateProfile, forgotPassword, resetPassword, getUserProfile } from '../../api/auth';
+import { updateProfile, getUserProfile } from '../../api/auth';
+import { 
+  addBrokerAccount, 
+  fetchMyBrokerProfile, 
+  clearBrokerProfile 
+} from '../../api/auth';
+import { verifyBrokerTOTP, verifyBrokerMPIN } from '../../api/broker';
+import { useAuth } from '../../context/AuthContext';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
 
 const UserProfileSettings = () => {
+  const { user, role } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -26,23 +36,162 @@ const UserProfileSettings = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [validationErrors, setValidationErrors] = useState({});
+    const [validationErrors, setValidationErrors] = useState({});
   
-  // Password reset states
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [showResetPassword, setShowResetPassword] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [resetData, setResetData] = useState({
-    email: '',
-    token: '',
-    newPassword: '',
-    confirmPassword: ''
+  // Broker connection states
+  const [brokerData, setBrokerData] = useState({
+    broker: 'Angel One',
+    broker_name: 'angelone',
+    broker_client_id: '',
+    broker_api_key: '',
+    broker_api_secret: '',
+    angelone_token: '',
+    password: '',
+    mpin: '',
+    totp: ''
   });
-  const [passwordLoading, setPasswordLoading] = useState(false);
+  
+  const [brokerProfile, setBrokerProfile] = useState(null);
+  const [showBrokerForm, setShowBrokerForm] = useState(false);
+  const [brokerStep, setBrokerStep] = useState(1);
+  const [brokerSessionId, setBrokerSessionId] = useState(null);
+  const [brokerLoading, setBrokerLoading] = useState(false);
 
   useEffect(() => {
     fetchUserProfile();
+    fetchBrokerProfile();
   }, []);
+
+  const fetchBrokerProfile = async () => {
+    try {
+      const response = await fetchMyBrokerProfile();
+      if (response && response.success && response.data) {
+        setBrokerProfile(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching broker profile:', error);
+    }
+  };
+
+  const handleBrokerChange = (e) => {
+    const { name, value } = e.target;
+    setBrokerData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleAddBroker = async (e) => {
+    e.preventDefault();
+    setBrokerLoading(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      let response;
+      
+      if (brokerStep === 1) {
+        // Step 1: Send API credentials and get session ID for TOTP verification
+        response = await addBrokerAccount({
+          broker: brokerData.broker,
+          broker_name: brokerData.broker_name,
+          broker_client_id: brokerData.broker_client_id,
+          broker_api_key: brokerData.broker_api_key,
+          broker_api_secret: brokerData.broker_api_secret,
+          angelone_token: brokerData.angelone_token
+        });
+        
+        if (response && response.success) {
+          // Store session ID for next step
+          setBrokerSessionId(response.data?.sessionId || response.sessionId);
+          setBrokerStep(2);
+          setSuccess('Please enter your TOTP to continue');
+        }
+      } else if (brokerStep === 2) {
+        // Step 2: Send TOTP
+        response = await verifyBrokerTOTP({
+          sessionId: brokerSessionId,
+          totp: brokerData.totp
+        });
+        
+        if (response && response.success) {
+          setBrokerStep(3);
+          setSuccess('Please enter your MPIN to complete the connection');
+        }
+      } else if (brokerStep === 3) {
+        // Step 3: Send MPIN and complete connection
+        response = await verifyBrokerMPIN({
+          sessionId: brokerSessionId,
+          mpin: brokerData.mpin
+        });
+        
+        if (response && response.success) {
+          setSuccess('Broker account connected successfully!');
+          setShowBrokerForm(false);
+          setBrokerStep(1);
+          setBrokerSessionId(null);
+          setBrokerData({
+            broker: 'Angel One',
+            broker_name: 'angelone',
+            broker_client_id: '',
+            broker_api_key: '',
+            broker_api_secret: '',
+            angelone_token: '',
+            password: '',
+            mpin: '',
+            totp: ''
+          });
+          await fetchBrokerProfile();
+        }
+      }
+    } catch (err) {
+      console.error('Error in broker connection step:', err);
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          'Failed to connect broker account';
+      setError(errorMessage);
+      
+      // Reset to step 1 if there's a critical error
+      if (err.response?.status === 400 || err.response?.status === 401) {
+        setBrokerStep(1);
+        setBrokerSessionId(null);
+      }
+    } finally {
+      setBrokerLoading(false);
+    }
+  };
+
+  const handleClearBroker = async () => {
+    if (window.confirm('Are you sure you want to disconnect your broker account?')) {
+      try {
+        await clearBrokerProfile();
+        setBrokerProfile(null);
+        setSuccess('Broker account disconnected successfully!');
+      } catch (err) {
+        console.error('Error clearing broker profile:', err);
+        setError('Failed to disconnect broker account');
+      }
+    }
+  };
+
+  const resetBrokerForm = () => {
+    setBrokerStep(1);
+    setBrokerSessionId(null);
+    setShowBrokerForm(false);
+    setBrokerData({
+      broker: 'Angel One',
+      broker_name: 'angelone',
+      broker_client_id: '',
+      broker_api_key: '',
+      broker_api_secret: '',
+      angelone_token: '',
+      password: '',
+      mpin: '',
+      totp: ''
+    });
+    setError('');
+    setSuccess('');
+  };
 
   const fetchUserProfile = async () => {
     setLoading(true);
@@ -189,71 +338,7 @@ const UserProfileSettings = () => {
     }
   };
 
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-    if (!forgotEmail.trim()) {
-      setError('Please enter your email address');
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) {
-      setError('Please enter a valid email address');
-      return;
-    }
-    
-    setPasswordLoading(true);
-    setError('');
-    setSuccess('');
-    try {
-      await forgotPassword({ email: forgotEmail });
-      setSuccess('Password reset link sent to your email!');
-      setShowForgotPassword(false);
-      setForgotEmail('');
-    } catch (err) {
-      console.error('Error sending forgot password:', err);
-      setError(err.response?.data?.message || 'Failed to send reset link');
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
 
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!resetData.email || !resetData.token || !resetData.newPassword || !resetData.confirmPassword) {
-      setError('Please fill in all fields');
-      return;
-    }
-    
-    if (resetData.newPassword !== resetData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    
-    if (resetData.newPassword.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return;
-    }
-    
-    setPasswordLoading(true);
-    setError('');
-    setSuccess('');
-    try {
-      await resetPassword({
-        email: resetData.email,
-        token: resetData.token,
-        newPassword: resetData.newPassword
-      });
-      setSuccess('Password reset successfully!');
-      setShowResetPassword(false);
-      setResetData({ email: '', token: '', newPassword: '', confirmPassword: '' });
-    } catch (err) {
-      console.error('Error resetting password:', err);
-      setError(err.response?.data?.message || 'Failed to reset password');
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
 
   const InputField = ({ label, name, type = 'text', required = false, placeholder, validation }) => (
     <div style={{ marginBottom: '1.5em' }}>
@@ -406,6 +491,91 @@ const UserProfileSettings = () => {
             <span>👤</span>
             Personal Information
           </h2>
+
+          {/* Role Display Section */}
+          <div style={{ 
+            padding: '1em', 
+            background: '#e3f2fd', 
+            borderRadius: '6px', 
+            border: '1px solid #bbdefb',
+            marginBottom: '1.5em'
+          }}>
+            <div style={{ marginBottom: '0.5em' }}>
+              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Role: </span>
+              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12, textTransform: 'capitalize' }}>{role || 'User'}</span>
+            </div>
+            
+            <div style={{ marginBottom: '0.5em' }}>
+              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Account Type: </span>
+              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>Trading Account</span>
+            </div>
+            
+            <div>
+              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Access Level: </span>
+              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>Standard Trading Access</span>
+            </div>
+          </div>
+
+          {/* Password Management Section */}
+          <div style={{ 
+            padding: '1em', 
+            background: '#fff3cd', 
+            borderRadius: '6px', 
+            border: '1px solid #ffeaa7',
+            marginBottom: '1.5em'
+          }}>
+            <h3 style={{ 
+              color: '#856404', 
+              marginBottom: '0.5em', 
+              fontWeight: 600, 
+              fontSize: '1em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5em'
+            }}>
+              <span>🔐</span>
+              Password Management
+            </h3>
+            <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap' }}>
+              <Link to="/forgot-password" style={{
+                padding: '0.5em 1em',
+                background: '#007bff',
+                color: '#fff',
+                textDecoration: 'none',
+                borderRadius: '4px',
+                fontSize: 12,
+                fontWeight: 500,
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#0056b3';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#007bff';
+              }}>
+                Forgot Password
+              </Link>
+              <Link to="/reset-password" style={{
+                padding: '0.5em 1em',
+                background: '#28a745',
+                color: '#fff',
+                textDecoration: 'none',
+                borderRadius: '4px',
+                fontSize: 12,
+                fontWeight: 500,
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#1e7e34';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#28a745';
+              }}>
+                Reset Password
+              </Link>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit}>
             <InputField
               label="Full Name"
@@ -583,7 +753,7 @@ const UserProfileSettings = () => {
           />
         </div>
 
-        {/* Password Management */}
+        {/* Broker Account Section */}
         <div style={{ 
           padding: '2em', 
           background: '#fff', 
@@ -600,216 +770,540 @@ const UserProfileSettings = () => {
             alignItems: 'center',
             gap: '0.5em'
           }}>
-            <span>🔐</span>
-            Password Management
+            <span>🏦</span>
+            Broker Account
           </h2>
-          
-          <div style={{ display: 'grid', gap: '1em', marginBottom: '1.5em' }}>
-            <button
-              type="button"
-              onClick={() => setShowForgotPassword(true)}
-              style={{
-                width: '100%',
-                padding: '1em',
-                background: '#28a745',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              Forgot Password
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => setShowResetPassword(true)}
-              style={{
-                width: '100%',
-                padding: '1em',
-                background: '#ffc107',
-                color: '#212529',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              Reset Password
-            </button>
-          </div>
 
-          <p style={{ 
-            color: '#6c757d', 
-            margin: 0, 
-            fontSize: 13,
-            lineHeight: 1.5
-          }}>
-            Use "Forgot Password" to receive a reset link via email, or "Reset Password" if you already have a reset token.
-          </p>
+          {brokerProfile ? (
+            <div style={{
+              background: '#e8f5e8',
+              padding: '1.5em',
+              borderRadius: '8px',
+              border: '1px solid #c8e6c9',
+              marginBottom: '1.5em'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1em', gap: '0.5em' }}>
+                <span style={{ color: '#2e7d32', fontSize: '1.2em' }}>✅</span>
+                <span style={{ 
+                  fontWeight: 600, 
+                  fontSize: '1.1em',
+                  color: '#2e7d32'
+                }}>
+                  Connected to {brokerProfile.brokerName || 'Angel One'}
+                </span>
+              </div>
+              
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '1em',
+                marginBottom: '1.5em'
+              }}>
+                <div style={{ 
+                  background: 'white', 
+                  padding: '1em', 
+                  borderRadius: '6px',
+                  border: '1px solid #e0e0e0'
+                }}>
+                  <div style={{ 
+                    color: '#666', 
+                    fontSize: '0.875rem',
+                    marginBottom: '0.25em'
+                  }}>
+                    Account ID
+                  </div>
+                  <div style={{ 
+                    color: '#2c3e50', 
+                    fontWeight: '600',
+                    fontSize: '0.95rem'
+                  }}>
+                    {brokerProfile.accountId || 'N/A'}
+                  </div>
+                </div>
+                
+                <div style={{ 
+                  background: 'white', 
+                  padding: '1em', 
+                  borderRadius: '6px',
+                  border: '1px solid #e0e0e0'
+                }}>
+                  <div style={{ 
+                    color: '#666', 
+                    fontSize: '0.875rem',
+                    marginBottom: '0.25em'
+                  }}>
+                    Status
+                  </div>
+                  <div style={{ 
+                    color: '#2e7d32', 
+                    fontWeight: '600',
+                    fontSize: '0.95rem'
+                  }}>
+                    {brokerProfile.status || 'Active'}
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleClearBroker}
+                  style={{
+                    background: '#f44336',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.75em 1.5em',
+                    borderRadius: '6px',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#d32f2f';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#f44336';
+                  }}
+                >
+                  Disconnect Broker
+                </button>
+                
+                <button
+                  onClick={() => setShowBrokerForm(true)}
+                  style={{
+                    background: '#2196f3',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.75em 1.5em',
+                    borderRadius: '6px',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#1976d2';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#2196f3';
+                  }}
+                >
+                  Change Broker
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              background: '#fff3cd',
+              padding: '1.5em',
+              borderRadius: '8px',
+              border: '1px solid #ffeaa7',
+              marginBottom: '1.5em'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                marginBottom: '1em', 
+                gap: '0.5em' 
+              }}>
+                <span style={{ color: '#856404', fontSize: '1.2em' }}>⚠️</span>
+                <span style={{ 
+                  color: '#856404', 
+                  fontWeight: '600',
+                  fontSize: '1.1em'
+                }}>
+                  No Broker Connected
+                </span>
+              </div>
+              
+              <p style={{ 
+                color: '#856404', 
+                marginBottom: '1.5em',
+                fontSize: '0.95rem',
+                lineHeight: '1.5'
+              }}>
+                Connect your broker account to enable trading functionality and access advanced features.
+              </p>
+              
+              {!showBrokerForm ? (
+                <button
+                  onClick={() => setShowBrokerForm(true)}
+                  style={{
+                    background: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.8em 1.5em',
+                    borderRadius: '6px',
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#0056b3';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#007bff';
+                  }}
+                >
+                  Connect Broker Account
+                </button>
+              ) : (
+                <form onSubmit={handleAddBroker} style={{ marginTop: '1em' }}>
+                  {/* Progress Indicator */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: '2rem',
+                    position: 'relative'
+                  }}>
+                    {[1, 2, 3].map((step) => (
+                      <div key={step} style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        flex: 1
+                      }}>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          background: brokerStep >= step ? '#007bff' : '#e0e0e0',
+                          color: brokerStep >= step ? 'white' : '#666',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '600',
+                          fontSize: '0.875rem',
+                          marginBottom: '0.5rem'
+                        }}>
+                          {brokerStep > step ? '✓' : step}
+                        </div>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          color: brokerStep >= step ? '#2c3e50' : '#666',
+                          fontWeight: '500',
+                          textAlign: 'center'
+                        }}>
+                          {step === 1 ? 'API Credentials' : step === 2 ? 'TOTP Verification' : 'MPIN Verification'}
+                        </span>
+                      </div>
+                    ))}
+                    {/* Progress Line */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '20px',
+                      left: '20px',
+                      right: '20px',
+                      height: '2px',
+                      background: '#e0e0e0',
+                      zIndex: -1
+                    }}>
+                      <div style={{
+                        width: `${((brokerStep - 1) / 2) * 100}%`,
+                        height: '100%',
+                        background: '#007bff',
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Step 1: API Credentials */}
+                  {brokerStep === 1 && (
+                    <>
+                      <div style={{ marginBottom: '1.5em' }}>
+                        <label style={{ 
+                          color: '#2c3e50', 
+                          fontWeight: 600, 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
+                          fontSize: '0.9rem' 
+                        }}>
+                          Select Broker *
+                        </label>
+                        <select
+                          name="broker"
+                          value={brokerData.broker}
+                          onChange={handleBrokerChange}
+                          required
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.75em', 
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
+                            fontSize: '0.9rem', 
+                            background: 'white',
+                            color: '#2c3e50'
+                          }}
+                        >
+                          <option value="Angel One">Angel One</option>
+                          <option value="Zerodha">Zerodha</option>
+                          <option value="Upstox">Upstox</option>
+                          <option value="ICICI Direct">ICICI Direct</option>
+                        </select>
+                      </div>
+
+                      <div style={{ marginBottom: '1.5em' }}>
+                        <label style={{ 
+                          color: '#2c3e50', 
+                          fontWeight: 600, 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
+                          fontSize: '0.9rem' 
+                        }}>
+                          Broker Client ID *
+                        </label>
+                        <input
+                          type="text"
+                          name="broker_client_id"
+                          value={brokerData.broker_client_id}
+                          onChange={handleBrokerChange}
+                          placeholder="Enter your Broker Client ID (e.g., Y69925)"
+                          required
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.75em', 
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
+                            fontSize: '0.9rem', 
+                            background: 'white',
+                            color: '#2c3e50'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ marginBottom: '1.5em' }}>
+                        <label style={{ 
+                          color: '#2c3e50', 
+                          fontWeight: 600, 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
+                          fontSize: '0.9rem' 
+                        }}>
+                          Broker API Key *
+                        </label>
+                        <input
+                          type="text"
+                          name="broker_api_key"
+                          value={brokerData.broker_api_key}
+                          onChange={handleBrokerChange}
+                          placeholder="Enter your Broker API Key (e.g., lY8ntMyP)"
+                          required
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.75em', 
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
+                            fontSize: '0.9rem', 
+                            background: 'white',
+                            color: '#2c3e50'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ marginBottom: '1.5em' }}>
+                        <label style={{ 
+                          color: '#2c3e50', 
+                          fontWeight: 600, 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
+                          fontSize: '0.9rem' 
+                        }}>
+                          Broker API Secret *
+                        </label>
+                        <input
+                          type="password"
+                          name="broker_api_secret"
+                          value={brokerData.broker_api_secret}
+                          onChange={handleBrokerChange}
+                          placeholder="Enter your Broker API Secret (e.g., Smarttest@123)"
+                          required
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.75em', 
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
+                            fontSize: '0.9rem', 
+                            background: 'white',
+                            color: '#2c3e50'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ marginBottom: '2em' }}>
+                        <label style={{ 
+                          color: '#2c3e50', 
+                          fontWeight: 600, 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
+                          fontSize: '0.9rem' 
+                        }}>
+                          Angel One Token *
+                        </label>
+                        <input
+                          type="text"
+                          name="angelone_token"
+                          value={brokerData.angelone_token}
+                          onChange={handleBrokerChange}
+                          placeholder="Enter your Angel One Token (e.g., VXJB7SPIYYNI6CRUNCUZYWJFTA)"
+                          required
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.75em', 
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
+                            fontSize: '0.9rem', 
+                            background: 'white',
+                            color: '#2c3e50'
+                          }}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Step 2: TOTP Verification */}
+                  {brokerStep === 2 && (
+                    <>
+                      <div style={{ marginBottom: '2em' }}>
+                        <label style={{ 
+                          color: '#2c3e50', 
+                          fontWeight: 600, 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
+                          fontSize: '0.9rem' 
+                        }}>
+                          TOTP Code *
+                        </label>
+                        <input
+                          type="text"
+                          name="totp"
+                          value={brokerData.totp}
+                          onChange={handleBrokerChange}
+                          placeholder="Enter 6-digit TOTP from your authenticator app"
+                          maxLength="6"
+                          pattern="[0-9]{6}"
+                          required
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.75em', 
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
+                            fontSize: '0.9rem', 
+                            background: 'white',
+                            color: '#2c3e50',
+                            textAlign: 'center',
+                            letterSpacing: '0.5em'
+                          }}
+                        />
+                        <p style={{
+                          color: '#666',
+                          fontSize: '0.8rem',
+                          marginTop: '0.5rem',
+                          textAlign: 'center'
+                        }}>
+                          Enter the 6-digit code from your authenticator app
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Step 3: MPIN Verification */}
+                  {brokerStep === 3 && (
+                    <>
+                      <div style={{ marginBottom: '2em' }}>
+                        <label style={{ 
+                          color: '#2c3e50', 
+                          fontWeight: 600, 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
+                          fontSize: '0.9rem' 
+                        }}>
+                          MPIN *
+                        </label>
+                        <input
+                          type="password"
+                          name="mpin"
+                          value={brokerData.mpin}
+                          onChange={handleBrokerChange}
+                          placeholder="Enter your 4-digit MPIN"
+                          maxLength="4"
+                          pattern="[0-9]{4}"
+                          required
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.75em', 
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
+                            fontSize: '0.9rem', 
+                            background: 'white',
+                            color: '#2c3e50',
+                            textAlign: 'center',
+                            letterSpacing: '0.5em'
+                          }}
+                        />
+                        <p style={{
+                          color: '#666',
+                          fontSize: '0.8rem',
+                          marginTop: '0.5rem',
+                          textAlign: 'center'
+                        }}>
+                          Enter your 4-digit MPIN for broker authentication
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '1em', marginTop: '1.5em' }}>
+                    <button
+                      type="submit"
+                      disabled={brokerLoading}
+                      style={{
+                        flex: 1,
+                        background: brokerLoading ? '#ccc' : '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        padding: '0.75em 1em',
+                        borderRadius: '6px',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        cursor: brokerLoading ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      {brokerLoading ? (
+                        'Processing...'
+                      ) : (
+                        brokerStep === 1 ? 'Continue' : brokerStep === 2 ? 'Verify TOTP' : 'Complete Connection'
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={brokerStep === 1 ? () => setShowBrokerForm(false) : () => setBrokerStep(brokerStep - 1)}
+                      style={{
+                        flex: 1,
+                        background: 'white',
+                        color: '#2c3e50',
+                        border: '2px solid #e0e0e0',
+                        padding: '0.75em 1em',
+                        borderRadius: '6px',
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      {brokerStep === 1 ? 'Cancel' : 'Back'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
         </div>
+
       </div>
 
-      {/* Forgot Password Modal */}
-      {showForgotPassword && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1em'
-        }}>
-          <div style={{
-            background: '#fff',
-            padding: '2em',
-            borderRadius: '12px',
-            maxWidth: '400px',
-            width: '100%'
-          }}>
-            <h3 style={{ marginBottom: '1em', color: '#2c3e50' }}>Forgot Password</h3>
-            <form onSubmit={handleForgotPassword}>
-              <InputField
-                label="Email Address"
-                name="forgotEmail"
-                type="email"
-                required
-                placeholder="Enter your email address"
-              />
-              <div style={{ display: 'flex', gap: '1em', marginTop: '1.5em' }}>
-                <button
-                  type="submit"
-                  disabled={passwordLoading}
-                  style={{
-                    flex: 1,
-                    padding: '0.8em',
-                    background: passwordLoading ? '#6c757d' : '#007bff',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: passwordLoading ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {passwordLoading ? 'Sending...' : 'Send Reset Link'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowForgotPassword(false)}
-                  style={{
-                    flex: 1,
-                    padding: '0.8em',
-                    background: '#6c757d',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {/* Reset Password Modal */}
-      {showResetPassword && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1em'
-        }}>
-          <div style={{
-            background: '#fff',
-            padding: '2em',
-            borderRadius: '12px',
-            maxWidth: '400px',
-            width: '100%'
-          }}>
-            <h3 style={{ marginBottom: '1em', color: '#2c3e50' }}>Reset Password</h3>
-            <form onSubmit={handleResetPassword}>
-              <InputField
-                label="Email Address"
-                name="resetEmail"
-                type="email"
-                required
-                placeholder="Enter your email address"
-              />
-              <InputField
-                label="Reset Token"
-                name="resetToken"
-                required
-                placeholder="Enter reset token from email"
-              />
-              <InputField
-                label="New Password"
-                name="newPassword"
-                type="password"
-                required
-                placeholder="Enter new password"
-              />
-              <InputField
-                label="Confirm Password"
-                name="confirmPassword"
-                type="password"
-                required
-                placeholder="Confirm new password"
-              />
-              <div style={{ display: 'flex', gap: '1em', marginTop: '1.5em' }}>
-                <button
-                  type="submit"
-                  disabled={passwordLoading}
-                  style={{
-                    flex: 1,
-                    padding: '0.8em',
-                    background: passwordLoading ? '#6c757d' : '#007bff',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: passwordLoading ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {passwordLoading ? 'Resetting...' : 'Reset Password'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowResetPassword(false)}
-                  style={{
-                    flex: 1,
-                    padding: '0.8em',
-                    background: '#6c757d',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

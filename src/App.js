@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import LandingPage from './components/common/LandingPage';
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
+import ForgotPassword from './components/auth/ForgotPassword';
+import ResetPassword from './components/auth/ResetPassword';
 import UserProfileSettings from './components/user/UserProfileSettings';
 import BrokerAccountSettings from './components/user/BrokerAccountSettings';
 import TradingPortal from './components/user/TradingPortal';
@@ -89,6 +91,17 @@ class ErrorBoundary extends React.Component {
 
 // Simple test component
 const TestComponent = () => {
+  const { logout } = useAuth();
+  
+  const clearStorage = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
+
+  const handleLogout = () => {
+    logout();
+  };
+
   return (
     <div style={{ 
       minHeight: '100vh', 
@@ -117,30 +130,141 @@ const TestComponent = () => {
         <p style={{ fontSize: '1rem', marginTop: '1rem', color: 'var(--text-secondary)' }}>
           If you can see this, React is rendering correctly.
         </p>
-        <button 
-          onClick={() => window.location.href = '/landing'} 
-          style={{
-            background: 'var(--gradient-primary)',
-            color: 'var(--text-inverse)',
-            border: 'none',
-            padding: '0.75rem 1.5rem',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            marginTop: '1rem',
-            fontWeight: '600',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = 'var(--shadow-lg)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = 'none';
-          }}
-        >
-          Go to Landing Page
-        </button>
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+          <button 
+            onClick={() => window.location.href = '/landing'} 
+            style={{
+              background: 'var(--gradient-primary)',
+              color: 'var(--text-inverse)',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = 'var(--shadow-lg)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+            }}
+          >
+            Go to Landing Page
+          </button>
+          <button 
+            onClick={clearStorage} 
+            style={{
+              background: 'var(--danger-color)',
+              color: 'var(--text-inverse)',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = 'var(--shadow-lg)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+            }}
+          >
+            Clear Storage
+          </button>
+          <button 
+            onClick={handleLogout} 
+            style={{
+              background: 'var(--warning-color)',
+              color: 'var(--text-inverse)',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = 'var(--shadow-lg)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+            }}
+          >
+            Logout
+          </button>
+        </div>
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+          <button 
+            onClick={() => window.location.href = '/debug-forgot'} 
+            style={{
+              background: 'var(--gradient-secondary)',
+              color: 'var(--text-primary)',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            Test Forgot Password
+          </button>
+          <button 
+            onClick={() => window.location.href = '/debug-reset'} 
+            style={{
+              background: 'var(--gradient-secondary)',
+              color: 'var(--text-primary)',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            Test Reset Password
+          </button>
+        </div>
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+          <button 
+            onClick={() => window.location.href = '/forgot-password'} 
+            style={{
+              background: 'var(--gradient-primary)',
+              color: 'var(--text-inverse)',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            Forgot Password
+          </button>
+          <button 
+            onClick={() => window.location.href = '/reset-password'} 
+            style={{
+              background: 'var(--gradient-primary)',
+              color: 'var(--text-inverse)',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            Reset Password
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -205,6 +329,10 @@ function AppRoutes() {
         {/* Test Route */}
         <Route path="/test" element={<TestComponent />} />
         
+        {/* Debug Routes */}
+        <Route path="/debug-forgot" element={<ForgotPassword />} />
+        <Route path="/debug-reset" element={<ResetPassword />} />
+        
         {/* Public Routes */}
         <Route path="/" element={
           isAuthenticated ? 
@@ -225,6 +353,10 @@ function AppRoutes() {
             <Navigate to={role === 'admin' ? '/admin-panel' : '/dashboard'} replace /> : 
             <Signup />
         } />
+
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* User Routes */}
         <Route path="/dashboard" element={

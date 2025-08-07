@@ -21,14 +21,14 @@ const TradeHistory = () => {
       const response = await getAdminTrades();
       console.log('Trade history response:', response);
       
-      // Handle different response formats
+      // Handle the specific response structure from the backend
       let tradesData = [];
-      if (response && response.data) {
-        tradesData = Array.isArray(response.data) ? response.data : [];
+      if (response && response.success && response.data && Array.isArray(response.data)) {
+        tradesData = response.data;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        tradesData = response.data;
       } else if (Array.isArray(response)) {
         tradesData = response;
-      } else if (response && response.trades) {
-        tradesData = Array.isArray(response.trades) ? response.trades : [];
       }
       
       setTrades(tradesData);
@@ -39,38 +39,24 @@ const TradeHistory = () => {
       setTrades([
         {
           id: '5055badf-53be-45b7-a662-d65b26a8173a',
+          trading_symbol: 'NIFTY07AUG2522950CE',
+          underlying_symbol: 'NIFTY',
+          strike_price: 22950,
+          option_type: 'CE',
+          expiry_date: '2025-08-07',
+          transaction_type: 'BUY',
+          order_type: 'MARKET',
           quantity: 4,
-          status: 'FAILED_ALL_USERS'
-        },
-        {
-          id: '6a7b8c9d-1e2f-3g4h-5i6j-7k8l9m0n1o2p',
-          quantity: 4,
-          status: 'FAILED_ALL_USERS'
-        },
-        {
-          id: '9o8i7u6y-5t4r-3e2w-1q0p-9o8i7u6y5t4r',
-          quantity: 4,
-          status: 'FAILED_ALL_USERS'
-        },
-        {
-          id: '1a2s3d4f-5g6h-7j8k-9l0z-1x2c3v4b5n6m',
-          quantity: 4,
-          status: 'FAILED_ALL_USERS'
-        },
-        {
-          id: '7y8u9i0o-1p2a-3s4d-5f6g-7h8j9k0l1z2x',
-          quantity: 4,
-          status: 'FAILED_ALL_USERS'
-        },
-        {
-          id: '3c4v5b6n-7m8q-9w0e-1r2t-3y4u5i6o7p8a',
-          quantity: 2,
-          status: 'COMPLETED_NO_USERS'
-        },
-        {
-          id: '9s0d1f2g-3h4j-5k6l-7z8x-9c0v1b2n3m4q',
-          quantity: 4,
-          status: 'COMPLETED_NO_USERS'
+          lot_size: 75,
+          total_quantity: 300,
+          limit_price: null,
+          target_segment_ids: ['8c01b6a0-a500-444d-a5bc-9deed5a77a50'],
+          target_all_active_users: false,
+          status: 'FAILED_ALL_USERS',
+          initiated_at: '2025-07-31T16:11:19.743+00:00',
+          last_processed_at: '2025-07-31T16:11:21.217+00:00',
+          remarks: 'Nifty looking bullish, entering market order.',
+          user_trades_count: 0
         }
       ]);
     } finally {
@@ -80,12 +66,54 @@ const TradeHistory = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleString();
+    return new Date(dateString).toLocaleString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const formatAmount = (amount) => {
     if (!amount) return '-';
     return `₹${parseFloat(amount).toLocaleString()}`;
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'COMPLETED':
+      case 'COMPLETED_NO_USERS':
+        return { bg: '#d4edda', color: '#155724', border: '#c3e6cb' };
+      case 'QUEUED':
+      case 'PENDING':
+        return { bg: '#fff3cd', color: '#856404', border: '#ffeaa7' };
+      case 'FAILED_ALL_USERS':
+      case 'FAILED':
+        return { bg: '#f8d7da', color: '#721c24', border: '#f5c6cb' };
+      case 'PROCESSING':
+        return { bg: '#cce5ff', color: '#004085', border: '#b8daff' };
+      default:
+        return { bg: '#e2e3e5', color: '#383d41', border: '#d6d8db' };
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'COMPLETED':
+      case 'COMPLETED_NO_USERS':
+        return '✅';
+      case 'QUEUED':
+      case 'PENDING':
+        return '⏳';
+      case 'FAILED_ALL_USERS':
+      case 'FAILED':
+        return '❌';
+      case 'PROCESSING':
+        return '🔄';
+      default:
+        return '❓';
+    }
   };
 
   // Get current trades for pagination
@@ -137,7 +165,7 @@ const TradeHistory = () => {
           padding: '1.5em', 
           borderBottom: '1px solid #e9ecef' 
         }}>
-          <h2 style={{ color: '#333', margin: 0, fontWeight: '600' }}>All Trades</h2>
+          <h2 style={{ color: '#333', margin: 0, fontWeight: '600' }}>All Trades ({trades.length})</h2>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
@@ -145,73 +173,122 @@ const TradeHistory = () => {
             <thead>
               <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
                 <th style={{ padding: '1em', textAlign: 'left', color: '#495057', fontWeight: '600' }}>Trade ID</th>
-                <th style={{ padding: '1em', textAlign: 'left', color: '#495057', fontWeight: '600' }}>User</th>
                 <th style={{ padding: '1em', textAlign: 'left', color: '#495057', fontWeight: '600' }}>Symbol</th>
-                <th style={{ padding: '1em', textAlign: 'left', color: '#495057', fontWeight: '600' }}>Type</th>
+                <th style={{ padding: '1em', textAlign: 'left', color: '#495057', fontWeight: '600' }}>Strike/Type</th>
+                <th style={{ padding: '1em', textAlign: 'left', color: '#495057', fontWeight: '600' }}>Transaction</th>
                 <th style={{ padding: '1em', textAlign: 'right', color: '#495057', fontWeight: '600' }}>Quantity</th>
-                <th style={{ padding: '1em', textAlign: 'right', color: '#495057', fontWeight: '600' }}>Price</th>
-                <th style={{ padding: '1em', textAlign: 'right', color: '#495057', fontWeight: '600' }}>Amount</th>
+                <th style={{ padding: '1em', textAlign: 'right', color: '#495057', fontWeight: '600' }}>Total Qty</th>
+                <th style={{ padding: '1em', textAlign: 'center', color: '#495057', fontWeight: '600' }}>Target</th>
                 <th style={{ padding: '1em', textAlign: 'center', color: '#495057', fontWeight: '600' }}>Status</th>
-                <th style={{ padding: '1em', textAlign: 'center', color: '#495057', fontWeight: '600' }}>Date</th>
+                <th style={{ padding: '1em', textAlign: 'center', color: '#495057', fontWeight: '600' }}>User Trades</th>
+                <th style={{ padding: '1em', textAlign: 'center', color: '#495057', fontWeight: '600' }}>Initiated</th>
               </tr>
             </thead>
             <tbody>
-              {currentTrades.map((trade, index) => (
-                <tr 
-                  key={trade.id || trade._id || index} 
-                  style={{ 
-                    borderBottom: '1px solid #e9ecef',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.target.parentElement.style.backgroundColor = '#f8f9fa'}
-                  onMouseLeave={(e) => e.target.parentElement.style.backgroundColor = 'transparent'}
-                >
-                  <td style={{ padding: '1em', color: '#333' }}>
-                    {trade.id || trade._id || '-'}
-                  </td>
-                  <td style={{ padding: '1em', color: '#333' }}>
-                    {trade.userName || trade.user?.name || trade.user || '-'}
-                  </td>
-                  <td style={{ padding: '1em', color: '#333' }}>
-                    {trade.symbol || trade.underlying || trade.trading_symbol || '-'}
-                  </td>
-                  <td style={{ padding: '1em', color: '#333' }}>
-                    {trade.type || trade.transaction_type || '-'}
-                  </td>
-                  <td style={{ padding: '1em', textAlign: 'right', color: '#333' }}>
-                    {trade.quantity || trade.qty || '-'}
-                  </td>
-                  <td style={{ padding: '1em', textAlign: 'right', color: '#333' }}>
-                    {formatAmount(trade.price || trade.executionPrice || trade.limit_price)}
-                  </td>
-                  <td style={{ padding: '1em', textAlign: 'right', color: '#333' }}>
-                    {formatAmount(trade.amount || trade.totalAmount)}
-                  </td>
-                  <td style={{ padding: '1em', textAlign: 'center' }}>
-                    <span style={{
-                      padding: '0.25em 0.75em',
-                      borderRadius: '1em',
-                      fontSize: '0.85em',
-                      backgroundColor: trade.status === 'COMPLETED' || trade.status === 'COMPLETED_NO_USERS' ? '#d4edda' : 
-                                     trade.status === 'PENDING' ? '#fff3cd' : '#f8d7da',
-                      color: trade.status === 'COMPLETED' || trade.status === 'COMPLETED_NO_USERS' ? '#155724' : 
-                             trade.status === 'PENDING' ? '#856404' : '#721c24'
-                    }}>
-                      {trade.status || 'UNKNOWN'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '1em', textAlign: 'center', color: '#6c757d', fontSize: '0.9em' }}>
-                    {formatDate(trade.createdAt || trade.timestamp || trade.created_at)}
-                  </td>
-                </tr>
-              ))}
+              {currentTrades.map((trade, index) => {
+                const statusStyle = getStatusColor(trade.status);
+                return (
+                  <tr 
+                    key={trade.id || index} 
+                    style={{ 
+                      borderBottom: '1px solid #e9ecef',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.target.parentElement.style.backgroundColor = '#f8f9fa'}
+                    onMouseLeave={(e) => e.target.parentElement.style.backgroundColor = 'transparent'}
+                  >
+                    <td style={{ padding: '1em', color: '#333', fontFamily: 'monospace', fontSize: '0.85em' }}>
+                      {trade.id ? trade.id.substring(0, 8) + '...' : '-'}
+                    </td>
+                    <td style={{ padding: '1em', color: '#333' }}>
+                      <div>
+                        <div style={{ fontWeight: '600' }}>{trade.underlying_symbol || '-'}</div>
+                        <div style={{ fontSize: '0.85em', color: '#6c757d' }}>{trade.trading_symbol || '-'}</div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '1em', color: '#333' }}>
+                      <div>
+                        <div style={{ fontWeight: '600' }}>{trade.strike_price ? `₹${trade.strike_price.toLocaleString()}` : '-'}</div>
+                        <div style={{ fontSize: '0.85em', color: '#6c757d' }}>
+                          {trade.option_type || '-'} • {trade.expiry_date ? new Date(trade.expiry_date).toLocaleDateString() : '-'}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '1em', color: '#333' }}>
+                      <div>
+                        <div style={{ fontWeight: '600', color: trade.transaction_type === 'BUY' ? '#28a745' : '#dc3545' }}>
+                          {trade.transaction_type || '-'}
+                        </div>
+                        <div style={{ fontSize: '0.85em', color: '#6c757d' }}>{trade.order_type || '-'}</div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '1em', textAlign: 'right', color: '#333' }}>
+                      <div>
+                        <div style={{ fontWeight: '600' }}>{trade.quantity || '-'}</div>
+                        <div style={{ fontSize: '0.85em', color: '#6c757d' }}>lots</div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '1em', textAlign: 'right', color: '#333' }}>
+                      <div>
+                        <div style={{ fontWeight: '600' }}>{trade.total_quantity || '-'}</div>
+                        <div style={{ fontSize: '0.85em', color: '#6c757d' }}>units</div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '1em', textAlign: 'center', color: '#333' }}>
+                      <div style={{ fontSize: '0.85em' }}>
+                        {trade.target_all_active_users ? (
+                          <span style={{ color: '#007bff', fontWeight: '600' }}>All Active</span>
+                        ) : trade.target_segment_ids && trade.target_segment_ids.length > 0 ? (
+                          <span style={{ color: '#6f42c1', fontWeight: '600' }}>
+                            {trade.target_segment_ids.length} Segment{trade.target_segment_ids.length > 1 ? 's' : ''}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#6c757d' }}>-</span>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ padding: '1em', textAlign: 'center' }}>
+                      <span style={{
+                        padding: '0.25em 0.75em',
+                        borderRadius: '1em',
+                        fontSize: '0.85em',
+                        backgroundColor: statusStyle.bg,
+                        color: statusStyle.color,
+                        border: `1px solid ${statusStyle.border}`,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25em'
+                      }}>
+                        {getStatusIcon(trade.status)} {trade.status || 'UNKNOWN'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '1em', textAlign: 'center', color: '#333' }}>
+                      <span style={{
+                        padding: '0.25em 0.5em',
+                        borderRadius: '0.5em',
+                        fontSize: '0.85em',
+                        backgroundColor: trade.user_trades_count > 0 ? '#d4edda' : '#e2e3e5',
+                        color: trade.user_trades_count > 0 ? '#155724' : '#6c757d',
+                        fontWeight: '600'
+                      }}>
+                        {trade.user_trades_count || 0}
+                      </span>
+                    </td>
+                    <td style={{ padding: '1em', textAlign: 'center', color: '#6c757d', fontSize: '0.9em' }}>
+                      {formatDate(trade.initiated_at)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
         {trades.length === 0 && (
           <div style={{ textAlign: 'center', padding: '3em', color: '#6c757d' }}>
-            No trades found
+            <div style={{ fontSize: '3em', marginBottom: '1em' }}>📊</div>
+            <h3 style={{ marginBottom: '0.5em' }}>No trades found</h3>
+            <p>No trade history available at the moment.</p>
           </div>
         )}
 

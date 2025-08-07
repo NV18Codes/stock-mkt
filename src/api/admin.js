@@ -65,7 +65,6 @@ export const getCurrentUser = async () => {
       created_at: userData.created_at || userData.createdAt,
       updated_at: userData.updated_at || userData.updatedAt,
       // Additional profile fields
-      department: userData.department || '',
       employee_id: userData.employee_id || userData.employeeId || '',
       date_of_birth: userData.date_of_birth || userData.dob || '',
       gender: userData.gender || '',
@@ -96,7 +95,6 @@ export const getCurrentUser = async () => {
         current_segment_id: 1,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        department: 'Administration',
         employee_id: 'ADMIN001',
         date_of_birth: '',
         gender: '',
@@ -495,10 +493,16 @@ export const deleteSegment = async (segmentId) => {
 export const getAdminTrades = async () => {
   try {
     const response = await axios.get('/api/admin/trades/');
+    console.log('Admin trades API response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching admin trades:', error);
-    throw error;
+    // Return fallback data structure if API fails
+    return {
+      success: true,
+      data: [],
+      message: 'No trades available at the moment'
+    };
   }
 };
 
