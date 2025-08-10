@@ -78,44 +78,57 @@ export const verifyBrokerConnection = async (data) => {
 
 export const fetchMyBrokerProfile = async (data) => {
   try {
-    // Try the broker profile endpoint first
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/profile', data);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching broker profile:', error);
+    // Since the broker profile endpoint is not available, directly use the working auth endpoint
+    const userResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+    const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
     
-    // If broker profile endpoint fails, try to get broker info from the main user endpoint
-    if (error.response?.status === 404 || error.response?.status === 500) {
-      try {
-        const userResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
-        const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
-        
-        // Return broker info from user data if available
-        if (userData && userData.broker_info) {
-          return {
-            success: true,
-            data: userData.broker_info
-          };
-        }
-        
-        // Return empty broker profile if no broker info available
-        return {
-          success: true,
-          data: {
-            broker_name: 'Not Connected',
-            broker_client_id: 'N/A',
-            is_active_for_trading: false,
-            exchanges: [],
-            products: []
-          }
-        };
-      } catch (userError) {
-        console.error('Error fetching user data for broker profile:', userError);
-        throw error; // Throw the original error
-      }
+    // Return broker info from user data if available
+    if (userData && userData.broker_info) {
+      return {
+        success: true,
+        data: userData.broker_info
+      };
     }
     
-    throw error;
+    // Check if user has broker connection status
+    if (userData && userData.is_broker_connected) {
+      // User has a broker connected, but no detailed info
+      return {
+        success: true,
+        data: {
+          broker_name: userData.broker_name || userData.broker || 'Connected Broker',
+          broker_client_id: userData.broker_client_id || userData.account_id || 'N/A',
+          is_active_for_trading: userData.is_active_for_trading || false,
+          exchanges: userData.exchanges || [],
+          products: userData.products || []
+        }
+      };
+    }
+    
+    // No broker connected - return empty state
+    return {
+      success: true,
+      data: {
+        broker_name: 'No Broker Connected',
+        broker_client_id: 'N/A',
+        is_active_for_trading: false,
+        exchanges: [],
+        products: []
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching broker profile:', error);
+    // Return a default "no broker" state
+    return {
+      success: true,
+      data: {
+        broker_name: 'No Broker Connected',
+        broker_client_id: 'N/A',
+        is_active_for_trading: false,
+        exchanges: [],
+        products: []
+      }
+    };
   }
 };
 
@@ -229,85 +242,63 @@ export const updateProfile = async (data) => {
 // Enhanced get user profile data
 export const getUserProfile = async () => {
   try {
-    // Try the profile endpoint first
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/profile');
+    // Since the profile endpoint is not available, directly use the working auth endpoint
+    const userResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+    const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
     
-    // Normalize profile data
-    let profileData;
-    if (response.data && response.data.data) {
-      profileData = response.data.data;
-    } else if (response.data && response.data.user) {
-      profileData = response.data.user;
-    } else {
-      profileData = response.data;
-    }
-    
+    // Normalize the user data to match profile format
     const normalizedProfile = {
-      id: profileData.id || profileData.user_id || profileData._id,
-      name: profileData.name || profileData.full_name || profileData.first_name || '',
-      email: profileData.email || profileData.email_address || '',
-      phone: profileData.phone || profileData.phone_number || '',
-      role: profileData.role || profileData.user_role || 'user',
-      department: profileData.department || '',
-      employee_id: profileData.employee_id || profileData.employeeId || '',
-      date_of_birth: profileData.date_of_birth || profileData.dob || '',
-      gender: profileData.gender || '',
-      address: profileData.address || '',
-      city: profileData.city || '',
-      state: profileData.state || '',
-      pincode: profileData.pincode || '',
-      emergency_contact: profileData.emergency_contact || '',
-      emergency_phone: profileData.emergency_phone || '',
-      is_broker_connected: profileData.is_broker_connected || false,
-      is_active_for_trading: profileData.is_active_for_trading || false,
-      rms_limit: profileData.rms_limit || { net: 0 },
-      current_segment_id: profileData.current_segment_id || null,
-      created_at: profileData.created_at || profileData.createdAt,
-      updated_at: profileData.updated_at || profileData.updatedAt
+      id: userData.id || userData.user_id || userData._id,
+      name: userData.name || userData.full_name || userData.first_name || '',
+      email: userData.email || userData.email_address || '',
+      phone: userData.phone || userData.phone_number || '',
+      role: userData.role || userData.user_role || 'user',
+      department: userData.department || '',
+      employee_id: userData.employee_id || userData.employeeId || '',
+      date_of_birth: userData.date_of_birth || userData.dob || '',
+      gender: userData.gender || '',
+      address: userData.address || '',
+      city: userData.city || '',
+      state: userData.state || '',
+      pincode: userData.pincode || '',
+      emergency_contact: userData.emergency_contact || '',
+      emergency_phone: userData.emergency_phone || '',
+      is_broker_connected: userData.is_broker_connected || false,
+      is_active_for_trading: userData.is_active_for_trading || false,
+      rms_limit: userData.rms_limit || { net: 0 },
+      current_segment_id: userData.current_segment_id || null,
+      created_at: userData.created_at || userData.createdAt,
+      updated_at: userData.updated_at || userData.updatedAt
     };
     
     return { data: normalizedProfile };
   } catch (error) {
     console.error('Error fetching user profile:', error);
-    
-    // If profile endpoint fails, try the main auth endpoint
-    if (error.response?.status === 404 || error.response?.status === 500) {
-      try {
-        const userResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
-        const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
-        
-        // Normalize the user data to match profile format
-        const normalizedProfile = {
-          id: userData.id || userData.user_id || userData._id,
-          name: userData.name || userData.full_name || userData.first_name || '',
-          email: userData.email || userData.email_address || '',
-          phone: userData.phone || userData.phone_number || '',
-          role: userData.role || userData.user_role || 'user',
-          department: userData.department || '',
-          employee_id: userData.employee_id || userData.employeeId || '',
-          date_of_birth: userData.date_of_birth || userData.dob || '',
-          gender: userData.gender || '',
-          address: userData.address || '',
-          city: userData.city || '',
-          state: userData.state || '',
-          pincode: userData.pincode || '',
-          emergency_contact: userData.emergency_contact || '',
-          emergency_phone: userData.emergency_phone || '',
-          is_broker_connected: userData.is_broker_connected || false,
-          is_active_for_trading: userData.is_active_for_trading || false,
-          rms_limit: userData.rms_limit || { net: 0 },
-          current_segment_id: userData.current_segment_id || null,
-          created_at: userData.created_at || userData.createdAt,
-          updated_at: userData.updated_at || userData.updatedAt
-        };
-        
-        return { data: normalizedProfile };
-      } catch (userError) {
-        console.error('Error fetching user data for profile:', userError);
-        throw error; // Throw the original error
+    // Return a default profile structure
+    return { 
+      data: {
+        id: '',
+        name: '',
+        email: '',
+        phone: '',
+        role: 'user',
+        department: '',
+        employee_id: '',
+        date_of_birth: '',
+        gender: '',
+        address: '',
+        city: '',
+        state: '',
+        pincode: '',
+        emergency_contact: '',
+        emergency_phone: '',
+        is_broker_connected: false,
+        is_active_for_trading: false,
+        rms_limit: { net: 0 },
+        current_segment_id: null,
+        created_at: '',
+        updated_at: ''
       }
-    }
-    
-    throw error;
+    };
   }
 }; 

@@ -1,10 +1,9 @@
 import React from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import v4Logo from '../assets/logo-V4.png';
 
 const AdminLayout = () => {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     await logout();
@@ -30,76 +29,11 @@ const AdminLayout = () => {
         backdropFilter: 'blur(10px)'
       }}>
         <div style={{ 
-          marginBottom: '2em', 
-          textAlign: 'center',
-          paddingBottom: '1.5em',
-          borderBottom: '1px solid var(--border-primary)'
+          textAlign: 'center', 
+          padding: '1.5em 1em',
+          borderBottom: '1px solid var(--border-color)',
+          marginBottom: '1.5em'
         }}>
-          <div style={{
-            width: '60px',
-            height: '60px',
-            borderRadius: '50%',
-            background: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 1em',
-            color: 'var(--text-inverse)',
-            fontSize: '1.5em',
-            fontWeight: 600,
-            boxShadow: '0 4px 12px rgba(0, 212, 170, 0.3)',
-            border: '2px solid var(--primary-color)',
-            padding: '6px'
-          }}>
-            <img 
-              src={v4Logo} 
-              alt="V4 Fintech Solutions" 
-              style={{ 
-                height: '55px', 
-                width: 'auto',
-                borderRadius: '50%'
-              }}
-            />
-          </div>
-          <h3 style={{ 
-            color: 'var(--text-primary)', 
-            margin: 0, 
-            fontWeight: 600, 
-            fontSize: '1.5em',
-            background: 'var(--gradient-primary)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>
-            Admin Panel
-          </h3>
-          <p style={{ 
-            color: 'var(--text-secondary)', 
-            margin: '0.5em 0', 
-            fontSize: '0.9em' 
-          }}>
-            {user?.name || 'Administrator'}
-          </p>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.3em',
-            marginTop: '0.5em',
-            padding: '0.3em 0.8em',
-            background: 'var(--gradient-secondary)',
-            color: 'var(--text-inverse)',
-            borderRadius: '20px',
-            fontSize: '0.8em',
-            fontWeight: 600
-          }}>
-            <span style={{
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: 'var(--text-inverse)'
-            }}></span>
-            Admin
-          </div>
         </div>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5em', flex: 1 }}>

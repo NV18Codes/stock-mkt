@@ -1,80 +1,79 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import {
   addBrokerAccount,
-  verifyBrokerConnection,
   fetchMyBrokerProfile,
-  fetchBrokerConnectionStatus,
   clearBrokerProfile,
   getDematLimit
 } from '../../api/auth';
-
-const API = 'https://apistocktrading-production.up.railway.app/api';
-
-const BROKERS = [
-  { id: 'angelone', name: 'Angel One', apiEndpoint: 'https://apiconnect.angelbroking.com', logo: '🟢' },
-  { id: 'zerodha', name: 'Zerodha', apiEndpoint: 'https://api.kite.trade', logo: '🔵' },
-  { id: 'groww', name: 'Groww', apiEndpoint: 'https://groww.in/api', logo: '🟣' },
-  { id: 'upstox', name: 'Upstox', apiEndpoint: 'https://api.upstox.com', logo: '🟠' }
-];
+import {
+  verifyBrokerTOTP,
+  verifyBrokerMPIN
+} from '../../api/broker';
 
 const BrokerAccountSettings = () => {
-  const [formData, setFormData] = useState({
-    broker: '',
-    accountId: '',
-    apiKey: '',
-    apiSecret: '',
+  const [brokerData, setBrokerData] = useState({
+    broker: 'Angel One',
+    broker_name: 'angelone',
+    broker_client_id: '',
+    broker_api_key: '',
+    broker_api_secret: '',
+    angelone_token: '',
+    password: '',
     mpin: '',
     totp: ''
   });
-  const [brokerData, setBrokerData] = useState(null);
+  
+  const [brokerStep, setBrokerStep] = useState(1);
+  const [brokerSessionId, setBrokerSessionId] = useState(null);
+  const [brokerProfile, setBrokerProfile] = useState(null);
   const [status, setStatus] = useState('NOT_CONNECTED');
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+  const [brokerLoading, setBrokerLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [dematLimit, setDematLimit] = useState(null);
-  const [showConnectForm, setShowConnectForm] = useState(false);
+  const [showBrokerForm, setShowBrokerForm] = useState(false);
 
   const fetchBrokerInfo = async () => {
     setLoading(true);
     setError('');
     try {
-      // Fetch broker connection status
-      const statusRes = await fetchBrokerConnectionStatus();
-      const statusValue = statusRes.data?.status || 'NOT_CONNECTED';
-      setStatus(statusValue);
+      // Fetch broker profile directly (same approach as UserProfileSettings)
+      const profileRes = await fetchMyBrokerProfile();
       
-      // Fetch broker profile if connected
-      if (statusValue === 'ACTIVE') {
-        const profileRes = await fetchMyBrokerProfile();
-        setBrokerData(profileRes.data);
-        setFormData(prev => ({
-          ...prev,
-          broker: profileRes.data?.brokerName || '',
-          accountId: profileRes.data?.accountId || '',
-          mpin: '',
-          totp: ''
-        }));
+      if (profileRes && profileRes.success && profileRes.data) {
+        // Check if broker is connected and active
+        const isBrokerConnected = profileRes.data.broker_name && 
+                                profileRes.data.broker_name !== 'No Broker Connected';
+        const isActiveForTrading = profileRes.data.is_active_for_trading;
         
-        // Fetch demat limit
-        try {
-          const dematRes = await getDematLimit();
-          setDematLimit(dematRes.data);
-        } catch (dematErr) {
-          console.error('Error fetching demat limit:', dematErr);
+        if (isBrokerConnected && isActiveForTrading) {
+          setStatus('ACTIVE');
+          setBrokerProfile(profileRes.data);
+          
+          // Fetch demat limit
+          try {
+            const dematRes = await getDematLimit();
+            setDematLimit(dematRes.data);
+          } catch (dematErr) {
+            console.error('Error fetching demat limit:', dematErr);
+            setDematLimit(null);
+          }
+        } else {
+          setStatus('NOT_CONNECTED');
+          setBrokerProfile(null);
           setDematLimit(null);
         }
       } else {
-        setBrokerData(null);
+        setStatus('NOT_CONNECTED');
+        setBrokerProfile(null);
         setDematLimit(null);
       }
     } catch (err) {
       console.error('Error fetching broker info:', err);
       setError('Failed to fetch broker status');
       setStatus('NOT_CONNECTED');
-      setBrokerData(null);
+      setBrokerProfile(null);
       setDematLimit(null);
     } finally {
       setLoading(false);
@@ -85,119 +84,128 @@ const BrokerAccountSettings = () => {
     fetchBrokerInfo();
   }, []);
 
-  const handleChange = (e) => {
+  const handleBrokerChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setBrokerData(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
-  const handleConnect = async (e) => {
+  const handleAddBroker = async (e) => {
     e.preventDefault();
-    
-    // Validation
-    if (!formData.broker || !formData.accountId || !formData.apiKey || !formData.apiSecret) {
-      setError('Please fill in all required fields');
-      return;
-    }
-    
-    setSaving(true);
+    setBrokerLoading(true);
     setError('');
     setSuccess('');
     
     try {
-      const response = await addBrokerAccount({
-        broker: formData.broker,
-        accountId: formData.accountId,
-        apiKey: formData.apiKey,
-        apiSecret: formData.apiSecret
-      });
+      let response;
       
-      if (response.success) {
-        setSuccess('Broker account connected successfully! Please complete the verification step below with your MPIN and TOTP.');
-        setStatus('CONNECTED');
-        setShowConnectForm(false);
-        // Don't refresh - let user complete verification
-        // Refresh broker data after a delay without page reload
-        setTimeout(() => {
-          fetchBrokerInfo();
-        }, 1000);
-      } else {
-        setError(response.message || 'Failed to connect broker account');
+      if (brokerStep === 1) {
+        // Step 1: Send API credentials and get session ID for TOTP verification
+        response = await addBrokerAccount({
+          broker: brokerData.broker,
+          broker_name: brokerData.broker_name,
+          broker_client_id: brokerData.broker_client_id,
+          broker_api_key: brokerData.broker_api_key,
+          broker_api_secret: brokerData.broker_api_secret,
+          angelone_token: brokerData.angelone_token
+        });
+        
+        if (response && response.success) {
+          // Store session ID for next step
+          setBrokerSessionId(response.data?.sessionId || response.sessionId);
+          setBrokerStep(2);
+          setSuccess('Please enter your TOTP to continue');
+        }
+      } else if (brokerStep === 2) {
+        // Step 2: Send TOTP
+        response = await verifyBrokerTOTP({
+          sessionId: brokerSessionId,
+          totp: brokerData.totp
+        });
+        
+        if (response && response.success) {
+          setBrokerStep(3);
+          setSuccess('Please enter your MPIN to complete the connection');
+        }
+      } else if (brokerStep === 3) {
+        // Step 3: Send MPIN and complete connection
+        response = await verifyBrokerMPIN({
+          sessionId: brokerSessionId,
+          mpin: brokerData.mpin
+        });
+        
+        if (response && response.success) {
+          setSuccess('Broker account connected successfully!');
+          setShowBrokerForm(false);
+          setBrokerStep(1);
+          setBrokerSessionId(null);
+          setBrokerData({
+            broker: 'Angel One',
+            broker_name: 'angelone',
+            broker_client_id: '',
+            broker_api_key: '',
+            broker_api_secret: '',
+            angelone_token: '',
+            password: '',
+            mpin: '',
+            totp: ''
+          });
+          await fetchBrokerInfo();
+        }
       }
     } catch (err) {
-      console.error('Error connecting broker:', err);
-      setError(err.response?.data?.message || 'Failed to connect broker account');
+      console.error('Error in broker connection step:', err);
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          'Failed to connect broker account';
+      setError(errorMessage);
+      
+      // Reset to step 1 if there's a critical error
+      if (err.response?.status === 400 || err.response?.status === 401) {
+        setBrokerStep(1);
+        setBrokerSessionId(null);
+      }
     } finally {
-      setSaving(false);
+      setBrokerLoading(false);
     }
   };
 
-  const handleVerify = async () => {
-    // Validation
-    if (!formData.mpin || !formData.totp) {
-      setError('Please enter both MPIN and TOTP code');
-      return;
-    }
-    
-    setVerifying(true);
-    setError('');
-    setSuccess('');
-    
-    try {
-      const response = await verifyBrokerConnection({
-        mpin: formData.mpin,
-        totp: formData.totp
-      });
-      
-      if (response.success) {
-        setSuccess('Broker connection verified successfully! Your account is now active for trading.');
-        setStatus('ACTIVE');
-        // Refresh broker data without page reload
-        setTimeout(() => {
-          fetchBrokerInfo();
-        }, 1000);
-      } else {
-        setError(response.message || 'Failed to verify broker connection');
-      }
-    } catch (err) {
-      console.error('Error verifying broker:', err);
-      setError(err.response?.data?.message || 'Failed to verify broker connection');
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const handleClear = async () => {
+  const handleClearBroker = async () => {
     if (!window.confirm('Are you sure you want to disconnect your broker account? This action cannot be undone.')) {
       return;
     }
     
-    setSaving(true);
-    setError('');
-    setSuccess('');
-    
     try {
       await clearBrokerProfile();
-      setSuccess('Broker account disconnected successfully');
+      setBrokerProfile(null);
+      setSuccess('Broker account disconnected successfully!');
       setStatus('NOT_CONNECTED');
-      setBrokerData(null);
       setDematLimit(null);
-      setFormData({
-        broker: '',
-        accountId: '',
-        apiKey: '',
-        apiSecret: '',
-        mpin: '',
-        totp: ''
-      });
     } catch (err) {
-      console.error('Error clearing broker:', err);
-      setError(err.response?.data?.message || 'Failed to disconnect broker account');
-    } finally {
-      setSaving(false);
+      console.error('Error clearing broker profile:', err);
+      setError('Failed to disconnect broker account');
     }
+  };
+
+  const resetBrokerForm = () => {
+    setBrokerStep(1);
+    setBrokerSessionId(null);
+    setBrokerData({
+      broker: 'Angel One',
+      broker_name: 'angelone',
+      broker_client_id: '',
+      broker_api_key: '',
+      broker_api_secret: '',
+      angelone_token: '',
+      password: '',
+      mpin: '',
+      totp: ''
+    });
+    setShowBrokerForm(false);
+    setError('');
+    setSuccess('');
   };
 
   const getStatusBadge = (status) => {
@@ -353,7 +361,7 @@ const BrokerAccountSettings = () => {
               {getStatusBadge(status)}
             </div>
             
-            {brokerData && (
+            {brokerProfile && (
               <>
                 <div style={{ 
                   display: 'flex', 
@@ -365,7 +373,7 @@ const BrokerAccountSettings = () => {
                 }}>
                   <span style={{ color: '#495057', fontSize: 14, fontWeight: 500 }}>Broker</span>
                   <span style={{ color: '#2c3e50', fontSize: 14, fontWeight: 600 }}>
-                    {brokerData.brokerName || 'Unknown'}
+                    {brokerProfile.broker_name || brokerProfile.brokerName || 'Unknown'}
                   </span>
                 </div>
                 
@@ -379,7 +387,7 @@ const BrokerAccountSettings = () => {
                 }}>
                   <span style={{ color: '#495057', fontSize: 14, fontWeight: 500 }}>Account ID</span>
                   <span style={{ color: '#2c3e50', fontSize: 14, fontWeight: 600 }}>
-                    {brokerData.accountId || 'N/A'}
+                    {brokerProfile.broker_client_id || brokerProfile.accountId || 'N/A'}
                   </span>
                 </div>
               </>
@@ -427,7 +435,7 @@ const BrokerAccountSettings = () => {
           <div style={{ display: 'grid', gap: '1em' }}>
             {status === 'NOT_CONNECTED' && (
               <button
-                onClick={() => setShowConnectForm(true)}
+                onClick={() => setShowBrokerForm(true)}
                 style={{
                   width: '100%',
                   padding: '1em',
@@ -445,52 +453,30 @@ const BrokerAccountSettings = () => {
               </button>
             )}
             
-            {status === 'CONNECTED' && (
-              <button
-                onClick={handleVerify}
-                disabled={verifying}
-                style={{
-                  width: '100%',
-                  padding: '1em',
-                  background: verifying ? '#6c757d' : '#28a745',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: verifying ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                {verifying ? 'Verifying...' : 'Verify Connection'}
-              </button>
-            )}
-            
             {(status === 'CONNECTED' || status === 'ACTIVE') && (
               <button
-                onClick={handleClear}
-                disabled={saving}
+                onClick={handleClearBroker}
                 style={{
                   width: '100%',
                   padding: '1em',
-                  background: saving ? '#6c757d' : '#dc3545',
+                  background: '#dc3545',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: 14,
                   fontWeight: 600,
-                  cursor: saving ? 'not-allowed' : 'pointer',
+                  cursor: 'pointer',
                   transition: 'all 0.3s ease'
                 }}
               >
-                {saving ? 'Disconnecting...' : 'Disconnect Broker'}
+                Disconnect Broker
               </button>
             )}
           </div>
         </div>
 
-        {/* Connect Form */}
-        {showConnectForm && (
+        {/* Broker Connection Form */}
+        {showBrokerForm && (
           <div style={{ 
             padding: '2em', 
             background: '#fff', 
@@ -512,286 +498,372 @@ const BrokerAccountSettings = () => {
               Connect New Broker
             </h2>
             
-            <form onSubmit={handleConnect}>
-              <div style={{ display: 'grid', gap: '1.5em' }}>
-                <div>
-                  <label style={{ 
-                    color: '#495057', 
-                    fontWeight: 500, 
-                    display: 'block', 
-                    marginBottom: '0.5em', 
-                    fontSize: 14 
+            <form onSubmit={handleAddBroker}>
+              {/* Progress Indicator */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginBottom: '2rem',
+                position: 'relative'
+              }}>
+                {[1, 2, 3].map((step) => (
+                  <div key={step} style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    flex: 1
                   }}>
-                    Select Broker *
-                  </label>
-                  <select
-                    name="broker"
-                    value={formData.broker}
-                    onChange={handleChange}
-                    required
-                    style={{ 
-                      width: '100%', 
-                      padding: '0.8em', 
-                      border: '1px solid #e0e0e0', 
-                      borderRadius: '6px', 
-                      fontSize: 14, 
-                      background: '#fff' 
-                    }}
-                  >
-                    <option value="">Choose a broker</option>
-                    {BROKERS.map(broker => (
-                      <option key={broker.id} value={broker.id}>
-                        {broker.logo} {broker.name}
-                      </option>
-                    ))}
-                  </select>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      background: brokerStep >= step ? '#007bff' : '#e0e0e0',
+                      color: brokerStep >= step ? 'white' : '#6c757d',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: '600',
+                      fontSize: '0.875rem',
+                      marginBottom: '0.5rem'
+                    }}>
+                      {brokerStep > step ? '✓' : step}
+                    </div>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      color: brokerStep >= step ? '#2c3e50' : '#6c757d',
+                      fontWeight: '500',
+                      textAlign: 'center'
+                    }}>
+                      {step === 1 ? 'API Credentials' : step === 2 ? 'TOTP Verification' : 'MPIN Verification'}
+                    </span>
+                  </div>
+                ))}
+                {/* Progress Line */}
+                <div style={{
+                  position: 'absolute',
+                  top: '20px',
+                  left: '20px',
+                  right: '20px',
+                  height: '2px',
+                  background: '#e0e0e0',
+                  zIndex: -1
+                }}>
+                  <div style={{
+                    width: `${((brokerStep - 1) / 2) * 100}%`,
+                    height: '100%',
+                    background: '#007bff',
+                    transition: 'width 0.3s ease'
+                  }} />
                 </div>
-                
-                <div>
-                  <label style={{ 
-                    color: '#495057', 
-                    fontWeight: 500, 
-                    display: 'block', 
-                    marginBottom: '0.5em', 
-                    fontSize: 14 
-                  }}>
-                    Account ID *
-                  </label>
-                  <input
-                    type="text"
-                    name="accountId"
-                    value={formData.accountId}
-                    onChange={handleChange}
-                    placeholder="Enter your broker account ID"
-                    required
-                    style={{ 
-                      width: '100%', 
-                      padding: '0.8em', 
-                      border: '1px solid #e0e0e0', 
-                      borderRadius: '6px', 
-                      fontSize: 14, 
-                      background: '#fff' 
-                    }}
-                  />
-                </div>
-                
-                <div>
-                  <label style={{ 
-                    color: '#495057', 
-                    fontWeight: 500, 
-                    display: 'block', 
-                    marginBottom: '0.5em', 
-                    fontSize: 14 
-                  }}>
-                    API Key *
-                  </label>
-                  <input
-                    type="password"
-                    name="apiKey"
-                    value={formData.apiKey}
-                    onChange={handleChange}
-                    placeholder="Enter your API key"
-                    required
-                    style={{ 
-                      width: '100%', 
-                      padding: '0.8em', 
-                      border: '1px solid #e0e0e0', 
-                      borderRadius: '6px', 
-                      fontSize: 14, 
-                      background: '#fff' 
-                    }}
-                  />
-                </div>
-                
-                <div>
-                  <label style={{ 
-                    color: '#495057', 
-                    fontWeight: 500, 
-                    display: 'block', 
-                    marginBottom: '0.5em', 
-                    fontSize: 14 
-                  }}>
-                    API Secret *
-                  </label>
-                  <input
-                    type="password"
-                    name="apiSecret"
-                    value={formData.apiSecret}
-                    onChange={handleChange}
-                    placeholder="Enter your API secret"
-                    required
-                    style={{ 
-                      width: '100%', 
-                      padding: '0.8em', 
-                      border: '1px solid #e0e0e0', 
-                      borderRadius: '6px', 
-                      fontSize: 14, 
-                      background: '#fff' 
-                    }}
-                  />
-                </div>
-                
-                <div style={{ display: 'flex', gap: '1em' }}>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    style={{
-                      flex: 1,
-                      padding: '1em',
-                      background: saving ? '#6c757d' : '#007bff',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: saving ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    {saving ? 'Connecting...' : 'Connect Account'}
-                  </button>
-                  
-                  <button
-                    type="button"
-                    onClick={() => setShowConnectForm(false)}
-                    style={{
-                      flex: 1,
-                      padding: '1em',
-                      background: '#6c757d',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: 14,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
+              </div>
+
+              {/* Step 1: API Credentials */}
+              {brokerStep === 1 && (
+                <>
+                  <div style={{ marginBottom: '1.5em' }}>
+                    <label style={{ 
+                      color: '#2c3e50', 
+                      fontWeight: 600, 
+                      display: 'block', 
+                      marginBottom: '0.5em', 
+                      fontSize: 'clamp(12px, 2.5vw, 14px)' 
+                    }}>
+                      Select Broker *
+                    </label>
+                    <select
+                      name="broker"
+                      value={brokerData.broker}
+                      onChange={handleBrokerChange}
+                      required
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.75em', 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: '8px', 
+                        fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                        background: 'white',
+                        color: '#2c3e50',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <option value="Angel One">Angel One</option>
+                      <option value="Zerodha">Zerodha</option>
+                      <option value="Upstox">Upstox</option>
+                      <option value="ICICI Direct">ICICI Direct</option>
+                    </select>
+                  </div>
+
+                  <div style={{ marginBottom: '1.5em' }}>
+                    <label style={{ 
+                      color: '#2c3e50', 
+                      fontWeight: 600, 
+                      display: 'block', 
+                      marginBottom: '0.5em', 
+                      fontSize: 'clamp(12px, 2.5vw, 14px)' 
+                    }}>
+                      Broker Client ID *
+                    </label>
+                    <input
+                      type="text"
+                      name="broker_client_id"
+                      value={brokerData.broker_client_id}
+                      onChange={handleBrokerChange}
+                      placeholder="Enter your Broker Client ID (e.g., Y69925)"
+                      required
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.75em', 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: '8px', 
+                        fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                        background: 'white',
+                        color: '#2c3e50',
+                        transition: 'all 0.2s ease'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '1.5em' }}>
+                    <label style={{ 
+                      color: '#2c3e50', 
+                      fontWeight: 600, 
+                      display: 'block', 
+                      marginBottom: '0.5em', 
+                      fontSize: 'clamp(12px, 2.5vw, 14px)' 
+                    }}>
+                      Broker API Key *
+                    </label>
+                    <input
+                      type="text"
+                      name="broker_api_key"
+                      value={brokerData.broker_api_key}
+                      onChange={handleBrokerChange}
+                      placeholder="Enter your Broker API Key (e.g., lY8ntMyP)"
+                      required
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.75em', 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: '8px', 
+                        fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                        background: 'white',
+                        color: '#2c3e50',
+                        transition: 'all 0.2s ease'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '1.5em' }}>
+                    <label style={{ 
+                      color: '#2c3e50', 
+                      fontWeight: 600, 
+                      display: 'block', 
+                      marginBottom: '0.5em', 
+                      fontSize: 'clamp(12px, 2.5vw, 14px)' 
+                    }}>
+                      Broker API Secret *
+                    </label>
+                    <input
+                      type="password"
+                      name="broker_api_secret"
+                      value={brokerData.broker_api_secret}
+                      onChange={handleBrokerChange}
+                      placeholder="Enter your Broker API Secret (e.g., Smarttest@123)"
+                      required
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.75em', 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: '8px', 
+                        fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                        background: 'white',
+                        color: '#2c3e50',
+                        transition: 'all 0.2s ease'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '1.5em' }}>
+                    <label style={{ 
+                      color: '#2c3e50', 
+                      fontWeight: 600, 
+                      display: 'block', 
+                      marginBottom: '0.5em', 
+                      fontSize: 'clamp(12px, 2.5vw, 14px)' 
+                    }}>
+                      Angel One Token *
+                    </label>
+                    <input
+                      type="text"
+                      name="angelone_token"
+                      value={brokerData.angelone_token}
+                      onChange={handleBrokerChange}
+                      placeholder="Enter your Angel One Token (e.g., VXJB7SPIYYNI6CRUNCUZYWJFTA)"
+                      required
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.75em', 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: '8px', 
+                        fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                        background: 'white',
+                        color: '#2c3e50',
+                        transition: 'all 0.2s ease'
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Step 2: TOTP Verification */}
+              {brokerStep === 2 && (
+                <>
+                  <div style={{ marginBottom: '2em' }}>
+                    <label style={{ 
+                      color: '#2c3e50', 
+                      fontWeight: 600, 
+                      display: 'block', 
+                      marginBottom: '0.5em', 
+                      fontSize: 'clamp(12px, 2.5vw, 14px)' 
+                    }}>
+                      TOTP Code *
+                    </label>
+                    <input
+                      type="text"
+                      name="totp"
+                      value={brokerData.totp}
+                      onChange={handleBrokerChange}
+                      placeholder="Enter 6-digit TOTP from your authenticator app"
+                      maxLength="6"
+                      pattern="[0-9]{6}"
+                      required
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.75em', 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: '8px', 
+                        fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                        background: 'white',
+                        color: '#2c3e50',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center',
+                        letterSpacing: '0.5em'
+                      }}
+                    />
+                    <p style={{
+                      color: '#6c757d',
+                      fontSize: '0.75rem',
+                      marginTop: '0.5rem',
+                      textAlign: 'center'
+                    }}>
+                      Enter the 6-digit code from your authenticator app
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* Step 3: MPIN Verification */}
+              {brokerStep === 3 && (
+                <>
+                  <div style={{ marginBottom: '2em' }}>
+                    <label style={{ 
+                      color: '#2c3e50', 
+                      fontWeight: 600, 
+                      display: 'block', 
+                      marginBottom: '0.5em', 
+                      fontSize: 'clamp(12px, 2.5vw, 14px)' 
+                    }}>
+                      MPIN *
+                    </label>
+                    <input
+                      type="password"
+                      name="mpin"
+                      value={brokerData.mpin}
+                      onChange={handleBrokerChange}
+                      placeholder="Enter your 4-digit MPIN"
+                      maxLength="4"
+                      pattern="[0-9]{4}"
+                      required
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.75em', 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: '8px', 
+                        fontSize: 'clamp(12px, 2.5vw, 14px)', 
+                        background: 'white',
+                        color: '#2c3e50',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center',
+                        letterSpacing: '0.5em'
+                      }}
+                    />
+                    <p style={{
+                      color: '#6c757d',
+                      fontSize: '0.75rem',
+                      marginTop: '0.5rem',
+                      textAlign: 'center'
+                    }}>
+                      Enter your 4-digit MPIN for broker authentication
+                    </p>
+                  </div>
+                </>
+              )}
+
+              <div style={{ display: 'flex', gap: '1em', marginTop: '1.5em' }}>
+                <button
+                  type="submit"
+                  disabled={brokerLoading}
+                  style={{
+                    flex: 1,
+                    background: brokerLoading ? '#6c757d' : '#007bff',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '0.75em 1em',
+                    borderRadius: '8px',
+                    fontSize: 'clamp(12px, 2.5vw, 14px)',
+                    fontWeight: 600,
+                    cursor: brokerLoading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5em',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    opacity: brokerLoading ? 0.7 : 1
+                  }}
+                >
+                  {brokerLoading ? (
+                    <>
+                      <span style={{ animation: 'spin 1s linear infinite' }}>🔄</span>
+                      {brokerStep === 1 ? 'Verifying...' : brokerStep === 2 ? 'Verifying TOTP...' : 'Verifying MPIN...'}
+                    </>
+                  ) : (
+                    <>
+                      <span>✓</span>
+                      {brokerStep === 1 ? 'Continue' : brokerStep === 2 ? 'Verify TOTP' : 'Complete Connection'}
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={brokerStep === 1 ? resetBrokerForm : () => setBrokerStep(brokerStep - 1)}
+                  style={{
+                    flex: 1,
+                    background: 'white',
+                    color: '#2c3e50',
+                    border: '2px solid #e0e0e0',
+                    padding: '0.75em 1em',
+                    borderRadius: '8px',
+                    fontSize: 'clamp(12px, 2.5vw, 14px)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {brokerStep === 1 ? 'Cancel' : 'Back'}
+                </button>
               </div>
             </form>
-          </div>
-        )}
-
-        {/* Verification Form */}
-        {status === 'CONNECTED' && (
-          <div style={{ 
-            padding: '2em', 
-            background: '#fff', 
-            borderRadius: '12px', 
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-            border: '1px solid #e0e0e0',
-            gridColumn: '1 / -1'
-          }}>
-            <h2 style={{ 
-              color: '#2c3e50', 
-              marginBottom: '1.5em', 
-              fontWeight: 600, 
-              fontSize: '1.4em',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5em'
-            }}>
-              <span>🔐</span>
-              Verify Connection
-            </h2>
-            
-            <div style={{ 
-              background: '#e7f3ff', 
-              border: '1px solid #b3d9ff', 
-              borderRadius: '8px', 
-              padding: '1em', 
-              marginBottom: '1.5em',
-              fontSize: 14,
-              color: '#0056b3'
-            }}>
-              <strong>📝 Note:</strong> In demo mode, you can use any values for MPIN and TOTP. In production, these would be your actual broker credentials.
-            </div>
-            
-            <div style={{ display: 'grid', gap: '1.5em' }}>
-              <div>
-                <label style={{ 
-                  color: '#495057', 
-                  fontWeight: 500, 
-                  display: 'block', 
-                  marginBottom: '0.5em', 
-                  fontSize: 14 
-                }}>
-                  MPIN *
-                </label>
-                <input
-                  type="password"
-                  name="mpin"
-                  value={formData.mpin}
-                  onChange={handleChange}
-                  placeholder="Enter your MPIN (4-digit code)"
-                  required
-                  style={{ 
-                    width: '100%', 
-                    padding: '0.8em', 
-                    border: '1px solid #e0e0e0', 
-                    borderRadius: '6px', 
-                    fontSize: 14, 
-                    background: '#fff' 
-                  }}
-                />
-                <small style={{ color: '#6c757d', fontSize: 12, marginTop: '0.25em', display: 'block' }}>
-                  Your 4-digit MPIN from your broker account
-                </small>
-              </div>
-              
-              <div>
-                <label style={{ 
-                  color: '#495057', 
-                  fontWeight: 500, 
-                  display: 'block', 
-                  marginBottom: '0.5em', 
-                  fontSize: 14 
-                }}>
-                  TOTP Code *
-                </label>
-                <input
-                  type="text"
-                  name="totp"
-                  value={formData.totp}
-                  onChange={handleChange}
-                  placeholder="Enter TOTP code from authenticator app"
-                  required
-                  style={{ 
-                    width: '100%', 
-                    padding: '0.8em', 
-                    border: '1px solid #e0e0e0', 
-                    borderRadius: '6px', 
-                    fontSize: 14, 
-                    background: '#fff' 
-                  }}
-                />
-                <small style={{ color: '#6c757d', fontSize: 12, marginTop: '0.25em', display: 'block' }}>
-                  6-digit code from your authenticator app (Google Authenticator, etc.)
-                </small>
-              </div>
-              
-              <button
-                onClick={handleVerify}
-                disabled={verifying}
-                style={{
-                  width: '100%',
-                  padding: '1em',
-                  background: verifying ? '#6c757d' : '#28a745',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: verifying ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                {verifying ? 'Verifying...' : 'Verify Connection'}
-              </button>
-            </div>
           </div>
         )}
       </div>

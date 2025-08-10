@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { updateProfile, getUserProfile } from '../../api/auth';
 import { 
   addBrokerAccount, 
@@ -8,7 +9,21 @@ import {
 import { verifyBrokerTOTP, verifyBrokerMPIN } from '../../api/broker';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { 
+  Settings, 
+  User, 
+  Mail, 
+  Phone, 
+  Building2, 
+  CreditCard, 
+  CheckCircle, 
+  X, 
+  Plus,
+  Shield,
+  AlertCircle,
+  RefreshCw,
+  Trash2
+} from 'lucide-react';
 
 const UserProfileSettings = () => {
   const { user, role } = useAuth();
@@ -68,7 +83,7 @@ const UserProfileSettings = () => {
       if (response && response.success && response.data) {
         // Map the API response fields to the expected frontend fields
         const mappedBrokerProfile = {
-          brokerName: response.data.broker_name || response.data.brokerName || 'Angel One',
+          brokerName: response.data.broker_name || response.data.brokerName || 'No Broker Connected',
           accountId: response.data.broker_client_id || response.data.accountId || 'N/A',
           status: response.data.is_active_for_trading ? 'Active' : 'Inactive',
           exchanges: response.data.exchanges || [],
@@ -76,11 +91,29 @@ const UserProfileSettings = () => {
           // Add other fields as needed
           ...response.data
         };
+        
         setBrokerProfile(mappedBrokerProfile);
+      } else {
+        // If no broker profile data, set to "No Broker Connected" state
+        setBrokerProfile({
+          brokerName: 'No Broker Connected',
+          accountId: 'N/A',
+          status: 'Inactive',
+          exchanges: [],
+          products: []
+        });
       }
     } catch (error) {
       console.error('Error fetching broker profile:', error);
       setError('Failed to load broker profile data. Please try again later.');
+      // Set broker profile to "No Broker Connected" state on error
+      setBrokerProfile({
+        brokerName: 'No Broker Connected',
+        accountId: 'N/A',
+        status: 'Inactive',
+        exchanges: [],
+        products: []
+      });
     }
   };
 
@@ -767,7 +800,7 @@ const UserProfileSettings = () => {
             Broker Account
           </h2>
 
-          {brokerProfile ? (
+          {brokerProfile && brokerProfile.brokerName !== 'No Broker Connected' ? (
             <div style={{
               background: '#e8f5e8',
               padding: '1.5em',
@@ -792,49 +825,7 @@ const UserProfileSettings = () => {
                 gap: '1em',
                 marginBottom: '1.5em'
               }}>
-                <div style={{ 
-                  background: 'white', 
-                  padding: '1em', 
-                  borderRadius: '6px',
-                  border: '1px solid #e0e0e0'
-                }}>
-                  <div style={{ 
-                    color: '#666', 
-                    fontSize: '0.875rem',
-                    marginBottom: '0.25em'
-                  }}>
-                    Account ID
-                  </div>
-                  <div style={{ 
-                    color: '#2c3e50', 
-                    fontWeight: '600',
-                    fontSize: '0.95rem'
-                  }}>
-                    {brokerProfile.accountId || 'N/A'}
-                  </div>
-                </div>
-                
-                <div style={{ 
-                  background: 'white', 
-                  padding: '1em', 
-                  borderRadius: '6px',
-                  border: '1px solid #e0e0e0'
-                }}>
-                  <div style={{ 
-                    color: '#666', 
-                    fontSize: '0.875rem',
-                    marginBottom: '0.25em'
-                  }}>
-                    Status
-                  </div>
-                  <div style={{ 
-                    color: '#2e7d32', 
-                    fontWeight: '600',
-                    fontSize: '0.95rem'
-                  }}>
-                    {brokerProfile.status || 'Active'}
-                  </div>
-                </div>
+
 
                 {brokerProfile.exchanges && brokerProfile.exchanges.length > 0 && (
                   <div style={{ 
@@ -953,7 +944,7 @@ const UserProfileSettings = () => {
                   fontWeight: '600',
                   fontSize: '1.1em'
                 }}>
-                  No Broker Connected
+                  {brokerProfile && brokerProfile.brokerName === 'No Broker Connected' ? 'Broker Connection Lost' : 'No Broker Connected'}
                 </span>
               </div>
               
@@ -963,34 +954,44 @@ const UserProfileSettings = () => {
                 fontSize: '0.95rem',
                 lineHeight: '1.5'
               }}>
-                Connect your broker account to enable trading functionality and access advanced features.
+                {brokerProfile && brokerProfile.brokerName === 'No Broker Connected' 
+                  ? 'Your broker connection has been lost. Please reconnect your broker account to restore trading functionality.'
+                  : 'Connect your broker account to enable trading functionality and access advanced features.'
+                }
               </p>
               
               {!showBrokerForm ? (
-                <button
+                <motion.button
                   onClick={() => setShowBrokerForm(true)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   style={{
-                    background: '#007bff',
+                    background: 'var(--primary-color)',
                     color: 'white',
                     border: 'none',
                     padding: '0.8em 1.5em',
-                    borderRadius: '6px',
-                    fontSize: '0.95rem',
+                    borderRadius: '8px',
+                    fontSize: 'clamp(12px, 2.5vw, 14px)',
                     fontWeight: 600,
                     cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = '#0056b3';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = '#007bff';
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5em',
+                    boxShadow: 'var(--shadow-sm)'
                   }}
                 >
-                  Connect Broker Account
-                </button>
+                  <Plus size={16} />
+                  {brokerProfile && brokerProfile.brokerName === 'No Broker Connected' ? 'Reconnect Broker Account' : 'Connect Broker Account'}
+                </motion.button>
               ) : (
-                <form onSubmit={handleAddBroker} style={{ marginTop: '1em' }}>
+                <motion.form
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  onSubmit={handleAddBroker}
+                  style={{ marginTop: '1em' }}
+                >
                   {/* Progress Indicator */}
                   <div style={{
                     display: 'flex',
@@ -1295,48 +1296,64 @@ const UserProfileSettings = () => {
                   )}
 
                   <div style={{ display: 'flex', gap: '1em', marginTop: '1.5em' }}>
-                    <button
+                    <motion.button
                       type="submit"
                       disabled={brokerLoading}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       style={{
                         flex: 1,
-                        background: brokerLoading ? '#ccc' : '#007bff',
+                        background: 'var(--primary-color)',
                         color: 'white',
                         border: 'none',
                         padding: '0.75em 1em',
-                        borderRadius: '6px',
-                        fontSize: '0.9rem',
+                        borderRadius: '8px',
+                        fontSize: 'clamp(12px, 2.5vw, 14px)',
                         fontWeight: 600,
                         cursor: brokerLoading ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.3s ease'
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5em',
+                        boxShadow: 'var(--shadow-sm)',
+                        opacity: brokerLoading ? 0.7 : 1
                       }}
                     >
                       {brokerLoading ? (
-                        'Processing...'
+                        <>
+                          <RefreshCw size={16} className="spin" />
+                          {brokerStep === 1 ? 'Verifying...' : brokerStep === 2 ? 'Verifying TOTP...' : 'Verifying MPIN...'}
+                        </>
                       ) : (
-                        brokerStep === 1 ? 'Continue' : brokerStep === 2 ? 'Verify TOTP' : 'Complete Connection'
+                        <>
+                          <CheckCircle size={16} />
+                          {brokerStep === 1 ? 'Continue' : brokerStep === 2 ? 'Verify TOTP' : 'Complete Connection'}
+                        </>
                       )}
-                    </button>
-                    <button
+                    </motion.button>
+                    <motion.button
                       type="button"
                       onClick={brokerStep === 1 ? () => setShowBrokerForm(false) : () => setBrokerStep(brokerStep - 1)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       style={{
                         flex: 1,
                         background: 'white',
-                        color: '#2c3e50',
-                        border: '2px solid #e0e0e0',
+                        color: 'var(--text-primary)',
+                        border: '2px solid var(--border-color)',
                         padding: '0.75em 1em',
-                        borderRadius: '6px',
-                        fontSize: '0.9rem',
+                        borderRadius: '8px',
+                        fontSize: 'clamp(12px, 2.5vw, 14px)',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        transition: 'all 0.3s ease'
+                        transition: 'all 0.2s ease'
                       }}
                     >
                       {brokerStep === 1 ? 'Cancel' : 'Back'}
-                    </button>
+                    </motion.button>
                   </div>
-                </form>
+                </motion.form>
               )}
             </div>
           )}

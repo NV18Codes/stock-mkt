@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { placeTradeOrder } from '../../api/trading';
-import { getAdminUsers, getAllSegments } from '../../api/admin';
+import React, { useState, useEffect } from 'react';
+import { getAdminUsers } from '../../api/admin';
 import AdminOrderForm from './AdminOrderForm';
-import axios from 'axios';
 
 const formatINR = (value) => {
   const num = typeof value === 'object' && value !== null ? value.net : value;
@@ -13,10 +11,7 @@ const formatINR = (value) => {
 const AdminTradingPortal = () => {
   const [users, setUsers] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
-  const [capitalFilter, setCapitalFilter] = useState('all');
-  const [userStatusFilter, setUserStatusFilter] = useState('all');
-  const [segmentFilter, setSegmentFilter] = useState('all');
-  const [segments, setSegments] = useState([]);
+
   const [loading, setLoading] = useState({
     users: true
   });
@@ -57,23 +52,7 @@ const AdminTradingPortal = () => {
       }
     };
 
-    const fetchSegments = async () => {
-      try {
-        const response = await getAllSegments();
-        if (response.data && Array.isArray(response.data)) {
-          setSegments(response.data);
-        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          setSegments(response.data.data);
-        }
-      } catch (err) {
-        console.error('Error fetching segments:', err);
-        // Set empty segments array if fetch fails
-        setSegments([]);
-      }
-    };
-
     fetchUsers();
-    fetchSegments();
   }, []);
 
 
@@ -103,7 +82,6 @@ const AdminTradingPortal = () => {
       console.log('Placing order:', orderData);
       
       // Here you would call your trading API
-      // await placeTradeOrder(orderData);
       
       // For now, just log the order
       console.log('Order placed successfully:', orderData);
@@ -118,31 +96,8 @@ const AdminTradingPortal = () => {
     }
   };
 
-  // Filter out admin users for trading, but show all (active/inactive) and add status filter
-  const filteredUsers = users
-    .filter(user => (user.role || user.user_role || 'user') !== 'admin')
-    .filter(user => {
-      // Capital filter
-      const rms = user.rms_limit?.net || user.rms_limit || 0;
-      if (capitalFilter === 'all') return true;
-      if (capitalFilter === 'lt1') return rms < 100000;
-      if (capitalFilter === '1to5') return rms >= 100000 && rms <= 500000;
-      if (capitalFilter === 'gt5') return rms > 500000;
-      return true;
-    })
-    .filter(user => {
-      // Status filter
-      if (userStatusFilter === 'all') return true;
-      if (userStatusFilter === 'active') return user.is_active_for_trading || user.isActive;
-      if (userStatusFilter === 'inactive') return !(user.is_active_for_trading || user.isActive);
-      return true;
-    })
-    .filter(user => {
-      // Segment filter
-      if (segmentFilter === 'all') return true;
-      if (segmentFilter === 'unassigned') return !user.current_segment_id;
-      return user.current_segment_id === segmentFilter;
-    });
+  // Filter out admin users for trading
+  const filteredUsers = users.filter(user => (user.role || user.user_role || 'user') !== 'admin');
 
   if (loading.users) {
     return (
@@ -191,15 +146,15 @@ const AdminTradingPortal = () => {
       {/* User Filtering Controls */}
       <div style={{ 
         marginBottom: 'clamp(0.8em, 2vw, 1.2em)',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         gap: '1em'
       }}>
-        <div>
-          <label style={{ fontWeight: 500, fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Filter by Capital (RMS):</label>
+        <div style={{ flex: 1 }}>
+          <label style={{ fontWeight: 500, fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Filter by Segment:</label>
           <select 
-            value={capitalFilter} 
-            onChange={e => setCapitalFilter(e.target.value)} 
+            value="all" 
             style={{ 
               width: '100%',
               padding: 'clamp(0.3em, 1.5vw, 0.5em) clamp(0.5em, 2vw, 1em)', 
@@ -210,58 +165,30 @@ const AdminTradingPortal = () => {
               marginTop: '0.3em'
             }}
           >
-            <option value="all">All</option>
-            <option value="lt1">Less than ₹1L</option>
-            <option value="1to5">₹1L - ₹5L</option>
-            <option value="gt5">More than ₹5L</option>
-          </select>
-        </div>
-        
-        <div>
-          <label style={{ fontWeight: 500, fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Filter by Status:</label>
-          <select
-            value={userStatusFilter}
-            onChange={e => setUserStatusFilter(e.target.value)}
-            style={{
-              width: '100%',
-              padding: 'clamp(0.3em, 1.5vw, 0.5em) clamp(0.5em, 2vw, 1em)',
-              borderRadius: 4,
-              border: '1px solid #007bff',
-              fontWeight: 500,
-              fontSize: 'clamp(12px, 2.5vw, 14px)',
-              marginTop: '0.3em'
-            }}
-          >
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-        
-        <div>
-          <label style={{ fontWeight: 500, fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Filter by Segment:</label>
-          <select
-            value={segmentFilter}
-            onChange={e => setSegmentFilter(e.target.value)}
-            style={{
-              width: '100%',
-              padding: 'clamp(0.3em, 1.5vw, 0.5em) clamp(0.5em, 2vw, 1em)',
-              borderRadius: 4,
-              border: '1px solid #007bff',
-              fontWeight: 500,
-              fontSize: 'clamp(12px, 2.5vw, 14px)',
-              marginTop: '0.3em'
-            }}
-          >
             <option value="all">All Segments</option>
-            <option value="unassigned">Unassigned</option>
-            {segments.map(segment => (
-              <option key={segment.id} value={segment.id}>{segment.name}</option>
-            ))}
           </select>
         </div>
+        
+        <button 
+          onClick={() => window.location.reload()} 
+          style={{ 
+            padding: 'clamp(0.5em, 1.5vw, 0.8em) clamp(1em, 2.5vw, 1.5em)', 
+            borderRadius: 6, 
+            border: '1px solid #28a745', 
+            background: '#28a745', 
+            color: '#fff', 
+            fontWeight: 600, 
+            cursor: 'pointer',
+            fontSize: 'clamp(12px, 2.5vw, 14px)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5em',
+            marginTop: '1.8em'
+          }}
+        >
+          🔄 Refresh Users
+        </button>
       </div>
-
 
 
       {/* User Selection Table */}
@@ -279,6 +206,20 @@ const AdminTradingPortal = () => {
         }}>
           Select Users for Group Trade
         </h3>
+        
+        {/* Note about trade placement */}
+        <div style={{
+          background: '#e3f2fd',
+          color: '#1976d2',
+          padding: '0.8em',
+          borderRadius: '6px',
+          border: '1px solid #bbdefb',
+          marginBottom: '1em',
+          fontSize: 'clamp(12px, 2.5vw, 14px)',
+          fontWeight: 500
+        }}>
+          ℹ️ <strong>Note:</strong> Trade is placed only for all active users automatically. Inactive users will not receive the trade order.
+        </div>
         
         {loading.users ? (
           <div style={{ textAlign: 'center', padding: '1em' }}>
@@ -373,7 +314,7 @@ const AdminTradingPortal = () => {
                 width: '100%', 
                 borderCollapse: 'collapse', 
                 fontSize: 'clamp(11px, 2.2vw, 13px)',
-                minWidth: '700px'
+                minWidth: '600px'
               }}>
                 <thead>
                   <tr>
@@ -381,14 +322,13 @@ const AdminTradingPortal = () => {
                     <th style={{ padding: '0.5em', textAlign: 'left' }}>Name</th>
                     <th style={{ padding: '0.5em', textAlign: 'left' }}>Email</th>
                     <th style={{ padding: '0.5em', textAlign: 'left' }}>RMS Limit</th>
-                    <th style={{ padding: '0.5em', textAlign: 'left' }}>Status</th>
-                    <th style={{ padding: '0.5em', textAlign: 'left' }}>Segment</th>
+                    <th style={{ padding: '0.5em', textAlign: 'left' }}>Broker Connection Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan="6" style={{ 
+                      <td colSpan="5" style={{ 
                         textAlign: 'center', 
                         padding: '1em', 
                         color: '#6c757d',
@@ -398,29 +338,23 @@ const AdminTradingPortal = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredUsers.map(user => {
-                      const userSegment = segments.find(seg => seg.id === user.current_segment_id);
-                      return (
-                        <tr key={user.id}>
-                          <td style={{ padding: '0.5em' }}>
-                            <input 
-                              type="checkbox" 
-                              checked={selectedUserIds.includes(user.id)} 
-                              onChange={() => toggleUserSelection(user.id)} 
-                            />
-                          </td>
-                          <td style={{ padding: '0.5em' }}>{user.name}</td>
-                          <td style={{ padding: '0.5em' }}>{user.email}</td>
-                          <td style={{ padding: '0.5em' }}>{formatINR(user.rms_limit)}</td>
-                          <td style={{ padding: '0.5em' }}>
-                            {user.is_active_for_trading || user.isActive ? 'Active' : 'Inactive'}
-                          </td>
-                          <td style={{ padding: '0.5em' }}>
-                            {userSegment ? userSegment.name : 'Unassigned'}
-                          </td>
-                        </tr>
-                      );
-                    })
+                    filteredUsers.map(user => (
+                      <tr key={user.id}>
+                        <td style={{ padding: '0.5em' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedUserIds.includes(user.id)} 
+                            onChange={() => toggleUserSelection(user.id)} 
+                          />
+                        </td>
+                        <td style={{ padding: '0.5em' }}>{user.name}</td>
+                        <td style={{ padding: '0.5em' }}>{user.email}</td>
+                        <td style={{ padding: '0.5em' }}>{formatINR(user.rms_limit)}</td>
+                        <td style={{ padding: '0.5em' }}>
+                          {user.is_broker_connected ? 'Connected' : 'Disconnected'}
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>

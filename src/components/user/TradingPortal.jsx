@@ -24,7 +24,6 @@ import OrderList from './OrderList';
 import TradeList from './TradeList';
 import {
   fetchMyBrokerProfile,
-  fetchBrokerConnectionStatus,
   clearBrokerProfile,
   getDematLimit
 } from '../../api/auth';
@@ -69,38 +68,51 @@ const TradingPortal = () => {
       setLoading(true);
       setError('');
       try {
-        // Fetch broker connection status
-        const statusRes = await fetchBrokerConnectionStatus();
-        const statusValue = statusRes.data?.status || 'NOT_CONNECTED';
+        // Fetch broker profile directly (same approach as UserProfileSettings)
+        const profileRes = await fetchMyBrokerProfile();
         
-        if (statusValue === 'ACTIVE') {
-          const profileRes = await fetchMyBrokerProfile();
-          setUserData({ broker: profileRes.data });
+        if (profileRes && profileRes.success && profileRes.data) {
+          // Check if broker is connected and active
+          const isBrokerConnected = profileRes.data.broker_name && 
+                                  profileRes.data.broker_name !== 'No Broker Connected';
+          const isActiveForTrading = profileRes.data.is_active_for_trading;
           
-          // Fetch additional data for connected users
-          try {
-            const [positionsRes, dematRes] = await Promise.all([
-              getPositions(),
-              getDematLimit()
-            ]);
+          if (isBrokerConnected && isActiveForTrading) {
+            setUserData({ 
+              broker: {
+                ...profileRes.data,
+                status: 'ACTIVE' // Add the status field that the component expects
+              }
+            });
             
-            if (positionsRes.success && Array.isArray(positionsRes.data)) {
-              setPositions(positionsRes.data);
+            // Fetch additional data for connected users
+            try {
+              const [positionsRes, dematRes] = await Promise.all([
+                getPositions(),
+                getDematLimit()
+              ]);
+              
+              if (positionsRes.success && Array.isArray(positionsRes.data)) {
+                setPositions(positionsRes.data);
+              }
+              
+              if (dematRes.data) {
+                setDematLimit(dematRes.data);
+              }
+              
+              // Generate portfolio data for chart
+              const portfolioValue = dematRes.data?.net || 100000;
+              const chartData = generatePortfolioChartData(portfolioValue);
+              setPortfolioData(chartData);
+              
+            } catch (dataErr) {
+              console.error('Error fetching additional data:', dataErr);
+              // Use fallback data
+              setPortfolioData(generatePortfolioChartData(100000));
             }
-            
-            if (dematRes.data) {
-              setDematLimit(dematRes.data);
-            }
-            
-            // Generate portfolio data for chart
-            const portfolioValue = dematRes.data?.net || 100000;
-            const chartData = generatePortfolioChartData(portfolioValue);
-            setPortfolioData(chartData);
-            
-          } catch (dataErr) {
-            console.error('Error fetching additional data:', dataErr);
-            // Use fallback data
-            setPortfolioData(generatePortfolioChartData(100000));
+          } else {
+            setUserData(null);
+            setPortfolioData(null);
           }
         } else {
           setUserData(null);

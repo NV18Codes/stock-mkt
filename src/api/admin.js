@@ -299,18 +299,18 @@ export const getAdminUsers = async () => {
     console.error('Error fetching users from new endpoint:', error);
     
     // If the new endpoint fails, try the old one as fallback
-    try {
-      const usersResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/users');
-      if (usersResponse.data && usersResponse.data.data && Array.isArray(usersResponse.data.data)) {
-        return { data: usersResponse.data.data };
-      } else if (usersResponse.data && Array.isArray(usersResponse.data)) {
-        return { data: usersResponse.data };
-      } else if (usersResponse.data && usersResponse.data.users && Array.isArray(usersResponse.data.users)) {
-        return { data: usersResponse.data.users };
-      } else {
-        throw new Error('Invalid users data format from /api/users');
-      }
-    } catch (usersError) {
+      try {
+        const usersResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/users');
+        if (usersResponse.data && usersResponse.data.data && Array.isArray(usersResponse.data.data)) {
+          return { data: usersResponse.data.data };
+        } else if (usersResponse.data && Array.isArray(usersResponse.data)) {
+          return { data: usersResponse.data };
+        } else if (usersResponse.data && usersResponse.data.users && Array.isArray(usersResponse.data.users)) {
+          return { data: usersResponse.data.users };
+        } else {
+          throw new Error('Invalid users data format from /api/users');
+        }
+      } catch (usersError) {
       console.error('All user endpoints failed:', usersError);
       
       // If all endpoints fail, try to get at least the current user
@@ -408,9 +408,9 @@ export const getAdminTrades = async () => {
         console.error('Alternative trades endpoint also failed:', alternativeError);
         
         // If all endpoints fail, return empty data with fallback flag
-        return {
-          success: true,
-          data: [],
+    return {
+      success: true,
+      data: [],
           isFallback: true,
           message: 'All trade endpoints failed, returning empty data'
         };

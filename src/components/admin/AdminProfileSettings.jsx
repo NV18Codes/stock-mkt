@@ -605,49 +605,7 @@ const AdminProfileSettings = () => {
                 gap: '1em',
                 marginBottom: '2em'
               }}>
-                <div style={{ 
-                  background: 'white', 
-                  padding: '1em', 
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)'
-                }}>
-                  <div style={{ 
-                    color: 'var(--text-secondary)', 
-                    fontSize: '0.875rem',
-                    marginBottom: '0.25em'
-                  }}>
-                    Account ID
-                  </div>
-                  <div style={{ 
-                    color: 'var(--text-primary)', 
-                    fontWeight: '600',
-                    fontSize: '0.95rem'
-                  }}>
-                    {brokerProfile.accountId}
-                  </div>
-                </div>
-                
-                <div style={{ 
-                  background: 'white', 
-                  padding: '1em', 
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)'
-                }}>
-                  <div style={{ 
-                    color: 'var(--text-secondary)', 
-                    fontSize: '0.875rem',
-                    marginBottom: '0.25em'
-                  }}>
-                    Status
-                  </div>
-                  <div style={{ 
-                    color: 'var(--success-color)', 
-                    fontWeight: '600',
-                    fontSize: '0.95rem'
-                  }}>
-                    {brokerProfile.status}
-                  </div>
-                </div>
+
               </div>
               
               <div style={{ 
