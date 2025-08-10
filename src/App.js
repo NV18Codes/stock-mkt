@@ -126,7 +126,7 @@ const TestComponent = () => {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text'
-        }}>🚀 React App is Working!</h1>
+        }}>🚀 Stock Trading Portal is Working!</h1>
         <p style={{ fontSize: '1rem', marginTop: '1rem', color: 'var(--text-secondary)' }}>
           If you can see this, React is rendering correctly.
         </p>
@@ -201,38 +201,7 @@ const TestComponent = () => {
             Logout
           </button>
         </div>
-        <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-          <button 
-            onClick={() => window.location.href = '/debug-forgot'} 
-            style={{
-              background: 'var(--gradient-secondary)',
-              color: 'var(--text-primary)',
-              border: 'none',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            Test Forgot Password
-          </button>
-          <button 
-            onClick={() => window.location.href = '/debug-reset'} 
-            style={{
-              background: 'var(--gradient-secondary)',
-              color: 'var(--text-primary)',
-              border: 'none',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            Test Reset Password
-          </button>
-        </div>
+
         <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
           <button 
             onClick={() => window.location.href = '/forgot-password'} 
@@ -330,8 +299,7 @@ function AppRoutes() {
         <Route path="/test" element={<TestComponent />} />
         
         {/* Debug Routes */}
-        <Route path="/debug-forgot" element={<ForgotPassword />} />
-        <Route path="/debug-reset" element={<ResetPassword />} />
+
         
         {/* Public Routes */}
         <Route path="/" element={

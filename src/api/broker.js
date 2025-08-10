@@ -544,7 +544,7 @@ export const getAngelOneHistoricalData = async (token, symbol, interval, fromDat
   }
 };
 
-// NEW BROKER API ENDPOINTS
+// NEW BROKER API ENDPOINTS - Updated with exact URLs from the provided APIs
 
 // Get user broker trades
 export const getUserBrokerTrades = async () => {
@@ -554,49 +554,7 @@ export const getUserBrokerTrades = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching user broker trades:', error);
-    // Return mock trades data for demo purposes
-    return {
-      success: true,
-      data: [
-        {
-          id: 'trade_001',
-          symbol: 'RELIANCE-EQ',
-          exchange: 'NSE',
-          transactionType: 'BUY',
-          quantity: 100,
-          price: 2500.00,
-          tradeValue: 250000.00,
-          tradeDate: new Date().toISOString(),
-          orderId: 'order_001',
-          status: 'COMPLETE'
-        },
-        {
-          id: 'trade_002',
-          symbol: 'TCS-EQ',
-          exchange: 'NSE',
-          transactionType: 'SELL',
-          quantity: 50,
-          price: 4100.00,
-          tradeValue: 205000.00,
-          tradeDate: new Date(Date.now() - 86400000).toISOString(),
-          orderId: 'order_002',
-          status: 'COMPLETE'
-        },
-        {
-          id: 'trade_003',
-          symbol: 'NIFTY25JUL22000CE',
-          exchange: 'NFO',
-          transactionType: 'BUY',
-          quantity: 25,
-          price: 160.00,
-          tradeValue: 4000.00,
-          tradeDate: new Date(Date.now() - 172800000).toISOString(),
-          orderId: 'order_003',
-          status: 'COMPLETE'
-        }
-      ],
-      message: 'Demo broker trades data'
-    };
+    throw error;
   }
 };
 
@@ -608,55 +566,7 @@ export const getUserBrokerOrderBook = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching user broker order book:', error);
-    // Return mock order book data for demo purposes
-    return {
-      success: true,
-      data: [
-        {
-          id: 'order_001',
-          symbol: 'RELIANCE-EQ',
-          exchange: 'NSE',
-          transactionType: 'BUY',
-          quantity: 100,
-          price: 2500.00,
-          triggerPrice: 0,
-          status: 'COMPLETE',
-          orderType: 'MARKET',
-          product: 'CNC',
-          orderDate: new Date().toISOString(),
-          lastUpdated: new Date().toISOString()
-        },
-        {
-          id: 'order_002',
-          symbol: 'NIFTY25JUL22000CE',
-          exchange: 'NFO',
-          transactionType: 'SELL',
-          quantity: 25,
-          price: 160.00,
-          triggerPrice: 0,
-          status: 'PENDING',
-          orderType: 'LIMIT',
-          product: 'MIS',
-          orderDate: new Date(Date.now() - 3600000).toISOString(),
-          lastUpdated: new Date(Date.now() - 1800000).toISOString()
-        },
-        {
-          id: 'order_003',
-          symbol: 'BANKNIFTY25JUL48000PE',
-          exchange: 'NFO',
-          transactionType: 'BUY',
-          quantity: 15,
-          price: 200.00,
-          triggerPrice: 195.00,
-          status: 'TRIGGER_PENDING',
-          orderType: 'STOPLOSS_LIMIT',
-          product: 'MIS',
-          orderDate: new Date(Date.now() - 7200000).toISOString(),
-          lastUpdated: new Date(Date.now() - 3600000).toISOString()
-        }
-      ],
-      message: 'Demo broker order book data'
-    };
+    throw error;
   }
 };
 
@@ -668,43 +578,7 @@ export const getOrderDetails = async (orderId) => {
     return response.data;
   } catch (error) {
     console.error('Error fetching order details:', error);
-    // Return mock order details for demo purposes
-    return {
-      success: true,
-      data: {
-        id: orderId,
-        symbol: 'RELIANCE-EQ',
-        exchange: 'NSE',
-        transactionType: 'BUY',
-        quantity: 100,
-        price: 2500.00,
-        triggerPrice: 0,
-        status: 'COMPLETE',
-        orderType: 'MARKET',
-        product: 'CNC',
-        orderDate: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-        filledQuantity: 100,
-        pendingQuantity: 0,
-        cancelledQuantity: 0,
-        averagePrice: 2500.00,
-        totalValue: 250000.00,
-        brokerage: 20.00,
-        taxes: 125.00,
-        netAmount: 250145.00,
-        remarks: 'Order executed successfully',
-        trades: [
-          {
-            id: 'trade_001',
-            quantity: 100,
-            price: 2500.00,
-            tradeDate: new Date().toISOString(),
-            status: 'COMPLETE'
-          }
-        ]
-      },
-      message: 'Demo order details data'
-    };
+    throw error;
   }
 };
 
@@ -716,17 +590,7 @@ export const cancelOrder = async (orderId) => {
     return response.data;
   } catch (error) {
     console.error('Error canceling order:', error);
-    // Return mock cancel response for demo purposes
-    return {
-      success: true,
-      data: {
-        id: orderId,
-        status: 'CANCELLED',
-        message: 'Order cancelled successfully (demo mode)',
-        cancelledAt: new Date().toISOString()
-      },
-      message: 'Demo order cancelled successfully'
-    };
+    throw error;
   }
 };
 
@@ -738,22 +602,11 @@ export const modifyOrder = async (orderId, orderData) => {
     return response.data;
   } catch (error) {
     console.error('Error modifying order:', error);
-    // Return mock modify response for demo purposes
-    return {
-      success: true,
-      data: {
-        id: orderId,
-        status: 'MODIFIED',
-        message: 'Order modified successfully (demo mode)',
-        modifiedAt: new Date().toISOString(),
-        ...orderData
-      },
-      message: 'Demo order modified successfully'
-    };
+    throw error;
   }
 };
 
-// BROKER AUTHENTICATION ENDPOINTS
+// BROKER AUTHENTICATION ENDPOINTS - Updated with exact URLs from the provided APIs
 
 // Step 1: Initial broker connection with credentials
 export const addBrokerAccount = async (credentials) => {
@@ -763,16 +616,7 @@ export const addBrokerAccount = async (credentials) => {
     return response.data;
   } catch (error) {
     console.error('Error connecting broker account:', error);
-    // Return mock response for demo purposes
-    return {
-      success: true,
-      data: {
-        sessionId: 'demo_session_' + Date.now(),
-        message: 'Credentials verified successfully (demo mode)',
-        nextStep: 'TOTP_REQUIRED'
-      },
-      message: 'Demo broker connection initiated'
-    };
+    throw error;
   }
 };
 
@@ -784,16 +628,7 @@ export const verifyBrokerTOTP = async (totpData) => {
     return response.data;
   } catch (error) {
     console.error('Error verifying TOTP:', error);
-    // Return mock response for demo purposes
-    return {
-      success: true,
-      data: {
-        sessionId: totpData.sessionId,
-        message: 'TOTP verified successfully (demo mode)',
-        nextStep: 'MPIN_REQUIRED'
-      },
-      message: 'Demo TOTP verification successful'
-    };
+    throw error;
   }
 };
 
@@ -805,21 +640,6 @@ export const verifyBrokerMPIN = async (mpinData) => {
     return response.data;
   } catch (error) {
     console.error('Error verifying MPIN:', error);
-    // Return mock response for demo purposes
-    return {
-      success: true,
-      data: {
-        sessionId: mpinData.sessionId,
-        message: 'MPIN verified successfully (demo mode)',
-        connectionStatus: 'CONNECTED',
-        brokerProfile: {
-          brokerName: 'Angel One',
-          accountId: 'DEMO' + Math.random().toString(36).substr(2, 8).toUpperCase(),
-          status: 'ACTIVE',
-          lastSync: new Date().toISOString()
-        }
-      },
-      message: 'Demo broker connection completed successfully'
-    };
+    throw error;
   }
 }; 

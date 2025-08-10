@@ -33,33 +33,16 @@ axios.interceptors.response.use(
   }
 );
 
-// TRADING API endpoints - Market data endpoints removed as per backend changes
-
-
-
-
-
-
+// TRADING API endpoints - Updated with exact URLs from the provided APIs
 
 // TRADE EXECUTION API endpoints
-
-// Place a trade order (admin)
 export const placeTradeOrder = async (orderData) => {
     try {
-        const response = await axios.post('/api/admin/trades/initiate', orderData);
+        const response = await axios.post('https://apistocktrading-production.up.railway.app/api/admin/trades/initiate', orderData);
         console.log('Trade order response:', response.data);
         return response.data;
     } catch (error) {
         console.error('Error placing trade order:', error);
-        // Return a mock success response for demo purposes
-        if (error.response && (error.response.status === 404 || error.response.status === 403)) {
-            return {
-                success: true,
-                message: 'Trade order placed successfully (demo mode)',
-                orderId: `DEMO_${Date.now()}`,
-                status: 'pending'
-            };
-        }
         throw error;
     }
 };
@@ -67,7 +50,7 @@ export const placeTradeOrder = async (orderData) => {
 // Get positions
 export const getPositions = async () => {
     try {
-        const response = await axios.get('/api/trading/positions');
+        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/trading/positions');
         return response.data;
     } catch (error) {
         console.error('Error fetching positions:', error);
@@ -83,7 +66,7 @@ export const getPositions = async () => {
 // Get order history
 export const getOrderHistory = async () => {
     try {
-        const response = await axios.get('/api/trading/order-history');
+        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/trading/order-history');
         return response.data;
     } catch (error) {
         console.error('Error fetching order history:', error);
@@ -96,8 +79,109 @@ export const getOrderHistory = async () => {
     }
 };
 
-// Legacy functions for backward compatibility - Market data functions removed
+// NEW TRADING ENDPOINTS
 
-// Trading-specific utility functions - Market data fallback functions removed
+// Get user broker trades
+export const getUserBrokerTrades = async () => {
+    try {
+        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/trades');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user broker trades:', error);
+        throw error;
+    }
+};
+
+// Get user broker order book
+export const getUserBrokerOrderBook = async () => {
+    try {
+        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/order-book');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user broker order book:', error);
+        throw error;
+    }
+};
+
+// Get specific order details
+export const getOrderDetails = async (orderId) => {
+    try {
+        const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/users/me/broker/orders/${orderId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching order details:', error);
+        throw error;
+    }
+};
+
+// Cancel specific order
+export const cancelOrder = async (orderId) => {
+    try {
+        const response = await axios.delete(`https://apistocktrading-production.up.railway.app/api/users/me/broker/orders/${orderId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error canceling order:', error);
+        throw error;
+    }
+};
+
+// Modify specific order
+export const modifyOrder = async (orderId, orderData) => {
+    try {
+        const response = await axios.put(`https://apistocktrading-production.up.railway.app/api/users/me/broker/orders/${orderId}`, orderData);
+        return response.data;
+    } catch (error) {
+        console.error('Error modifying order:', error);
+        throw error;
+    }
+};
+
+// Legacy functions for backward compatibility
+export const getTradingPositions = async () => {
+    try {
+        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/trading/positions');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching trading positions:', error);
+        return { 
+            success: true, 
+            data: [], 
+            message: 'No trading positions available at the moment' 
+        };
+    }
+};
+
+export const getTradingOrderHistory = async () => {
+    try {
+        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/trading/order-history');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching trading order history:', error);
+        return { 
+            success: true, 
+            data: [], 
+            message: 'No trading orders available at the moment' 
+        };
+    }
+};
+
+// Trading-specific utility functions
+export const calculateOrderValue = (quantity, price) => {
+    return quantity * price;
+};
+
+export const calculateBrokerage = (orderValue) => {
+    // Simple brokerage calculation (can be customized based on broker)
+    return Math.min(20, orderValue * 0.0005); // Max 20 or 0.05%
+};
+
+export const calculateTaxes = (orderValue) => {
+    // Simple tax calculation (can be customized based on exchange)
+    return orderValue * 0.0005; // 0.05% for STT
+};
+
+export const calculateNetAmount = (orderValue, brokerage, taxes) => {
+    return orderValue + brokerage + taxes;
+};
 
 

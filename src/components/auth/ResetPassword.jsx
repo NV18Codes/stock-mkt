@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaLock, FaEye, FaEyeSlash, FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
 import { resetPassword } from '../../api/auth';
@@ -12,8 +12,23 @@ const ResetPassword = () => {
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [accessToken, setAccessToken] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    // This code runs when the component mounts. It parses the URL hash fragment.
+    const hash = window.location.hash;
+    if (hash) {
+      const params = new URLSearchParams(hash.substring(1)); // Remove the '#'
+      const token = params.get('access_token');
+      if (token) {
+        setAccessToken(token);
+      } else {
+        setError("No recovery token found in the URL. The link may be invalid.");
+      }
+    }
+  }, []);
 
   const validatePassword = (password) => {
     const minLength = 8;
@@ -45,6 +60,11 @@ const ResetPassword = () => {
       return;
     }
     
+    if (!accessToken) {
+      setError('Could not update password. Token is missing.');
+      return;
+    }
+    
     const passwordErrors = validatePassword(password);
     if (passwordErrors.length > 0) {
       setError(`Password requirements: ${passwordErrors.join(', ')}`);
@@ -55,7 +75,7 @@ const ResetPassword = () => {
     setError('');
     
     try {
-      await resetPassword({ password });
+      await resetPassword({ password, accessToken });
       setSuccess(true);
     } catch (err) {
       if (err.response) {
@@ -171,6 +191,61 @@ const ResetPassword = () => {
             50% { transform: translateY(-20px); }
           }
         `}</style>
+      </div>
+    );
+  }
+
+  if (!accessToken && !error) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        background: 'var(--gradient-bg)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem 1rem'
+      }}>
+        <div style={{
+          background: 'var(--gradient-card)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: '20px',
+          boxShadow: 'var(--shadow-xl)',
+          padding: '3rem 2.5rem',
+          width: '100%',
+          maxWidth: '450px',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.5rem',
+            fontSize: '2rem',
+            color: 'white',
+            boxShadow: '0 10px 30px rgba(245, 158, 11, 0.3)'
+          }}>
+            ⏳
+          </div>
+          <h2 style={{ 
+            color: 'var(--text-primary)', 
+            fontSize: '1.5rem', 
+            fontWeight: 'bold',
+            marginBottom: '1rem'
+          }}>
+            Verifying Link...
+          </h2>
+          <p style={{ 
+            color: '#475569', 
+            fontSize: '1rem',
+            margin: 0
+          }}>
+            Please wait while we verify your password reset link.
+          </p>
+        </div>
       </div>
     );
   }

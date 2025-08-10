@@ -66,10 +66,21 @@ const UserProfileSettings = () => {
     try {
       const response = await fetchMyBrokerProfile();
       if (response && response.success && response.data) {
-        setBrokerProfile(response.data);
+        // Map the API response fields to the expected frontend fields
+        const mappedBrokerProfile = {
+          brokerName: response.data.broker_name || response.data.brokerName || 'Angel One',
+          accountId: response.data.broker_client_id || response.data.accountId || 'N/A',
+          status: response.data.is_active_for_trading ? 'Active' : 'Inactive',
+          exchanges: response.data.exchanges || [],
+          products: response.data.products || [],
+          // Add other fields as needed
+          ...response.data
+        };
+        setBrokerProfile(mappedBrokerProfile);
       }
     } catch (error) {
       console.error('Error fetching broker profile:', error);
+      setError('Failed to load broker profile data. Please try again later.');
     }
   };
 
@@ -232,26 +243,8 @@ const UserProfileSettings = () => {
       }
     } catch (err) {
       console.error('Error fetching user profile:', err);
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        dateOfBirth: '',
-        gender: '',
-        address: '',
-        city: '',
-        state: '',
-        pincode: '',
-        panNumber: '',
-        aadharNumber: '',
-        bankName: '',
-        accountNumber: '',
-        ifscCode: '',
-        nomineeName: '',
-        nomineeRelation: '',
-        nomineePhone: ''
-      });
       setError('Failed to load profile data. Please try again later.');
+      throw err; // Re-throw the error instead of setting fallback data
     } finally {
       setLoading(false);
     }
@@ -842,6 +835,54 @@ const UserProfileSettings = () => {
                     {brokerProfile.status || 'Active'}
                   </div>
                 </div>
+
+                {brokerProfile.exchanges && brokerProfile.exchanges.length > 0 && (
+                  <div style={{ 
+                    background: 'white', 
+                    padding: '1em', 
+                    borderRadius: '6px',
+                    border: '1px solid #e0e0e0'
+                  }}>
+                    <div style={{ 
+                      color: '#666', 
+                      fontSize: '0.875rem',
+                      marginBottom: '0.25em'
+                    }}>
+                      Exchanges
+                    </div>
+                    <div style={{ 
+                      color: '#2c3e50', 
+                      fontWeight: '600',
+                      fontSize: '0.95rem'
+                    }}>
+                      {brokerProfile.exchanges.join(', ')}
+                    </div>
+                  </div>
+                )}
+
+                {brokerProfile.products && brokerProfile.products.length > 0 && (
+                  <div style={{ 
+                    background: 'white', 
+                    padding: '1em', 
+                    borderRadius: '6px',
+                    border: '1px solid #e0e0e0'
+                  }}>
+                    <div style={{ 
+                      color: '#666', 
+                      fontSize: '0.875rem',
+                      marginBottom: '0.25em'
+                    }}>
+                      Products
+                    </div>
+                    <div style={{ 
+                      color: '#2c3e50', 
+                      fontWeight: '600',
+                      fontSize: '0.95rem'
+                    }}>
+                      {brokerProfile.products.join(', ')}
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap' }}>

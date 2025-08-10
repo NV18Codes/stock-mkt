@@ -80,10 +80,21 @@ const AdminProfileSettings = () => {
     try {
       const response = await fetchMyBrokerProfile();
       if (response && response.success && response.data) {
-        setBrokerProfile(response.data);
+        // Map the API response fields to the expected frontend fields
+        const mappedBrokerProfile = {
+          brokerName: response.data.broker_name || response.data.brokerName || 'Angel One',
+          accountId: response.data.broker_client_id || response.data.accountId || 'N/A',
+          status: response.data.is_active_for_trading ? 'Active' : 'Inactive',
+          exchanges: response.data.exchanges || [],
+          products: response.data.products || [],
+          // Add other fields as needed
+          ...response.data
+        };
+        setBrokerProfile(mappedBrokerProfile);
       }
     } catch (error) {
       console.error('Error fetching broker profile:', error);
+      setError('Failed to load broker profile data. Please try again later.');
     }
   };
 
@@ -212,29 +223,9 @@ const AdminProfileSettings = () => {
       setLoading(true);
       setError('');
       
-      // Fetch from API
-      let userData;
-        try {
-          const response = await getUserProfile();
-          userData = response.data;
-        } catch (profileError) {
-          console.error('Error fetching profile:', profileError);
-          // Try alternative endpoint
-          try {
-            const altResponse = await axios.get('/api/auth/me');
-            userData = altResponse.data.data || altResponse.data;
-          } catch (altError) {
-            console.error('Alternative profile fetch failed:', altError);
-            // Use fallback data
-            userData = {
-              name: 'Demo User',
-              email: 'demo@example.com',
-              phone: '+91 98765 43210',
-              role: 'admin',
-              employee_id: 'EMP001'
-            };
-          }
-        }
+      // Fetch from API - getUserProfile now handles fallbacks internally
+      const response = await getUserProfile();
+      const userData = response.data;
       
       // Update form data with fetched user data
       setFormData({
@@ -248,15 +239,7 @@ const AdminProfileSettings = () => {
     } catch (err) {
       console.error('Error in fetchAdminProfile:', err);
       setError('Failed to fetch profile data');
-      
-      // Set fallback data
-      setFormData({
-        name: 'Demo User',
-        email: 'demo@example.com',
-        phone: '+91 98765 43210',
-        role: 'admin',
-        employeeId: 'EMP001'
-      });
+      throw err; // Re-throw the error instead of setting fallback data
     } finally {
       setLoading(false);
     }

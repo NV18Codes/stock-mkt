@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { placeTradeOrder } from '../../api/trading';
-import { getAdminUsers } from '../../api/admin';
+import { getAdminUsers, getAllSegments } from '../../api/admin';
 import AdminOrderForm from './AdminOrderForm';
 import axios from 'axios';
 
@@ -59,12 +59,16 @@ const AdminTradingPortal = () => {
 
     const fetchSegments = async () => {
       try {
-        const response = await axios.get('/api/admin/segments');
-        if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        const response = await getAllSegments();
+        if (response.data && Array.isArray(response.data)) {
+          setSegments(response.data);
+        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
           setSegments(response.data.data);
         }
       } catch (err) {
         console.error('Error fetching segments:', err);
+        // Set empty segments array if fetch fails
+        setSegments([]);
       }
     };
 

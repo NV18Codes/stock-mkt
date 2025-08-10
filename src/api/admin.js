@@ -33,12 +33,183 @@ axios.interceptors.response.use(
   }
 );
 
-// ADMIN API endpoints
+// ADMIN API endpoints - Updated with exact URLs from the provided APIs
+
+// MARKET DATA API endpoints
+export const getOptionExpiries = async (underlying) => {
+  try {
+    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/market-data/option-expiries/${underlying}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching option expiries:', error);
+    throw error;
+  }
+};
+
+export const getOptionChainStructure = async (underlying, expiry) => {
+  try {
+    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/market-data/option-chain-structure/${underlying}/${expiry}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching option chain structure:', error);
+    throw error;
+  }
+};
+
+export const getOptionsUnderlying = async () => {
+  try {
+    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/market-data/options_underlying');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching options underlying:', error);
+    throw error;
+  }
+};
+
+// TRADE EXECUTION API endpoints
+export const initiateTrade = async (tradeData) => {
+  try {
+    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/admin/trades/initiate', tradeData);
+    return response.data;
+  } catch (error) {
+    console.error('Error initiating trade:', error);
+    throw error;
+  }
+};
+
+export const adminTradeHistory = async (params = {}) => {
+  try {
+    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades/history', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching admin trade history:', error);
+    throw error;
+  }
+};
+
+export const singleTradeDetail = async (tradeId) => {
+  try {
+    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/trades/detail/${tradeId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching single trade detail:', error);
+    throw error;
+  }
+};
+
+// SEGMENT MANAGEMENT API endpoints
+export const getAllSegments = async () => {
+  try {
+    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/segments/all');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all segments from primary endpoint:', error);
+    
+    // Try alternative endpoints if the primary one fails
+    try {
+      // Try the segments endpoint without /all
+      const altResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/segments');
+      if (altResponse.data && altResponse.data.data) {
+        return altResponse.data;
+      } else if (altResponse.data && Array.isArray(altResponse.data)) {
+        return { data: altResponse.data };
+      }
+    } catch (altError) {
+      console.error('Alternative segments endpoint also failed:', altError);
+    }
+    
+    // If all endpoints fail, return empty segments array
+    console.warn('All segment endpoints failed, returning empty array');
+    return { data: [] };
+  }
+};
+
+export const addSegments = async (segmentData) => {
+  try {
+    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/admin/segments/add', segmentData);
+    return response.data;
+  } catch (error) {
+    console.error('Error adding segment:', error);
+    throw error;
+  }
+};
+
+export const getSingleSegmentByID = async (segmentId) => {
+  try {
+    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/segments/single/${segmentId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching single segment:', error);
+    throw error;
+  }
+};
+
+export const updateSegmentById = async (segmentId, segmentData) => {
+  try {
+    const response = await axios.put(`https://apistocktrading-production.up.railway.app/api/admin/segments/update/${segmentId}`, segmentData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating segment:', error);
+    throw error;
+  }
+};
+
+export const deleteSegmentById = async (segmentId) => {
+  try {
+    const response = await axios.delete(`https://apistocktrading-production.up.railway.app/api/admin/segments/delete/${segmentId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting segment:', error);
+    throw error;
+  }
+};
+
+// USER SEGMENT ASSIGNMENT MANAGEMENT API endpoints
+export const addUserToSegment = async (segmentId, userData) => {
+  try {
+    const response = await axios.post(`https://apistocktrading-production.up.railway.app/api/admin/segments/users/add/${segmentId}`, userData);
+    return response.data;
+  } catch (error) {
+    console.error('Error adding user to segment:', error);
+    throw error;
+  }
+};
+
+export const getUsersInSegment = async (segmentId) => {
+  try {
+    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/segments/users/list/${segmentId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching users in segment:', error);
+    throw error;
+  }
+};
+
+// USER MANAGEMENT API endpoints
+export const getSingleUser = async (userId) => {
+  try {
+    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/users/single/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching single user:', error);
+    throw error;
+  }
+};
+
+export const getListUsers = async () => {
+  try {
+    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/list');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching users list:', error);
+    throw error;
+  }
+};
 
 // Enhanced get current user details
 export const getCurrentUser = async () => {
   try {
-    const response = await axios.get('/api/auth/me');
+    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
     console.log('Admin getCurrentUser response:', response.data);
     
     // Normalize the response data
@@ -80,33 +251,6 @@ export const getCurrentUser = async () => {
     return { data: normalizedUser };
   } catch (error) {
     console.error('Error fetching current user:', error);
-    // Return fallback user data if API fails
-    if (error.response && (error.response.status === 403 || error.response.status === 404)) {
-      console.log('Current user endpoint not available, using fallback data');
-      const fallbackUser = {
-        id: 'admin_user_001',
-        name: 'Admin User',
-        email: 'admin@example.com',
-        phone: '+91 98765 43210',
-        role: 'admin',
-        is_broker_connected: true,
-        is_active_for_trading: true,
-        rms_limit: { net: 1000000 },
-        current_segment_id: 1,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        employee_id: 'ADMIN001',
-        date_of_birth: '',
-        gender: '',
-        address: '',
-        city: '',
-        state: '',
-        pincode: '',
-        emergency_contact: '',
-        emergency_phone: ''
-      };
-      return { data: fallbackUser };
-    }
     throw error;
   }
 };
@@ -114,8 +258,8 @@ export const getCurrentUser = async () => {
 // Enhanced get all users for admin with better data handling
 export const getAdminUsers = async () => {
   try {
-    // Try admin endpoint first
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/users');
+    // Try the new users list endpoint
+    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/list');
     if (response.data && response.data.data && Array.isArray(response.data.data)) {
       return { data: response.data.data };
     } else if (response.data && Array.isArray(response.data)) {
@@ -126,316 +270,38 @@ export const getAdminUsers = async () => {
       throw new Error('Invalid users data format');
     }
   } catch (error) {
-    // If admin/users doesn't exist, try /api/users
-    if (error.response?.status === 404 || error.response?.status === 403) {
+    console.error('Error fetching users from new endpoint:', error);
+    
+    // If the new endpoint fails, try the old one as fallback
+    try {
+      const usersResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/users');
+      if (usersResponse.data && usersResponse.data.data && Array.isArray(usersResponse.data.data)) {
+        return { data: usersResponse.data.data };
+      } else if (usersResponse.data && Array.isArray(usersResponse.data)) {
+        return { data: usersResponse.data };
+      } else if (usersResponse.data && usersResponse.data.users && Array.isArray(usersResponse.data.users)) {
+        return { data: usersResponse.data.users };
+      } else {
+        throw new Error('Invalid users data format from /api/users');
+      }
+    } catch (usersError) {
+      console.error('All user endpoints failed:', usersError);
+      
+      // If all endpoints fail, try to get at least the current user
       try {
-        const usersResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/users');
-        if (usersResponse.data && usersResponse.data.data && Array.isArray(usersResponse.data.data)) {
-          return { data: usersResponse.data.data };
-        } else if (usersResponse.data && Array.isArray(usersResponse.data)) {
-          return { data: usersResponse.data };
-        } else if (usersResponse.data && usersResponse.data.users && Array.isArray(usersResponse.data.users)) {
-          return { data: usersResponse.data.users };
-        } else {
-          throw new Error('Invalid users data format from /api/users');
+        const currentUserResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+        if (currentUserResponse.data && currentUserResponse.data.data) {
+          const userData = currentUserResponse.data.data.user || currentUserResponse.data.data;
+          // Return a single user array for now
+          return { data: [userData] };
         }
-      } catch (usersError) {
-        // If /api/users also fails, fallback to demo users
-        console.log('All user endpoints failed, using fallback data');
-        const fallbackUsers = [
-          {
-            id: 'user_001',
-            name: 'John Doe',
-            email: 'john@example.com',
-            phone: '+91 98765 43210',
-            role: 'user',
-            is_broker_connected: true,
-            is_active_for_trading: true,
-            rms_limit: { net: 500000 },
-            current_segment_id: 1,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: 'user_002',
-            name: 'Jane Smith',
-            email: 'jane@example.com',
-            phone: '+91 98765 43211',
-            role: 'user',
-            is_broker_connected: false,
-            is_active_for_trading: false,
-            rms_limit: { net: 100000 },
-            current_segment_id: 2,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: 'user_003',
-            name: 'Bob Wilson',
-            email: 'bob@example.com',
-            phone: '+91 98765 43212',
-            role: 'user',
-            is_broker_connected: true,
-            is_active_for_trading: true,
-            rms_limit: { net: 750000 },
-            current_segment_id: 1,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ];
-        return { data: fallbackUsers };
-      }
-    }
-    // Other errors
-    throw error;
-  }
-};
-
-// SEGMENT MANAGEMENT API endpoints
-export const getAllSegments = async () => {
-  try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/segments');
-    return response.data;
-  } catch (error) {
-    // Return fallback data if endpoint doesn't exist
-    if (error.response?.status === 404 || error.response?.status === 403) {
-      console.log('Segments endpoint not available, using fallback data');
-      return {
-        success: true,
-        data: [
-          {
-            id: 1,
-            name: 'Premium Traders',
-            description: 'High-volume traders with advanced strategies',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: 2,
-            name: 'Standard Traders',
-            description: 'Regular traders with basic strategies',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: 3,
-            name: 'Beginner Traders',
-            description: 'New traders learning the platform',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ]
-      };
-    }
-    // Only log other types of errors
-    console.error('Error fetching admin segments:', error);
-    throw error;
-  }
-};
-
-export const addSegments = async (segmentData) => {
-  try {
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/admin/segments', segmentData);
-    return response.data;
-  } catch (error) {
-    console.error('Error adding segment:', error);
-    // Return success response for demo purposes
-    if (error.response && (error.response.status === 404 || error.response.status === 403)) {
-      return {
-        success: true,
-        message: 'Segment added successfully (demo mode)',
-        data: { ...segmentData, id: Date.now(), created_at: new Date().toISOString() }
-      };
-    }
-    // Return success response with error message to prevent UI breaks
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to add segment',
-      error: error.message
-    };
-  }
-};
-
-export const getSingleSegmentByID = async (segmentId) => {
-  try {
-    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching segment by ID:', error);
-    // Return fallback data if segment not found
-    if (error.response?.status === 404 || error.response?.status === 403) {
-      const fallbackSegments = {
-        1: { id: 1, name: 'Premium Traders', description: 'High-volume traders with advanced strategies' },
-        2: { id: 2, name: 'Standard Traders', description: 'Regular traders with basic strategies' },
-        3: { id: 3, name: 'Beginner Traders', description: 'New traders learning the platform' }
-      };
-      
-      if (fallbackSegments[segmentId]) {
-        return {
-          success: true,
-          data: fallbackSegments[segmentId]
-        };
+      } catch (currentUserError) {
+        console.error('Even current user endpoint failed:', currentUserError);
       }
       
-      return {
-        success: false,
-        message: 'Segment not found',
-        data: null
-      };
+      // Return empty array if all endpoints fail
+      return { data: [] };
     }
-    throw error;
-  }
-};
-
-export const updateSegmentById = async (segmentId, segmentData) => {
-  try {
-    const response = await axios.put(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}`, segmentData);
-    return response.data;
-  } catch (error) {
-    console.error('Error updating segment:', error);
-    // Return success response for demo purposes
-    if (error.response && (error.response.status === 404 || error.response.status === 403)) {
-      return {
-        success: true,
-        message: 'Segment updated successfully (demo mode)',
-        data: { ...segmentData, id: segmentId, updated_at: new Date().toISOString() }
-      };
-    }
-    // Return success response with error message to prevent UI breaks
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to update segment',
-      error: error.message
-    };
-  }
-};
-
-export const deleteSegmentById = async (segmentId) => {
-  try {
-    const response = await axios.delete(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error deleting segment:', error);
-    // Return success response for demo purposes
-    if (error.response && (error.response.status === 404 || error.response.status === 403)) {
-      return {
-        success: true,
-        message: 'Segment deleted successfully (demo mode)'
-      };
-    }
-    // Return success response with error message to prevent UI breaks
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to delete segment',
-      error: error.message
-    };
-  }
-};
-
-// USER SEGMENT ASSIGNMENT MANAGEMENT API endpoints
-export const addUserToSegment = async (segmentId, userData) => {
-  try {
-    const response = await axios.post(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}/users`, userData);
-    return response.data;
-  } catch (error) {
-    console.error('Error adding user to segment:', error);
-    // Return success response for demo purposes
-    if (error.response && (error.response.status === 404 || error.response.status === 403)) {
-      return {
-        success: true,
-        message: 'User added to segment successfully (demo mode)',
-        data: { ...userData, segment_id: segmentId, assigned_at: new Date().toISOString() }
-      };
-    }
-    // Return success response with error message to prevent UI breaks
-    return {
-      success: false,
-      message: error.response?.data?.message || 'Failed to add user to segment',
-      error: error.message
-    };
-  }
-};
-
-export const getUsersInSegment = async (segmentId) => {
-  try {
-    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}/users`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching users in segment:', error);
-    // Return fallback data if segment not found or other errors
-    if (error.response?.status === 404 || error.response?.status === 403) {
-      console.log('Users in segment endpoint not available, using fallback data');
-      const fallbackUsers = [
-        {
-          id: 'user_001',
-          name: 'John Doe',
-          email: 'john@example.com',
-          phone: '+91 98765 43210',
-          role: 'user',
-          is_broker_connected: true,
-          is_active_for_trading: true,
-          rms_limit: { net: 500000 },
-          current_segment_id: segmentId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'user_003',
-          name: 'Bob Wilson',
-          email: 'bob@example.com',
-          phone: '+91 98765 43212',
-          role: 'user',
-          is_broker_connected: true,
-          is_active_for_trading: true,
-          rms_limit: { net: 750000 },
-          current_segment_id: segmentId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
-      return {
-        success: true,
-        data: fallbackUsers,
-        message: 'Demo users in segment'
-      };
-    }
-    return {
-      success: false,
-      data: [],
-      message: 'Failed to fetch users in segment',
-      error: error.message
-    };
-  }
-};
-
-// TRADE EXECUTION API endpoints
-export const initiateTrade = async (tradeData) => {
-  try {
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/admin/trades/initiate', tradeData);
-    return response.data;
-  } catch (error) {
-    console.error('Error initiating trade:', error);
-    throw error;
-  }
-};
-
-export const adminTradeHistory = async () => {
-  try {
-    const response = await axios.get('/api/admin/trades/');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching admin trade history:', error);
-    throw error;
-  }
-};
-
-export const singleTradeDetail = async (tradeId) => {
-  try {
-    const response = await axios.get(`/api/admin/trades/${tradeId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching single trade detail:', error);
-    throw error;
   }
 };
 
@@ -490,35 +356,21 @@ export const deleteSegment = async (segmentId) => {
   }
 };
 
+// Get admin trades with proper error handling
 export const getAdminTrades = async () => {
   try {
-    const response = await axios.get('/api/admin/trades/');
+    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades/history');
     console.log('Admin trades API response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error fetching admin trades:', error);
-    // Return fallback data structure if API fails
-    return {
-      success: true,
-      data: [],
-      message: 'No trades available at the moment'
-    };
-  }
-};
-
-export const getAdminTradeById = async (tradeId) => {
-  try {
-    const response = await axios.get(`/api/admin/trades/${tradeId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching admin trade by ID:', error);
     throw error;
   }
 };
 
+// Get trade logs with fallback to trade history
 export const getTradeLogs = async () => {
   try {
-    // Try the logs endpoint first
     const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades/logs');
     return response.data;
   } catch (error) {
@@ -526,37 +378,17 @@ export const getTradeLogs = async () => {
     
     // If logs endpoint fails, try to get trade history as fallback
     if (error.response?.status === 500 || error.response?.status === 404) {
+      console.log('Logs endpoint not available, fetching trade history as fallback...');
       try {
-        console.log('Logs endpoint not available, fetching trade history as fallback...');
-        const tradeResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades/');
-        const tradeData = tradeResponse.data;
-        
-        // Convert trade history to log format
-        const logsData = Array.isArray(tradeData) ? tradeData.map(trade => ({
-          id: trade.id || trade._id,
-          userName: trade.userName || trade.user?.name,
-          action: trade.type || trade.action,
-          symbol: trade.symbol || trade.underlying,
-          quantity: trade.quantity || trade.qty,
-          price: trade.price || trade.executionPrice,
-          amount: trade.amount || trade.totalAmount,
-          status: trade.status || 'COMPLETED',
-          timestamp: trade.createdAt || trade.timestamp
-        })) : [];
-        
+        const historyResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades/history');
         return {
-          success: true,
-          data: logsData,
-          message: 'Using trade history as logs (logs endpoint not available)'
+          ...historyResponse.data,
+          isFallback: true,
+          message: 'Using trade history as fallback for logs'
         };
-      } catch (fallbackError) {
-        console.error('Fallback trade history also failed:', fallbackError);
-        // Return empty logs with message
-        return {
-          success: true,
-          data: [],
-          message: 'No trade logs available at the moment'
-        };
+      } catch (historyError) {
+        console.error('Fallback trade history also failed:', historyError);
+        throw historyError;
       }
     }
     
@@ -564,27 +396,36 @@ export const getTradeLogs = async () => {
   }
 };
 
+// Get admin dashboard stats - simplified to use available endpoints
 export const getAdminDashboardStats = async () => {
   try {
-    // Try the main stats endpoint first
-    const response = await axios.get('/api/admin/stats');
-    return response.data;
+    // Since the stats endpoint doesn't exist, we'll construct stats from available data
+    const [usersResponse, tradesResponse] = await Promise.all([
+      axios.get('https://apistocktrading-production.up.railway.app/api/users/list'),
+      axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades/history')
+    ]);
+    
+    const users = usersResponse.data?.data || [];
+    const trades = tradesResponse.data?.data || [];
+    
+    // Calculate stats from available data
+    const stats = {
+      totalUsers: users.length,
+      activeUsers: users.filter(user => user.is_active_for_trading).length,
+      totalTrades: trades.length,
+      totalVolume: trades.reduce((sum, trade) => sum + (trade.volume || 0), 0),
+      totalProfitLoss: trades.reduce((sum, trade) => sum + (trade.profit_loss || 0), 0),
+      segments: []
+    };
+    
+    return {
+      success: true,
+      data: stats
+    };
   } catch (error) {
-    console.error('Error fetching admin dashboard stats:', error);
+    console.error('Error constructing admin dashboard stats:', error);
     
-    // Try alternative endpoints
-    if (error.response?.status === 404) {
-      try {
-        // Try dashboard-specific endpoint
-        const altResponse = await axios.get('/api/admin/dashboard');
-        return altResponse.data;
-      } catch (altError) {
-        console.error('Alternative dashboard endpoint also failed:', altError);
-      }
-    }
-    
-    // Return fallback stats if all endpoints fail
-    console.log('Using fallback dashboard stats');
+    // Return minimal stats if data fetching fails
     return {
       success: true,
       data: {
@@ -601,7 +442,7 @@ export const getAdminDashboardStats = async () => {
 
 export const initiateAdminTrade = async (tradeData) => {
   try {
-    const response = await axios.post('/api/admin/trades/initiate', tradeData);
+    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/admin/trades/initiate', tradeData);
     return response.data;
   } catch (error) {
     console.error('Error initiating admin trade:', error);

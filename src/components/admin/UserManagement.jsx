@@ -1,5 +1,13 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import axios from 'axios';
+import { 
+  getAdminUsers, 
+  getAllSegments, 
+  assignUserToSegment, 
+  removeUserFromSegment, 
+  createSegment, 
+  updateSegment, 
+  deleteSegment 
+} from '../../api/admin';
 
 // A helper function to format numbers as currency
 const formatCurrency = (value) => {
@@ -13,8 +21,6 @@ const formatCurrency = (value) => {
 
 
 const UserManagement = () => {
-  const API_URL = process.env.REACT_APP_API_URL || 'https://apistocktrading-production.up.railway.app/api';
-
   // --- STATE MANAGEMENT ---
   const [users, setUsers] = useState([]);
   const [segments, setSegments] = useState([]);
@@ -34,8 +40,9 @@ const UserManagement = () => {
       setLoadingUsers(true);
       setErrorUsers(null);
       try {
-        const response = await axios.get(`${API_URL}/users/`);
-        const rawUsers = response.data.data;
+        // Use the admin API function which has fallback logic
+        const response = await getAdminUsers();
+        const rawUsers = response.data;
         if (!Array.isArray(rawUsers)) {
           throw new Error('Invalid data format from API.');
         }
@@ -68,13 +75,13 @@ const UserManagement = () => {
 
       } catch (error) {
         console.error('Error fetching users:', error);
-        setErrorUsers('Failed to load users');
+        setErrorUsers('Failed to load users. Please try again later.');
       } finally {
         setLoadingUsers(false);
       }
     };
     fetchUsers();
-  }, [API_URL]);
+  }, []);
 
   // --- Fetch segments from API on mount ---
   useEffect(() => {
@@ -82,8 +89,9 @@ const UserManagement = () => {
       setLoadingSegments(true);
       setErrorSegments(null);
       try {
-        const response = await axios.get(`${API_URL}/admin/segments`);
-        const segmentData = response.data.data;
+        // Use the admin API function
+        const response = await getAllSegments();
+        const segmentData = response.data;
         if (Array.isArray(segmentData)) {
           setSegments(segmentData);
         } else {
@@ -91,13 +99,22 @@ const UserManagement = () => {
         }
       } catch (error) {
         console.error('Error fetching segments:', error);
-        setErrorSegments('Failed to load segments');
+        setErrorSegments('Failed to load segments. Please try again later.');
+        
+        // If segments fail to load, create a default segment for testing
+        setSegments([
+          {
+            id: 'default',
+            name: 'Default Segment',
+            description: 'Default segment for users'
+          }
+        ]);
       } finally {
         setLoadingSegments(false);
       }
     };
     fetchSegments();
-  }, [API_URL]);
+  }, []);
 
   // --- DERIVED STATE & HELPERS ---
   const assignedUserIds = useMemo(() => new Set(Object.values(segmentUserMap).flat()), [segmentUserMap]);
@@ -155,21 +172,16 @@ const UserManagement = () => {
             }
             
             // This is the corrected, segment-centric URL for un-assigning (deleting the association).
-            const unassignUrl = `${API_URL}/admin/segments/${sourceSegmentId}/users/${userId}`;
-            
-            console.log(`Attempting to unassign user via: DELETE ${unassignUrl}`);
-            await axios.delete(unassignUrl); // The payload is no longer needed for DELETE
+            console.log(`Attempting to unassign user from segment ${sourceSegmentId}`);
+            await removeUserFromSegment(sourceSegmentId, userId); // The payload is no longer needed for DELETE
             console.log(`User ${userId} successfully unassigned from segment ${sourceSegmentId}.`);
             // <--- CHANGE ENDS HERE --->
 
         } else {
             // --- ASSIGN OR MOVE USER ---
             // This action assigns a user to a new segment.
-            const assignUrl = `${API_URL}/admin/segments/${targetSegmentId}/users`;
-            const payload = { userId: userId }; 
-
-            console.log(`Attempting to assign user via: POST ${assignUrl} with payload:`, payload);
-            await axios.post(assignUrl, payload);
+            console.log(`Attempting to assign user to segment ${targetSegmentId}`);
+            await assignUserToSegment(targetSegmentId, userId);
             console.log(`User ${userId} successfully assigned to segment ${targetSegmentId}.`);
         }
     } catch (error) {
@@ -232,11 +244,10 @@ const UserManagement = () => {
         alert("Segment name cannot be empty.");
         return;
     }
-    const SEGMENTS_ENDPOINT = `${API_URL}/admin/segments`;
 
     if (mode === 'add') {
       try {
-        const response = await axios.post(SEGMENTS_ENDPOINT, { name: data.name, description: data.description });
+        const response = await createSegment({ name: data.name, description: data.description });
         setSegments([...segments, response.data.data]);
         closeModal();
       } catch (error) {
@@ -246,7 +257,7 @@ const UserManagement = () => {
     } 
     else if (mode === 'edit') {
         try {
-            const response = await axios.put(`${SEGMENTS_ENDPOINT}/${data.id}`, { name: data.name, description: data.description });
+            const response = await updateSegment(data.id, { name: data.name, description: data.description });
             setSegments(segments.map(s => (s.id === response.data.data.id ? response.data.data : s)));
             closeModal();
         } catch(error) {
@@ -259,7 +270,7 @@ const UserManagement = () => {
   const handleDeleteSegment = async (segmentId) => {
     if (window.confirm('Are you sure you want to delete this segment? This action cannot be undone.')) {
         try {
-            await axios.delete(`${API_URL}/admin/segments/${segmentId}`);
+            await deleteSegment(segmentId);
             setSegments(prevSegments => prevSegments.filter(s => s.id !== segmentId));
             setSegmentUserMap(prevMap => {
                 const newMap = { ...prevMap };

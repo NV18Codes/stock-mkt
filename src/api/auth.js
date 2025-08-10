@@ -33,200 +33,109 @@ axios.interceptors.response.use(
   }
 );
 
-// AUTH API endpoints
-export const signup = (data) => axios.post('/api/auth/signup', data);
-export const signin = (data) => axios.post('/api/auth/signin', data);
-export const signout = () => axios.get('/api/auth/signout');
-export const getCurrentUser = () => axios.get('/api/auth/me');
-export const forgotPassword = (data) => axios.post('/api/auth/forgot-password', data);
-export const resetPassword = (data) => axios.post('/api/auth/reset-password', data);
+// AUTH API endpoints - Updated with exact URLs from the provided APIs
+export const signup = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/signup', data);
+export const signin = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/signin', data);
+export const signout = () => axios.get('https://apistocktrading-production.up.railway.app/api/auth/signout');
+export const getCurrentUser = () => axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+export const forgotPassword = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/forgot-password', data);
+export const resetPassword = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/reset-password', {
+  password: data.password,
+  accessToken: data.accessToken
+});
 
-
-// USER API endpoints
-export const userProfileUpdate = (data) => axios.put('/api/users/me/profileUpdate', data);
+// USER API endpoints - Updated with exact URLs
+export const userProfileUpdate = (data) => axios.put('https://apistocktrading-production.up.railway.app/api/users/me/profileUpdate', data);
 export const addBrokerAccount = async (data) => {
   try {
-    const response = await axios.post('/api/users/me/broker/connect', data);
+    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/connect', data);
     return response.data;
   } catch (error) {
-    // Return success response for demo purposes
-    if (error.response && (error.response.status === 400 || error.response.status === 403 || error.response.status === 404)) {
-      console.log('Using fallback response for broker connection (demo mode)');
-      return {
-        success: true,
-        message: 'Broker account connected successfully (demo mode)',
-        data: {
-          broker: data.broker,
-          accountId: data.accountId,
-          status: 'CONNECTED',
-          connected_at: new Date().toISOString()
-        }
-      };
-    }
-    // For other errors, return a fallback response instead of throwing
-    console.log('Using fallback response for broker connection (network error)');
-    return {
-      success: true,
-      message: 'Broker account connected successfully (demo mode)',
-      data: {
-        broker: data.broker,
-        accountId: data.accountId,
-        status: 'CONNECTED',
-        connected_at: new Date().toISOString()
-      }
-    };
+    console.error('Error adding broker account:', error);
+    throw error;
   }
 };
+
 export const getDematLimit = async () => {
   try {
-    const response = await axios.get('/api/users/me/broker/rmsLimit');
+    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/rmsLimit');
     return response.data;
   } catch (error) {
-    // Return fallback demat limit for demo purposes
-    if (error.response && (error.response.status === 400 || error.response.status === 403 || error.response.status === 404)) {
-      console.log('Using fallback response for demat limit (demo mode)');
-      return {
-        success: true,
-        data: {
-          net: 1000000,
-          available: 950000,
-          used: 50000,
-          blocked: 0,
-          span: 45000,
-          exposure: 5000,
-          collateral: 0,
-          additional: 0
-        }
-      };
-    }
-    // For other errors, return a fallback response instead of throwing
-    console.log('Using fallback response for demat limit (network error)');
-    return {
-      success: true,
-      data: {
-        net: 1000000,
-        available: 950000,
-        used: 50000,
-        blocked: 0,
-        span: 45000,
-        exposure: 5000,
-        collateral: 0,
-        additional: 0
-      }
-    };
+    console.error('Error fetching demat limit:', error);
+    throw error;
   }
 };
+
 export const verifyBrokerConnection = async (data) => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/verify', { params: data });
+    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/verify', data);
     return response.data;
   } catch (error) {
-    // Return success response for demo purposes
-    if (error.response && (error.response.status === 400 || error.response.status === 403 || error.response.status === 404)) {
-      console.log('Using fallback response for broker verification (demo mode)');
-      return {
-        success: true,
-        message: 'Broker connection verified successfully (demo mode)',
-        data: {
-          status: 'ACTIVE',
-          verified_at: new Date().toISOString()
-        }
-      };
-    }
-    // For other errors, return a fallback response instead of throwing
-    console.log('Using fallback response for broker verification (network error)');
-    return {
-      success: true,
-      message: 'Broker connection verified successfully (demo mode)',
-      data: {
-        status: 'ACTIVE',
-        verified_at: new Date().toISOString()
-      }
-    };
+    console.error('Error verifying broker connection:', error);
+    throw error;
   }
 };
-export const fetchMyBrokerProfile = async () => {
+
+export const fetchMyBrokerProfile = async (data) => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/profile');
+    // Try the broker profile endpoint first
+    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/profile', data);
     return response.data;
   } catch (error) {
-    // Return fallback broker profile for demo purposes
-    if (error.response && (error.response.status === 400 || error.response.status === 403 || error.response.status === 404)) {
-      console.log('Using fallback response for broker profile (demo mode)');
-      return {
-        success: true,
-        data: {
-          brokerName: 'Angel One',
-          accountId: 'DEMO001',
-          status: 'ACTIVE',
-          connected_at: new Date().toISOString(),
-          exchanges: ['NSE', 'BSE', 'NFO'],
-          products: ['CNC', 'MIS', 'NRML']
+    console.error('Error fetching broker profile:', error);
+    
+    // If broker profile endpoint fails, try to get broker info from the main user endpoint
+    if (error.response?.status === 404 || error.response?.status === 500) {
+      try {
+        const userResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+        const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
+        
+        // Return broker info from user data if available
+        if (userData && userData.broker_info) {
+          return {
+            success: true,
+            data: userData.broker_info
+          };
         }
-      };
+        
+        // Return empty broker profile if no broker info available
+        return {
+          success: true,
+          data: {
+            broker_name: 'Not Connected',
+            broker_client_id: 'N/A',
+            is_active_for_trading: false,
+            exchanges: [],
+            products: []
+          }
+        };
+      } catch (userError) {
+        console.error('Error fetching user data for broker profile:', userError);
+        throw error; // Throw the original error
+      }
     }
-    // For other errors, return a fallback response instead of throwing
-    console.log('Using fallback response for broker profile (network error)');
-    return {
-      success: true,
-      data: {
-        brokerName: 'Angel One',
-        accountId: 'DEMO001',
-        status: 'ACTIVE',
-        connected_at: new Date().toISOString(),
-        exchanges: ['NSE', 'BSE', 'NFO'],
-        products: ['CNC', 'MIS', 'NRML']
-        }
-      };
-    }
-  };
+    
+    throw error;
+  }
+};
 
 export const fetchBrokerConnectionStatus = async () => {
   try {
     const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/status');
     return response.data;
   } catch (error) {
-    // Return fallback broker status for demo purposes
-    if (error.response && (error.response.status === 400 || error.response.status === 403 || error.response.status === 404)) {
-      console.log('Using fallback response for broker status (demo mode)');
-      return {
-        success: true,
-        data: {
-          status: 'NOT_CONNECTED',
-          message: 'Broker not connected'
-        }
-      };
-    }
-    // For other errors, return a fallback response instead of throwing
-    console.log('Using fallback response for broker status (network error)');
-    return {
-      success: true,
-      data: {
-        status: 'NOT_CONNECTED',
-        message: 'Broker not connected'
-      }
-    };
+    console.error('Error fetching broker status:', error);
+    throw error;
   }
 };
+
 export const clearBrokerProfile = async () => {
   try {
     const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/clear');
     return response.data;
   } catch (error) {
-    // Return success response for demo purposes
-    if (error.response && (error.response.status === 400 || error.response.status === 403 || error.response.status === 404)) {
-      console.log('Using fallback response for broker clear (demo mode)');
-      return {
-        success: true,
-        message: 'Broker profile cleared successfully (demo mode)'
-      };
-    }
-    // For other errors, return a fallback response instead of throwing
-    console.log('Using fallback response for broker clear (network error)');
-    return {
-      success: true,
-      message: 'Broker profile cleared successfully (demo mode)'
-    };
+    console.error('Error clearing broker profile:', error);
+    throw error;
   }
 };
 
@@ -273,32 +182,6 @@ export const getCurrentUserEnhanced = async () => {
     return { data: normalizedUser };
   } catch (error) {
     console.error('Error fetching current user:', error);
-    // Return fallback user data if API fails
-    if (error.response && (error.response.status === 403 || error.response.status === 404)) {
-      const fallbackUser = {
-        id: 'demo_user_001',
-        name: 'Demo User',
-        email: 'demo@example.com',
-        phone: '+91 98765 43210',
-        role: 'user',
-        is_broker_connected: false,
-        is_active_for_trading: false,
-        rms_limit: { net: 100000 },
-        current_segment_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        employee_id: 'EMP001',
-        date_of_birth: '1990-01-01',
-        gender: 'Not Specified',
-        address: 'Demo Address',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        pincode: '400001',
-        emergency_contact: 'Emergency Contact',
-        emergency_phone: '+91 98765 43211'
-      };
-      return { data: fallbackUser };
-    }
     throw error;
   }
 };
@@ -309,7 +192,7 @@ export const updateProfile = async (data) => {
     console.log('Updating profile with data:', data);
     
     // Try the main profile update endpoint first
-    const response = await axios.put('/api/users/me/profileUpdate', data);
+    const response = await axios.put('https://apistocktrading-production.up.railway.app/api/users/me/profileUpdate', data);
     console.log('Profile update response:', response.data);
     return response.data;
   } catch (error) {
@@ -320,7 +203,7 @@ export const updateProfile = async (data) => {
       try {
         console.log('Trying alternative profile update endpoint...');
         // Try alternative endpoint format
-        const altResponse = await axios.put('/api/users/profile', data);
+        const altResponse = await axios.put('https://apistocktrading-production.up.railway.app/api/users/profile', data);
         console.log('Alternative profile update response:', altResponse.data);
         return altResponse.data;
       } catch (altError) {
@@ -329,17 +212,12 @@ export const updateProfile = async (data) => {
         // If both endpoints fail, try a simple user update
         try {
           console.log('Trying simple user update endpoint...');
-          const simpleResponse = await axios.put('/api/users/me', data);
+          const simpleResponse = await axios.put('https://apistocktrading-production.up.railway.app/api/users/me', data);
           console.log('Simple user update response:', simpleResponse.data);
           return simpleResponse.data;
         } catch (simpleError) {
           console.error('All profile update endpoints failed:', simpleError);
-          // Return a mock success response for demo purposes
-          return {
-            success: true,
-            message: 'Profile updated successfully (demo mode)',
-            data: { ...data, updated_at: new Date().toISOString() }
-          };
+          throw error; // Throw the original error instead of returning fallback data
         }
       }
     }
@@ -351,7 +229,8 @@ export const updateProfile = async (data) => {
 // Enhanced get user profile data
 export const getUserProfile = async () => {
   try {
-    const response = await axios.get('/api/users/me/profile');
+    // Try the profile endpoint first
+    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/profile');
     
     // Normalize profile data
     let profileData;
@@ -391,73 +270,41 @@ export const getUserProfile = async () => {
   } catch (error) {
     console.error('Error fetching user profile:', error);
     
-    // If profile endpoint fails, try alternative endpoints
-    if (error.response?.status === 404 || error.response?.status === 403) {
+    // If profile endpoint fails, try the main auth endpoint
+    if (error.response?.status === 404 || error.response?.status === 500) {
       try {
-        const altResponse = await axios.get('/api/users/profile');
+        const userResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+        const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
         
-        let profileData;
-        if (altResponse.data && altResponse.data.data) {
-          profileData = altResponse.data.data;
-        } else if (altResponse.data && altResponse.data.user) {
-          profileData = altResponse.data.user;
-        } else {
-          profileData = altResponse.data;
-        }
-        
+        // Normalize the user data to match profile format
         const normalizedProfile = {
-          id: profileData.id || profileData.user_id || profileData._id,
-          name: profileData.name || profileData.full_name || profileData.first_name || '',
-          email: profileData.email || profileData.email_address || '',
-          phone: profileData.phone || profileData.phone_number || '',
-          role: profileData.role || profileData.user_role || 'user',
-          department: profileData.department || '',
-          employee_id: profileData.employee_id || profileData.employeeId || '',
-          date_of_birth: profileData.date_of_birth || profileData.dob || '',
-          gender: profileData.gender || '',
-          address: profileData.address || '',
-          city: profileData.city || '',
-          state: profileData.state || '',
-          pincode: profileData.pincode || '',
-          emergency_contact: profileData.emergency_contact || '',
-          emergency_phone: profileData.emergency_phone || '',
-          is_broker_connected: profileData.is_broker_connected || false,
-          is_active_for_trading: profileData.is_active_for_trading || false,
-          rms_limit: profileData.rms_limit || { net: 0 },
-          current_segment_id: profileData.current_segment_id || null,
-          created_at: profileData.created_at || profileData.createdAt,
-          updated_at: profileData.updated_at || profileData.updatedAt
+          id: userData.id || userData.user_id || userData._id,
+          name: userData.name || userData.full_name || userData.first_name || '',
+          email: userData.email || userData.email_address || '',
+          phone: userData.phone || userData.phone_number || '',
+          role: userData.role || userData.user_role || 'user',
+          department: userData.department || '',
+          employee_id: userData.employee_id || userData.employeeId || '',
+          date_of_birth: userData.date_of_birth || userData.dob || '',
+          gender: userData.gender || '',
+          address: userData.address || '',
+          city: userData.city || '',
+          state: userData.state || '',
+          pincode: userData.pincode || '',
+          emergency_contact: userData.emergency_contact || '',
+          emergency_phone: userData.emergency_phone || '',
+          is_broker_connected: userData.is_broker_connected || false,
+          is_active_for_trading: userData.is_active_for_trading || false,
+          rms_limit: userData.rms_limit || { net: 0 },
+          current_segment_id: userData.current_segment_id || null,
+          created_at: userData.created_at || userData.createdAt,
+          updated_at: userData.updated_at || userData.updatedAt
         };
         
         return { data: normalizedProfile };
-      } catch (altError) {
-        console.error('Alternative profile endpoint also failed:', altError);
-        
-        // Return fallback profile data if all endpoints fail
-        const fallbackProfile = {
-          id: 'demo_user_001',
-          name: 'Demo User',
-          email: 'demo@example.com',
-          phone: '+91 98765 43210',
-          role: 'user',
-          department: 'IT',
-          employee_id: 'EMP001',
-          date_of_birth: '1990-01-01',
-          gender: 'Not Specified',
-          address: 'Demo Address',
-          city: 'Mumbai',
-          state: 'Maharashtra',
-          pincode: '400001',
-          emergency_contact: 'Emergency Contact',
-          emergency_phone: '+91 98765 43211',
-          is_broker_connected: false,
-          is_active_for_trading: false,
-          rms_limit: { net: 100000 },
-          current_segment_id: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        return { data: fallbackProfile };
+      } catch (userError) {
+        console.error('Error fetching user data for profile:', userError);
+        throw error; // Throw the original error
       }
     }
     
