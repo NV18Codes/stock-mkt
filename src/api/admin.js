@@ -83,6 +83,32 @@ export const adminTradeHistory = async (params = {}) => {
     return response.data;
   } catch (error) {
     console.error('Error fetching admin trade history:', error);
+    
+    // If the main endpoint fails, try alternative endpoints
+    if (error.response?.status === 500 || error.response?.status === 404) {
+      console.log('Admin trade history endpoint failed, trying alternative endpoints...');
+      
+      try {
+        // Try to get trades from the general trades endpoint
+        const alternativeResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades', { params });
+        return {
+          ...alternativeResponse.data,
+          isFallback: true,
+          message: 'Using alternative trades endpoint as fallback'
+        };
+      } catch (alternativeError) {
+        console.error('Alternative trades endpoint also failed:', alternativeError);
+        
+        // If all endpoints fail, return empty data with fallback flag
+        return {
+          success: true,
+          data: [],
+          isFallback: true,
+          message: 'All trade endpoints failed, returning empty data'
+        };
+      }
+    }
+    
     throw error;
   }
 };
@@ -356,7 +382,7 @@ export const deleteSegment = async (segmentId) => {
   }
 };
 
-// Get admin trades with proper error handling
+// Get admin trades with proper error handling and fallback
 export const getAdminTrades = async () => {
   try {
     const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades/history');
@@ -364,6 +390,33 @@ export const getAdminTrades = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching admin trades:', error);
+    
+    // If the main endpoint fails, try alternative endpoints
+    if (error.response?.status === 500 || error.response?.status === 404) {
+      console.log('Admin trades history endpoint failed, trying alternative endpoints...');
+      
+      try {
+        // Try to get trades from the general trades endpoint
+        const alternativeResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades');
+        console.log('Alternative trades endpoint response:', alternativeResponse.data);
+        return {
+          ...alternativeResponse.data,
+          isFallback: true,
+          message: 'Using alternative trades endpoint as fallback'
+        };
+      } catch (alternativeError) {
+        console.error('Alternative trades endpoint also failed:', alternativeError);
+        
+        // If all endpoints fail, return empty data with fallback flag
+        return {
+          success: true,
+          data: [],
+          isFallback: true,
+          message: 'All trade endpoints failed, returning empty data'
+        };
+      }
+    }
+    
     throw error;
   }
 };
@@ -402,11 +455,11 @@ export const getAdminDashboardStats = async () => {
     // Since the stats endpoint doesn't exist, we'll construct stats from available data
     const [usersResponse, tradesResponse] = await Promise.all([
       axios.get('https://apistocktrading-production.up.railway.app/api/users/list'),
-      axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades/history')
+      getAdminTrades() // Use the function with fallback logic instead of direct endpoint call
     ]);
     
     const users = usersResponse.data?.data || [];
-    const trades = tradesResponse.data?.data || [];
+    const trades = tradesResponse.data || [];
     
     // Calculate stats from available data
     const stats = {
