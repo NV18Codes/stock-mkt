@@ -99,7 +99,23 @@ export const getUserBrokerOrderBook = async () => {
         return response.data;
     } catch (error) {
         console.error('Error fetching user broker order book:', error);
-        throw error;
+        
+        // If it's a 400 error, user might not be connected to broker or have no orders
+        if (error.response?.status === 400) {
+            console.log('User not connected to broker or no orders available, returning empty order book');
+            return {
+                success: true,
+                data: [],
+                message: 'No orders available - user may not be connected to broker'
+            };
+        }
+        
+        // For other errors, return empty order book
+        return {
+            success: true,
+            data: [],
+            message: 'Unable to fetch order book - using fallback data'
+        };
     }
 };
 

@@ -5,10 +5,19 @@ const TradeHistory = () => {
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [tradesPerPage] = useState(10);
+
+  // Filter trades based on search term
+  const filteredTrades = trades.filter(trade => 
+    trade.trading_symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    trade.underlying_symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    trade.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    trade.remarks?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     fetchTrades();
@@ -119,13 +128,13 @@ const TradeHistory = () => {
   // Get current trades for pagination
   const indexOfLastTrade = currentPage * tradesPerPage;
   const indexOfFirstTrade = indexOfLastTrade - tradesPerPage;
-  const currentTrades = trades.slice(indexOfFirstTrade, indexOfLastTrade);
+  const currentTrades = filteredTrades.slice(indexOfFirstTrade, indexOfLastTrade);
 
   // Change page
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   // Calculate total pages
-  const totalPages = Math.ceil(trades.length / tradesPerPage);
+  const totalPages = Math.ceil(filteredTrades.length / tradesPerPage);
 
   if (loading) {
     return (
@@ -154,6 +163,39 @@ const TradeHistory = () => {
         </div>
       )}
 
+      {/* Search Bar */}
+      <div style={{ 
+        background: '#fff', 
+        padding: '1.5em', 
+        borderRadius: '12px', 
+        boxShadow: '0 2px 10px rgba(0,0,0,0.1)', 
+        marginBottom: '1.5em',
+        border: '1px solid #e9ecef'
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '1em',
+          maxWidth: '500px'
+        }}>
+          <span style={{ fontSize: '1.2em' }}>🔍</span>
+          <input 
+            type="text" 
+            placeholder="Search trades by symbol, status, or remarks..." 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ 
+              flex: 1, 
+              padding: '0.8em', 
+              border: '1px solid #e9ecef', 
+              borderRadius: '6px', 
+              fontSize: '14px',
+              outline: 'none'
+            }}
+          />
+        </div>
+      </div>
+
       <div style={{ 
         background: '#fff', 
         borderRadius: '12px', 
@@ -165,7 +207,7 @@ const TradeHistory = () => {
           padding: '1.5em', 
           borderBottom: '1px solid #e9ecef' 
         }}>
-          <h2 style={{ color: '#333', margin: 0, fontWeight: '600' }}>All Trades ({trades.length})</h2>
+          <h2 style={{ color: '#333', margin: 0, fontWeight: '600' }}>All Trades ({filteredTrades.length})</h2>
         </div>
 
         <div style={{ overflowX: 'auto' }}>

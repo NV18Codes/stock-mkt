@@ -75,163 +75,429 @@ const TradeList = () => {
     setSearchTerm('');
   };
 
+  const getStatusColor = (status) => {
+    if (!status) return '#6c757d';
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('completed') || statusLower.includes('filled')) return '#00d4aa';
+    if (statusLower.includes('pending') || statusLower.includes('open')) return '#ffa726';
+    if (statusLower.includes('cancelled') || statusLower.includes('rejected')) return '#ff6b6b';
+    if (statusLower.includes('partial')) return '#667eea';
+    return '#6c757d';
+  };
+
+  const getTypeColor = (type) => {
+    if (!type) return '#6c757d';
+    const typeLower = type.toLowerCase();
+    if (typeLower.includes('buy')) return '#00d4aa';
+    if (typeLower.includes('sell')) return '#ff6b6b';
+    return '#667eea';
+  };
+
+  if (loading) {
+    return (
+      <div style={{ 
+        textAlign: 'center', 
+        padding: 'clamp(2em, 5vw, 4em)',
+        background: 'rgba(255,255,255,0.9)',
+        borderRadius: '16px',
+        border: '1px solid rgba(255,255,255,0.3)'
+      }}>
+        <div className="loading-spinner" style={{
+          width: '50px',
+          height: '50px',
+          border: '4px solid #e3e3e3',
+          borderTop: '4px solid #667eea',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '1em'
+        }} />
+        <p style={{ 
+          color: '#2c3e50', 
+          fontSize: 'clamp(14px, 2.5vw, 16px)',
+          fontWeight: 500
+        }}>
+          Loading trade history...
+        </p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        textAlign: 'center', 
+        padding: 'clamp(2em, 5vw, 4em)',
+        background: 'rgba(255,255,255,0.9)',
+        borderRadius: '16px',
+        border: '1px solid rgba(255,255,255,0.3)'
+      }}>
+        <div style={{ 
+          fontSize: '3em', 
+          marginBottom: '0.5em',
+          color: '#ff6b6b'
+        }}>
+          ⚠️
+        </div>
+        <p style={{ 
+          color: '#2c3e50', 
+          fontSize: 'clamp(14px, 2.5vw, 16px)',
+          fontWeight: 500,
+          marginBottom: '1em'
+        }}>
+          {error}
+        </p>
+        <button
+          onClick={fetchTrades}
+          style={{
+            padding: 'clamp(0.6em, 1.5vw, 0.8em) clamp(1em, 2vw, 1.2em)',
+            borderRadius: '8px',
+            border: '1px solid #667eea',
+            background: 'linear-gradient(135deg, #667eea, #764ba2)',
+            color: '#ffffff',
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            fontSize: 'clamp(12px, 2.5vw, 14px)'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-1px)';
+            e.target.style.boxShadow = '0 4px 15px rgba(102,126,234,0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = 'none';
+          }}
+        >
+          🔄 Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ background: '#fff', borderRadius: 8, boxShadow: '0 1px 6px rgba(0,0,0,0.1)', border: '1px solid #e0e0e0', padding: 'clamp(1em, 3vw, 1.5em)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1em' }}>
-        <h3 style={{ color: '#2c3e50', fontSize: 'clamp(1em, 3vw, 1.2em)', margin: 0 }}>Trade List</h3>
+    <div style={{ 
+      background: 'rgba(255,255,255,0.95)', 
+      borderRadius: '16px', 
+      boxShadow: '0 8px 25px rgba(0,0,0,0.1)', 
+      border: '1px solid rgba(255,255,255,0.3)', 
+      padding: 'clamp(1.5em, 3vw, 2em)',
+      backdropFilter: 'blur(10px)'
+    }}>
+      {/* Header */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: 'clamp(1.5em, 3vw, 2em)',
+        flexWrap: 'wrap',
+        gap: '1em'
+      }}>
+        <div>
+          <h3 style={{ 
+            color: '#2c3e50', 
+            fontSize: 'clamp(1.2em, 3vw, 1.5em)', 
+            margin: '0 0 0.5em 0',
+            fontWeight: 700
+          }}>
+            📋 Trade History
+          </h3>
+          <p style={{ 
+            color: '#6c757d', 
+            fontSize: 'clamp(12px, 2.5vw, 14px)',
+            margin: 0
+          }}>
+            {filteredTrades.length} {filteredTrades.length === 1 ? 'trade' : 'trades'} found
+          </p>
+        </div>
         
         {/* Search and Refresh Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5em' }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 'clamp(0.5em, 1vw, 0.8em)', 
+          flexWrap: 'wrap' 
+        }}>
           {/* Search Bar */}
-          <input
-            type="text"
-            placeholder="Search trades by symbol, type, status, ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              padding: '0.5em 0.8em',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: 'clamp(12px, 2.5vw, 14px)',
-              minWidth: '250px',
-              transition: 'border-color 0.3s ease'
-            }}
-          />
-          
-          {/* Clear Search Button */}
-          {searchTerm && (
-            <button
-              onClick={clearSearch}
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="Search trades..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               style={{
-                padding: '0.5em 0.8em',
-                background: '#6c757d',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '12px',
-                cursor: 'pointer',
-                transition: 'background-color 0.3s ease'
+                padding: 'clamp(0.6em, 1.5vw, 0.8em) clamp(2.5em, 3vw, 3em) clamp(0.6em, 1.5vw, 0.8em) clamp(0.8em, 2vw, 1em)',
+                border: '1px solid #e0e0e0',
+                borderRadius: '12px',
+                fontSize: 'clamp(12px, 2.5vw, 14px)',
+                minWidth: 'clamp(200px, 25vw, 300px)',
+                transition: 'all 0.3s ease',
+                background: '#ffffff'
               }}
-              onMouseEnter={(e) => e.target.style.background = '#5a6268'}
-              onMouseLeave={(e) => e.target.style.background = '#6c757d'}
-            >
-              Clear
-            </button>
-          )}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#667eea';
+                e.target.style.boxShadow = '0 0 0 3px rgba(102,126,234,0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e0e0e0';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+            <span style={{
+              position: 'absolute',
+              left: 'clamp(0.8em, 2vw, 1em)',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#6c757d',
+              fontSize: 'clamp(14px, 2.5vw, 16px)'
+            }}>
+              🔍
+            </span>
+            {searchTerm && (
+              <button
+                onClick={clearSearch}
+                style={{
+                  position: 'absolute',
+                  right: 'clamp(0.8em, 2vw, 1em)',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: '#6c757d',
+                  cursor: 'pointer',
+                  fontSize: 'clamp(14px, 2.5vw, 16px)',
+                  padding: '0.2em',
+                  borderRadius: '50%',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#f8f9fa';
+                  e.target.style.color = '#dc3545';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = '#6c757d';
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
           
           {/* Refresh Button */}
           <button
             onClick={refreshTrades}
             disabled={refreshing}
             style={{
-              padding: '0.5em 0.8em',
-              background: refreshing ? '#6c757d' : '#007bff',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '12px',
+              padding: 'clamp(0.6em, 1.5vw, 0.8em)',
+              borderRadius: '12px',
+              border: '1px solid #00d4aa',
+              background: refreshing ? '#ccc' : 'linear-gradient(135deg, #00d4aa, #00b894)',
+              color: '#ffffff',
               cursor: refreshing ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.3s ease',
+              transition: 'all 0.3s ease',
+              fontSize: 'clamp(14px, 2.5vw, 16px)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.3em'
+              justifyContent: 'center',
+              minWidth: 'clamp(40px, 5vw, 50px)',
+              height: 'clamp(40px, 5vw, 50px)'
             }}
-            onMouseEnter={(e) => !refreshing && (e.target.style.background = '#0056b3')}
-            onMouseLeave={(e) => !refreshing && (e.target.style.background = '#007bff')}
+            onMouseEnter={(e) => {
+              if (!refreshing) {
+                e.target.style.transform = 'translateY(-1px)';
+                e.target.style.boxShadow = '0 4px 15px rgba(0,212,170,0.3)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!refreshing) {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = 'none';
+              }
+            }}
           >
-            {refreshing ? '🔄' : '🔄'} {refreshing ? 'Refreshing...' : 'Refresh'}
+            {refreshing ? '🔄' : '🔄'}
           </button>
         </div>
       </div>
 
-      {/* Search Results Info */}
-      {searchTerm && (
+      {/* Trades Table */}
+      {filteredTrades.length > 0 ? (
         <div style={{ 
-          marginBottom: '1em',
-          padding: '0.5em',
-          background: '#e3f2fd',
-          color: '#1976d2',
-          borderRadius: '4px',
-          fontSize: '14px'
+          overflowX: 'auto',
+          borderRadius: '12px',
+          border: '1px solid rgba(0,0,0,0.1)'
         }}>
-          Showing {filteredTrades.length} of {trades.length} trades
-          {searchTerm && ` matching "${searchTerm}"`}
-        </div>
-      )}
-
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: '2em', color: '#666' }}>
-          <div style={{ fontSize: '1.2em', marginBottom: '0.5em' }}>🔄</div>
-          Loading trades...
-        </div>
-      ) : error ? (
-        <div style={{ color: '#dc3545', textAlign: 'center', padding: '1em' }}>{error}</div>
-      ) : filteredTrades.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '2em', color: '#666' }}>
-          {searchTerm ? 'No trades found matching your search.' : 'No trades found.'}
-          {!searchTerm && (
-            <div style={{ marginTop: '1em' }}>
-              <button 
-                onClick={refreshTrades}
-                style={{
-                  padding: '0.5em 1em',
-                  background: '#007bff',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Refresh Trades
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'clamp(11px, 2.5vw, 13px)', minWidth: '600px' }}>
+          <table style={{ 
+            width: '100%', 
+            borderCollapse: 'collapse',
+            background: '#ffffff',
+            fontSize: 'clamp(11px, 2.5vw, 13px)',
+            minWidth: '800px'
+          }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
-                <th style={{ padding: '0.8em', textAlign: 'left' }}>Trade ID</th>
-                <th style={{ padding: '0.8em', textAlign: 'left' }}>Symbol</th>
-                <th style={{ padding: '0.8em', textAlign: 'left' }}>Type</th>
-                <th style={{ padding: '0.8em', textAlign: 'left' }}>Qty</th>
-                <th style={{ padding: '0.8em', textAlign: 'left' }}>Price</th>
-                <th style={{ padding: '0.8em', textAlign: 'left' }}>Status</th>
-                <th style={{ padding: '0.8em', textAlign: 'left' }}>Time</th>
+              <tr style={{ 
+                background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                color: '#ffffff'
+              }}>
+                <th style={{ 
+                  padding: 'clamp(0.8em, 2vw, 1em)', 
+                  textAlign: 'left', 
+                  fontWeight: 600,
+                  fontSize: 'clamp(12px, 2.5vw, 14px)'
+                }}>
+                  Symbol
+                </th>
+                <th style={{ 
+                  padding: 'clamp(0.8em, 2vw, 1em)', 
+                  textAlign: 'center', 
+                  fontWeight: 600,
+                  fontSize: 'clamp(12px, 2.5vw, 14px)'
+                }}>
+                  Type
+                </th>
+                <th style={{ 
+                  padding: 'clamp(0.8em, 2vw, 1em)', 
+                  textAlign: 'center', 
+                  fontWeight: 600,
+                  fontSize: 'clamp(12px, 2.5vw, 14px)'
+                }}>
+                  Quantity
+                </th>
+                <th style={{ 
+                  padding: 'clamp(0.8em, 2vw, 1em)', 
+                  textAlign: 'center', 
+                  fontWeight: 600,
+                  fontSize: 'clamp(12px, 2.5vw, 14px)'
+                }}>
+                  Price
+                </th>
+                <th style={{ 
+                  padding: 'clamp(0.8em, 2vw, 1em)', 
+                  textAlign: 'center', 
+                  fontWeight: 600,
+                  fontSize: 'clamp(12px, 2.5vw, 14px)'
+                }}>
+                  Status
+                </th>
+                <th style={{ 
+                  padding: 'clamp(0.8em, 2vw, 1em)', 
+                  textAlign: 'center', 
+                  fontWeight: 600,
+                  fontSize: 'clamp(12px, 2.5vw, 14px)'
+                }}>
+                  Date
+                </th>
               </tr>
             </thead>
             <tbody>
-              {filteredTrades.map((trade, idx) => (
-                <tr key={trade.id || idx} style={{ borderBottom: '1px solid #e0e0e0' }}>
-                  <td style={{ padding: '0.8em' }}>{trade.id || trade.tradeId || '-'}</td>
-                  <td style={{ padding: '0.8em' }}>{trade.symbol || trade.tradingSymbol || '-'}</td>
-                  <td style={{ padding: '0.8em' }}>{trade.type || trade.orderType || '-'}</td>
-                  <td style={{ padding: '0.8em' }}>{trade.quantity || '-'}</td>
-                  <td style={{ padding: '0.8em' }}>{trade.price || '-'}</td>
-                  <td style={{ padding: '0.8em' }}>
+              {filteredTrades.map((trade, index) => (
+                <tr key={trade.id || trade.tradeId || index} style={{ 
+                  borderBottom: '1px solid #f0f0f0',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.parentElement.style.background = '#f8f9fa';
+                  e.target.parentElement.style.transform = 'scale(1.01)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.parentElement.style.background = '#ffffff';
+                  e.target.parentElement.style.transform = 'scale(1)';
+                }}>
+                  <td style={{ 
+                    padding: 'clamp(0.8em, 2vw, 1em)', 
+                    fontWeight: 600,
+                    color: '#2c3e50'
+                  }}>
+                    {trade.symbol || trade.tradingSymbol || 'N/A'}
+                  </td>
+                  <td style={{ 
+                    padding: 'clamp(0.8em, 2vw, 1em)', 
+                    textAlign: 'center' 
+                  }}>
                     <span style={{
-                      padding: '0.2em 0.6em',
-                      borderRadius: '12px',
-                      fontSize: '0.8em',
-                      fontWeight: '500',
-                      background: trade.status === 'COMPLETED' ? '#d4edda' : 
-                                 trade.status === 'PENDING' ? '#fff3cd' : 
-                                 trade.status === 'CANCELLED' ? '#f8d7da' : '#e2e3e5',
-                      color: trade.status === 'COMPLETED' ? '#155724' : 
-                             trade.status === 'PENDING' ? '#856404' : 
-                             trade.status === 'CANCELLED' ? '#721c24' : '#6c757d'
+                      padding: 'clamp(0.3em, 1vw, 0.5em) clamp(0.6em, 1.5vw, 0.8em)',
+                      borderRadius: '20px',
+                      fontSize: 'clamp(10px, 2vw, 12px)',
+                      fontWeight: 600,
+                      color: '#ffffff',
+                      background: getTypeColor(trade.type || trade.orderType),
+                      textTransform: 'uppercase'
                     }}>
-                      {trade.status || '-'}
+                      {trade.type || trade.orderType || 'N/A'}
                     </span>
                   </td>
-                  <td style={{ padding: '0.8em' }}>
-                    {trade.time || trade.timestamp ? new Date(trade.time || trade.timestamp).toLocaleString() : '-'}
+                  <td style={{ 
+                    padding: 'clamp(0.8em, 2vw, 1em)', 
+                    textAlign: 'center',
+                    fontWeight: 500,
+                    color: '#2c3e50'
+                  }}>
+                    {trade.quantity || 'N/A'}
+                  </td>
+                  <td style={{ 
+                    padding: 'clamp(0.8em, 2vw, 1em)', 
+                    textAlign: 'center',
+                    fontWeight: 500,
+                    color: '#2c3e50'
+                  }}>
+                    ₹{trade.price || 'N/A'}
+                  </td>
+                  <td style={{ 
+                    padding: 'clamp(0.8em, 2vw, 1em)', 
+                    textAlign: 'center' 
+                  }}>
+                    <span style={{
+                      padding: 'clamp(0.3em, 1vw, 0.5em) clamp(0.6em, 1.5vw, 0.8em)',
+                      borderRadius: '20px',
+                      fontSize: 'clamp(10px, 2vw, 12px)',
+                      fontWeight: 600,
+                      color: '#ffffff',
+                      background: getStatusColor(trade.status),
+                      textTransform: 'capitalize'
+                    }}>
+                      {trade.status || 'N/A'}
+                    </span>
+                  </td>
+                  <td style={{ 
+                    padding: 'clamp(0.8em, 2vw, 1em)', 
+                    textAlign: 'center',
+                    fontSize: 'clamp(10px, 2vw, 12px)',
+                    color: '#6c757d'
+                  }}>
+                    {trade.timestamp ? new Date(trade.timestamp).toLocaleDateString() : 
+                     trade.created_at ? new Date(trade.created_at).toLocaleDateString() : 'N/A'}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      ) : (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: 'clamp(3em, 6vw, 5em)',
+          color: '#6c757d'
+        }}>
+          <div style={{ 
+            fontSize: 'clamp(3em, 6vw, 5em)', 
+            marginBottom: '1em',
+            opacity: 0.5
+          }}>
+            📊
+          </div>
+          <h4 style={{ 
+            margin: '0 0 0.5em 0',
+            fontSize: 'clamp(1.2em, 3vw, 1.5em)',
+            color: '#2c3e50'
+          }}>
+            {searchTerm ? 'No trades found' : 'No trades yet'}
+          </h4>
+          <p style={{ 
+            margin: 0,
+            fontSize: 'clamp(12px, 2.5vw, 14px)'
+          }}>
+            {searchTerm ? 'Try adjusting your search terms' : 'Start trading to see your trade history here'}
+          </p>
         </div>
       )}
     </div>

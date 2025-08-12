@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-
-// Use relative API URLs with proxy configuration
+import { getOptionsUnderlying, getOptionExpiries, getOptionChainStructure } from '../../api/admin';
 
 const AdminOrderForm = ({ onOrderSubmit, selectedUserIds }) => {
   const [formData, setFormData] = useState({
@@ -28,32 +26,133 @@ const AdminOrderForm = ({ onOrderSubmit, selectedUserIds }) => {
   const [selectedUnderlying, setSelectedUnderlying] = useState('');
   const [selectedExpiry, setSelectedExpiry] = useState('');
 
-  // Set static underlyings data
+  // Fetch underlyings from API
   useEffect(() => {
-    const staticUnderlyings = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'];
-    setUnderlyings(staticUnderlyings);
-    setSelectedUnderlying(staticUnderlyings[0]);
-    setLoading(prev => ({ ...prev, underlyings: false }));
+    const fetchUnderlyings = async () => {
+      setLoading(prev => ({ ...prev, underlyings: true }));
+      setError('');
+      try {
+        const response = await getOptionsUnderlying();
+        console.log('Underlyings response:', response);
+        
+        let underlyingsData = [];
+        if (response && response.data && Array.isArray(response.data)) {
+          underlyingsData = response.data;
+        } else if (response && Array.isArray(response)) {
+          underlyingsData = response;
+        } else if (response && response.success && response.data) {
+          underlyingsData = response.data;
+        }
+        
+        if (underlyingsData.length > 0) {
+          setUnderlyings(underlyingsData);
+          setSelectedUnderlying(underlyingsData[0]);
+        } else {
+          // Fallback to static data if API returns empty
+          const staticUnderlyings = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'];
+          setUnderlyings(staticUnderlyings);
+          setSelectedUnderlying(staticUnderlyings[0]);
+        }
+      } catch (err) {
+        console.error('Error fetching underlyings:', err);
+        setError('Failed to load underlyings. Using fallback data.');
+        // Fallback to static data
+        const staticUnderlyings = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'];
+        setUnderlyings(staticUnderlyings);
+        setSelectedUnderlying(staticUnderlyings[0]);
+      } finally {
+        setLoading(prev => ({ ...prev, underlyings: false }));
+      }
+    };
+
+    fetchUnderlyings();
   }, []);
 
-  // Set static expiries when underlying changes
+  // Fetch expiries from API when underlying changes
   useEffect(() => {
     if (!selectedUnderlying) return;
-    setLoading(prev => ({ ...prev, expiries: true }));
     
-    const staticExpiries = ['10JUL2025', '17JUL2025', '24JUL2025', '31JUL2025', '07AUG2025', '14AUG2025', '21AUG2025'];
-    setExpiries(staticExpiries);
-    setSelectedExpiry(staticExpiries[0]);
-    
-    setLoading(prev => ({ ...prev, expiries: false }));
+    const fetchExpiries = async () => {
+      setLoading(prev => ({ ...prev, expiries: true }));
+      setError('');
+      try {
+        const response = await getOptionExpiries(selectedUnderlying);
+        console.log('Expiries response:', response);
+        
+        let expiriesData = [];
+        if (response && response.data && Array.isArray(response.data)) {
+          expiriesData = response.data;
+        } else if (response && Array.isArray(response)) {
+          expiriesData = response;
+        } else if (response && response.success && response.data) {
+          expiriesData = response.data;
+        }
+        
+        if (expiriesData.length > 0) {
+          setExpiries(expiriesData);
+          setSelectedExpiry(expiriesData[0]);
+        } else {
+          // Fallback to static data if API returns empty
+          const staticExpiries = ['10JUL2025', '17JUL2025', '24JUL2025', '31JUL2025', '07AUG2025', '14AUG2025', '21AUG2025'];
+          setExpiries(staticExpiries);
+          setSelectedExpiry(staticExpiries[0]);
+        }
+      } catch (err) {
+        console.error('Error fetching expiries:', err);
+        setError('Failed to load expiries. Using fallback data.');
+        // Fallback to static data
+        const staticExpiries = ['10JUL2025', '17JUL2025', '24JUL2025', '31JUL2025', '07AUG2025', '14AUG2025', '21AUG2025'];
+        setExpiries(staticExpiries);
+        setSelectedExpiry(staticExpiries[0]);
+      } finally {
+        setLoading(prev => ({ ...prev, expiries: false }));
+      }
+    };
+
+    fetchExpiries();
   }, [selectedUnderlying]);
 
-  // Generate static option chain when underlying or expiry changes
+  // Fetch option chain from API when underlying or expiry changes
   useEffect(() => {
     if (!selectedUnderlying || !selectedExpiry) return;
-    setLoading(prev => ({ ...prev, options: true }));
     
-    // Generate static option chain data
+    const fetchOptionChain = async () => {
+      setLoading(prev => ({ ...prev, options: true }));
+      setError('');
+      try {
+        const response = await getOptionChainStructure(selectedUnderlying, selectedExpiry);
+        console.log('Option chain response:', response);
+        
+        let optionChainData = [];
+        if (response && response.data && Array.isArray(response.data)) {
+          optionChainData = response.data;
+        } else if (response && Array.isArray(response)) {
+          optionChainData = response;
+        } else if (response && response.success && response.data) {
+          optionChainData = response.data;
+        }
+        
+        if (optionChainData.length > 0) {
+          setOptionChain(optionChainData);
+        } else {
+          // Fallback to static data if API returns empty
+          generateStaticOptionChain();
+        }
+      } catch (err) {
+        console.error('Error fetching option chain:', err);
+        setError('Failed to load option chain. Using fallback data.');
+        // Fallback to static data
+        generateStaticOptionChain();
+      } finally {
+        setLoading(prev => ({ ...prev, options: false }));
+      }
+    };
+
+    fetchOptionChain();
+  }, [selectedUnderlying, selectedExpiry]);
+
+  // Fallback function to generate static option chain
+  const generateStaticOptionChain = () => {
     const basePrice = selectedUnderlying === 'NIFTY' ? 22000 : selectedUnderlying === 'BANKNIFTY' ? 48000 : 20000;
     const staticOptions = [];
     
@@ -75,8 +174,7 @@ const AdminOrderForm = ({ onOrderSubmit, selectedUserIds }) => {
     }
     
     setOptionChain(staticOptions);
-    setLoading(prev => ({ ...prev, options: false }));
-  }, [selectedUnderlying, selectedExpiry]);
+  };
 
   // Update target_user_ids when selectedUserIds changes
   useEffect(() => {

@@ -1,44 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import SegmentSelection from './SegmentSelection';
+import React, { useState, useEffect } from 'react';
 import OrderForm from './OrderForm';
-import ChartArea from './ChartArea';
 import { 
-  placeTradeOrder,
-  getPositions,
-  getOrderHistory
+  placeTradeOrder
 } from '../../api/trading';
-import axios from 'axios';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import OrderList from './OrderList';
 import TradeList from './TradeList';
 import {
   fetchMyBrokerProfile,
-  clearBrokerProfile,
+  clearBrokerConnection,
   getDematLimit
 } from '../../api/auth';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
-
-const API = 'https://apistocktrading-production.up.railway.app/api';
 
 const TradingViewWidget = ({ symbol }) => (
   <div style={{ width: '100%', height: 320, borderRadius: 8, overflow: 'hidden', margin: '0 auto' }}>
@@ -52,16 +24,18 @@ const TradingViewWidget = ({ symbol }) => (
 );
 
 const TradingPortal = () => {
+  const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedSegment, setSelectedSegment] = useState('All Segments');
+
   const [clearBrokerStatus, setClearBrokerStatus] = useState('');
   const [clearBrokerLoading, setClearBrokerLoading] = useState(false);
   const [portfolioData, setPortfolioData] = useState(null);
-  const [positions, setPositions] = useState([]);
+
   const [dematLimit, setDematLimit] = useState(null);
   const [orderStatus, setOrderStatus] = useState('');
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -91,14 +65,7 @@ const TradingPortal = () => {
             
             // Fetch additional data for connected users
             try {
-              const [positionsRes, dematRes] = await Promise.all([
-                getPositions(),
-                getDematLimit()
-              ]);
-              
-              if (positionsRes.success && Array.isArray(positionsRes.data)) {
-                setPositions(positionsRes.data);
-              }
+              const dematRes = await getDematLimit();
               
               if (dematRes.data) {
                 setDematLimit(dematRes.data);
@@ -112,14 +79,12 @@ const TradingPortal = () => {
             console.log('Broker not connected or not active, setting userData to null');
             setUserData(null);
             setPortfolioData(null);
-            setPositions([]);
             setDematLimit(null);
           }
         } else {
           console.log('No broker profile data, setting userData to null');
           setUserData(null);
           setPortfolioData(null);
-          setPositions([]);
           setDematLimit(null);
         }
       } catch (err) {
@@ -127,7 +92,6 @@ const TradingPortal = () => {
         setError('Failed to load user data. Please try again later.');
         setUserData(null);
         setPortfolioData(null);
-        setPositions([]);
         setDematLimit(null);
       } finally {
         setLoading(false);
@@ -137,22 +101,7 @@ const TradingPortal = () => {
     fetchUserData();
   }, []);
 
-  // Generate portfolio chart data
-  const generatePortfolioChartData = (baseValue) => {
-    const data = [];
-    const today = new Date();
-    for (let i = 30; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const randomChange = (Math.random() - 0.5) * 0.1; // ±5% daily change
-      const value = baseValue * (1 + randomChange);
-      data.push({
-        date: date.toISOString(),
-        value: Math.max(value, baseValue * 0.8) // Don't go below 80% of base
-      });
-    }
-    return data;
-  };
+
 
   const handleOrderSubmit = async (orderData) => {
     try {
@@ -194,7 +143,7 @@ const TradingPortal = () => {
     setClearBrokerLoading(true);
     setClearBrokerStatus('');
     try {
-      const result = await clearBrokerProfile();
+      const result = await clearBrokerConnection();
       console.log('Clear broker result:', result);
       
       if (result && result.success) {
@@ -202,7 +151,6 @@ const TradingPortal = () => {
         // Force a complete reset of all broker-related data
         setUserData(null);
         setPortfolioData(null);
-        setPositions([]);
         setDematLimit(null);
         
         // Force a refresh of the component to show "Broker Not Connected" state
@@ -218,6 +166,10 @@ const TradingPortal = () => {
     } finally {
       setClearBrokerLoading(false);
     }
+  };
+
+  const handleConnectBroker = () => {
+    navigate('/dashboard/profile-settings');
   };
 
   if (loading) {
@@ -256,42 +208,65 @@ const TradingPortal = () => {
     return (
       <div style={{ 
         textAlign: 'center', 
-        padding: '2em', 
-        background: '#fff', 
-        borderRadius: '12px', 
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-        border: '1px solid #e0e0e0' 
+        padding: 'clamp(2em, 4vw, 3em)', 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        borderRadius: '16px', 
+        boxShadow: '0 8px 32px rgba(0,0,0,0.15)', 
+        border: '1px solid rgba(255,255,255,0.2)',
+        margin: 'clamp(1em, 3vw, 2em)',
+        color: 'white'
       }}>
-        <h2 style={{ 
-          color: '#2c3e50', 
-          marginBottom: '1em', 
-          fontWeight: 600,
-          fontSize: 'clamp(1.2em, 3vw, 1.5em)'
+        <div style={{
+          background: 'rgba(255,255,255,0.1)',
+          borderRadius: '12px',
+          padding: 'clamp(1.5em, 3vw, 2em)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.2)'
         }}>
-          Broker Not Connected
-        </h2>
-        <p style={{ 
-          color: '#6c757d', 
-          marginBottom: '1.5em',
-          fontSize: 'clamp(12px, 2.5vw, 14px)',
-          lineHeight: '1.5'
-        }}>
-          Please connect your broker account in the Broker Account Settings to access trading functionality.
-        </p>
-        <Link to="/user/broker-settings" style={{
-          display: 'inline-block',
-          background: '#007bff',
-          color: '#ffffff',
-          padding: 'clamp(0.8em, 2vw, 1em) clamp(1.5em, 3vw, 2em)',
-          borderRadius: '8px',
-          textDecoration: 'none',
-          fontWeight: 600,
-          fontSize: 'clamp(14px, 2.5vw, 16px)',
-          transition: 'all 0.3s ease',
-          boxShadow: '0 2px 4px rgba(0,123,255,0.2)'
-        }}>
-          Go to Broker Settings
-        </Link>
+          <h2 style={{ 
+            marginBottom: '1em', 
+            fontWeight: 700,
+            fontSize: 'clamp(1.5em, 4vw, 2em)',
+            textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}>
+            🚀 Connect Your Broker
+          </h2>
+          <p style={{ 
+            marginBottom: '2em',
+            fontSize: 'clamp(14px, 2.5vw, 16px)',
+            lineHeight: '1.6',
+            opacity: 0.9
+          }}>
+            Connect your broker account to unlock powerful trading features, real-time market data, and portfolio management tools.
+          </p>
+          <button 
+            onClick={handleConnectBroker}
+            style={{
+              display: 'inline-block',
+              background: 'linear-gradient(45deg, #00d4aa, #0099cc)',
+              color: '#ffffff',
+              padding: 'clamp(0.8em, 2vw, 1em) clamp(1.5em, 3vw, 2em)',
+              borderRadius: '12px',
+              textDecoration: 'none',
+              fontWeight: 600,
+              fontSize: 'clamp(14px, 2.5vw, 16px)',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 15px rgba(0,212,170,0.3)',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(0,212,170,0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 15px rgba(0,212,170,0.3)';
+            }}
+          >
+            🔗 Connect Broker Account
+          </button>
+        </div>
       </div>
     );
   }
@@ -299,24 +274,25 @@ const TradingPortal = () => {
   return (
     <div style={{ 
       padding: 'clamp(1em, 3vw, 1.5em)', 
-      background: '#f8f9fa', 
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', 
       minHeight: '100vh', 
       maxWidth: 1400, 
       margin: '0 auto'
     }}>
       {error && (
         <div style={{ 
-          background: '#f8d7da', 
-          color: '#721c24', 
+          background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)', 
+          color: '#ffffff', 
           padding: 'clamp(0.8em, 2vw, 1em)', 
-          borderRadius: '8px', 
+          borderRadius: '12px', 
           marginBottom: '1.5em', 
-          border: '1px solid #f5c6cb', 
+          border: '1px solid rgba(255,255,255,0.2)', 
           fontSize: 'clamp(12px, 2.5vw, 14px)',
           fontWeight: 500,
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5em'
+          gap: '0.5em',
+          boxShadow: '0 4px 15px rgba(255,107,107,0.3)'
         }}>
           <span>⚠️</span>
           <span><strong>Error:</strong> {error}</span>
@@ -325,272 +301,320 @@ const TradingPortal = () => {
 
       {clearBrokerStatus && (
         <div style={{ 
-          background: clearBrokerStatus.includes('successfully') ? '#d4edda' : '#f8d7da',
-          color: clearBrokerStatus.includes('successfully') ? '#155724' : '#721c24',
+          background: clearBrokerStatus.includes('successfully') ? 'linear-gradient(135deg, #00d4aa, #00b894)' : 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
+          color: '#ffffff', 
           padding: 'clamp(0.8em, 2vw, 1em)', 
-          borderRadius: '8px', 
+          borderRadius: '12px', 
           marginBottom: '1.5em', 
-          border: clearBrokerStatus.includes('successfully') ? '1px solid #c3e6cb' : '1px solid #f5c6cb', 
+          border: '1px solid rgba(255,255,255,0.2)', 
           fontSize: 'clamp(12px, 2.5vw, 14px)',
-          fontWeight: 500
+          fontWeight: 500,
+          boxShadow: clearBrokerStatus.includes('successfully') ? '0 4px 15px rgba(0,212,170,0.3)' : '0 4px 15px rgba(255,107,107,0.3)'
         }}>
           {clearBrokerStatus}
         </div>
       )}
 
-      {/* Header Section */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-        gap: '1.5em', 
-        marginBottom: '2em' 
-      }}>
-        {/* Portfolio Overview */}
-        {portfolioData && (
-          <div style={{ 
-            padding: 'clamp(1em, 3vw, 1.5em)', 
-            background: '#fff', 
-            borderRadius: '12px', 
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-            border: '1px solid #e0e0e0' 
-          }}>
-            <h3 style={{ 
-              color: '#2c3e50', 
-              marginBottom: '1em', 
-              fontSize: 'clamp(1.1em, 3vw, 1.3em)',
-              fontWeight: 600
-            }}>
-              Portfolio Performance
-            </h3>
-            <ChartArea data={portfolioData} />
-          </div>
-        )}
-
-        {/* Account Summary */}
-        <div style={{ 
-          padding: 'clamp(1em, 3vw, 1.5em)', 
-          background: '#fff', 
-          borderRadius: '12px', 
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-          border: '1px solid #e0e0e0' 
-        }}>
-          <h3 style={{ 
-            color: '#2c3e50', 
-            marginBottom: '1em', 
-            fontSize: 'clamp(1.1em, 3vw, 1.3em)',
-            fontWeight: 600
-          }}>
-            Account Summary
-          </h3>
-          <div style={{ display: 'grid', gap: '1em' }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              padding: '0.8em',
-              background: '#f8f9fa',
-              borderRadius: '8px'
-            }}>
-              <span style={{ color: '#6c757d', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Available Balance</span>
-              <span style={{ 
-                color: '#2c3e50', 
-                fontWeight: 600,
-                fontSize: 'clamp(14px, 2.5vw, 16px)'
-              }}>
-                ₹{(dematLimit?.net || 0).toLocaleString()}
-              </span>
-            </div>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              padding: '0.8em',
-              background: '#f8f9fa',
-              borderRadius: '8px'
-            }}>
-              <span style={{ color: '#6c757d', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Total Positions</span>
-              <span style={{ 
-                color: '#2c3e50', 
-                fontWeight: 600,
-                fontSize: 'clamp(14px, 2.5vw, 16px)'
-              }}>
-                {positions.length}
-              </span>
-            </div>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              padding: '0.8em',
-              background: '#f8f9fa',
-              borderRadius: '8px'
-            }}>
-              <span style={{ color: '#6c757d', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Broker Status</span>
-              <span style={{ 
-                color: '#28a745', 
-                fontWeight: 600,
-                fontSize: 'clamp(12px, 2.5vw, 14px)',
-                background: '#d4edda',
-                padding: '0.3em 0.8em',
-                borderRadius: '20px'
-              }}>
-                Connected
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div style={{ 
-          padding: 'clamp(1em, 3vw, 1.5em)', 
-          background: '#fff', 
-          borderRadius: '12px', 
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-          border: '1px solid #e0e0e0' 
-        }}>
-          <h3 style={{ 
-            color: '#2c3e50', 
-            marginBottom: '1em', 
-            fontSize: 'clamp(1.1em, 3vw, 1.3em)',
-            fontWeight: 600
-          }}>
-            Quick Actions
-          </h3>
-          <div style={{ display: 'grid', gap: '0.8em' }}>
-            <button
-              onClick={handleClearBroker}
-              disabled={clearBrokerLoading}
-              style={{
-                width: '100%',
-                padding: '0.8em',
-                background: '#dc3545',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: 'clamp(12px, 2.5vw, 14px)',
-                fontWeight: 600,
-                cursor: clearBrokerLoading ? 'not-allowed' : 'pointer',
-                opacity: clearBrokerLoading ? 0.6 : 1,
-                transition: 'all 0.3s ease'
-              }}
-            >
-              {clearBrokerLoading ? 'Disconnecting...' : 'Disconnect Broker'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Order Status */}
       {orderStatus && (
         <div style={{ 
-          background: orderStatus.includes('successfully') ? '#d4edda' : orderStatus.includes('Failed') ? '#f8d7da' : '#e3f2fd',
-          color: orderStatus.includes('successfully') ? '#155724' : orderStatus.includes('Failed') ? '#721c24' : '#1976d2',
+          background: orderStatus.includes('successfully') ? 'linear-gradient(135deg, #00d4aa, #00b894)' : 'linear-gradient(135deg, #ffa726, #ff9800)',
+          color: '#ffffff', 
           padding: 'clamp(0.8em, 2vw, 1em)', 
-          borderRadius: '8px', 
+          borderRadius: '12px', 
           marginBottom: '1.5em', 
-          border: orderStatus.includes('successfully') ? '1px solid #c3e6cb' : orderStatus.includes('Failed') ? '1px solid #f5c6cb' : '1px solid #bbdefb', 
+          border: '1px solid rgba(255,255,255,0.2)', 
           fontSize: 'clamp(12px, 2.5vw, 14px)',
           fontWeight: 500,
-          textAlign: 'center'
+          boxShadow: orderStatus.includes('successfully') ? '0 4px 15px rgba(0,212,170,0.3)' : '0 4px 15px rgba(255,167,38,0.3)'
         }}>
           {orderStatus}
         </div>
       )}
 
-      {/* Order Form */}
-      <OrderForm onOrderSubmit={handleOrderSubmit} />
-
-      {/* TradingView Chart */}
-      <div style={{ marginBottom: '2em' }}>
-        <TradingViewWidget symbol="NIFTY" />
-      </div>
-
-      {/* Order and Trade Lists */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', 
-        gap: '1.5em', 
-        marginBottom: '2em' 
+      {/* Tab Navigation */}
+      <div style={{
+        display: 'flex',
+        gap: '0.5em',
+        marginBottom: '2em',
+        flexWrap: 'wrap',
+        background: 'rgba(255,255,255,0.8)',
+        padding: '1em',
+        borderRadius: '12px',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255,255,255,0.3)'
       }}>
-        <OrderList />
-        <TradeList />
+        {['overview', 'trading', 'history', 'portfolio'].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              padding: 'clamp(0.6em, 1.5vw, 0.8em) clamp(1em, 2vw, 1.2em)',
+              borderRadius: '8px',
+              border: 'none',
+              background: activeTab === tab ? 'linear-gradient(135deg, #667eea, #764ba2)' : 'transparent',
+              color: activeTab === tab ? '#ffffff' : '#2c3e50',
+              fontWeight: activeTab === tab ? 600 : 500,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              fontSize: 'clamp(12px, 2.5vw, 14px)',
+              textTransform: 'capitalize'
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== tab) {
+                e.target.style.background = 'rgba(102,126,234,0.1)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== tab) {
+                e.target.style.background = 'transparent';
+              }
+            }}
+          >
+            {tab === 'overview' && '📊 Overview'}
+            {tab === 'trading' && '📈 Trading'}
+            {tab === 'history' && '📋 History'}
+            {tab === 'portfolio' && '💼 Portfolio'}
+          </button>
+        ))}
       </div>
 
-      {/* Segment Selection */}
-      <div style={{ marginBottom: '2em' }}>
-        <SegmentSelection
-          selected={selectedSegment}
-          onSelectSegment={setSelectedSegment}
-        />
-      </div>
-
-      {/* Positions Table */}
-      {positions.length > 0 && (
-        <div style={{ 
-          padding: 'clamp(1em, 3vw, 1.5em)', 
-          background: '#fff', 
-          borderRadius: '12px', 
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-          border: '1px solid #e0e0e0', 
-          marginBottom: '2em' 
-        }}>
-          <h3 style={{ 
-            color: '#2c3e50', 
-            marginBottom: '1em', 
-            fontSize: 'clamp(1.1em, 3vw, 1.3em)',
-            fontWeight: 600
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <>
+          {/* Header Section */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+            gap: 'clamp(1em, 2vw, 1.5em)', 
+            marginBottom: '2em' 
           }}>
-            Current Positions
-          </h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ 
-              width: '100%', 
-              borderCollapse: 'collapse', 
-              fontSize: 'clamp(11px, 2.5vw, 13px)',
-              minWidth: '600px'
+            {/* Portfolio Overview */}
+            {portfolioData && (
+              <div style={{ 
+                background: 'linear-gradient(135deg, #667eea, #764ba2)', 
+                color: '#ffffff', 
+                padding: 'clamp(1.2em, 2.5vw, 1.5em)', 
+                borderRadius: '16px', 
+                boxShadow: '0 8px 25px rgba(102,126,234,0.3)',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }}>
+                <h3 style={{ margin: '0 0 0.5em 0', fontSize: 'clamp(14px, 2.5vw, 16px)', opacity: 0.9 }}>Portfolio Value</h3>
+                <div style={{ fontSize: 'clamp(1.5em, 3vw, 2em)', fontWeight: 700, marginBottom: '0.5em' }}>
+                  ₹{portfolioData.totalValue?.toLocaleString() || '0'}
+                </div>
+                <div style={{ fontSize: 'clamp(12px, 2.5vw, 14px)', opacity: 0.8 }}>
+                  {portfolioData.change >= 0 ? '+' : ''}{portfolioData.change}% today
+                </div>
+              </div>
+            )}
+
+            {/* Broker Status */}
+            <div style={{ 
+              background: 'linear-gradient(135deg, #00d4aa, #00b894)', 
+              color: '#ffffff', 
+              padding: 'clamp(1.2em, 2.5vw, 1.5em)', 
+              borderRadius: '16px', 
+              boxShadow: '0 8px 25px rgba(0,212,170,0.3)',
+              border: '1px solid rgba(255,255,255,0.2)'
             }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #e0e0e0', background: '#f8f9fa' }}>
-                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'left', fontWeight: 600 }}>Symbol</th>
-                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Qty</th>
-                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Avg Price</th>
-                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>LTP</th>
-                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Current Value</th>
-                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>P&L</th>
-                  <th style={{ color: '#495057', padding: '0.6em', textAlign: 'right', fontWeight: 600 }}>Day Change</th>
-                </tr>
-              </thead>
-              <tbody>
-                {positions.map((position, idx) => (
-                  <tr key={position.symbol || idx} style={{ borderBottom: '1px solid #e0e0e0' }}>
-                    <td style={{ padding: '0.6em', fontWeight: 500 }}>{position.symbol || '-'}</td>
-                    <td style={{ padding: '0.6em', textAlign: 'right' }}>{position.quantity || '-'}</td>
-                    <td style={{ padding: '0.6em', textAlign: 'right' }}>₹{position.averagePrice || '-'}</td>
-                    <td style={{ padding: '0.6em', textAlign: 'right' }}>₹{position.ltp || '-'}</td>
-                    <td style={{ padding: '0.6em', textAlign: 'right' }}>₹{position.currentValue || '-'}</td>
-                    <td style={{ 
-                      padding: '0.6em', 
-                      textAlign: 'right',
-                      color: (position.pnl || 0) >= 0 ? '#28a745' : '#dc3545',
-                      fontWeight: 500
-                    }}>
-                      ₹{position.pnl || '-'}
-                    </td>
-                    <td style={{ 
-                      padding: '0.6em', 
-                      textAlign: 'right',
-                      color: (position.dayChange || 0) >= 0 ? '#28a745' : '#dc3545',
-                      fontWeight: 500
-                    }}>
-                      {position.dayChange ? `${position.dayChange > 0 ? '+' : ''}${position.dayChange}%` : '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              <h3 style={{ margin: '0 0 0.5em 0', fontSize: 'clamp(14px, 2.5vw, 16px)', opacity: 0.9 }}>Broker Status</h3>
+              <div style={{ fontSize: 'clamp(1.2em, 2.5vw, 1.5em)', fontWeight: 700, marginBottom: '0.5em' }}>
+                {userData.broker.broker_name || 'Connected'}
+              </div>
+              <div style={{ fontSize: 'clamp(12px, 2.5vw, 14px)', opacity: 0.8 }}>
+                Active for Trading
+              </div>
+            </div>
+
+            {/* RMS Limit */}
+            {dematLimit && (
+              <div style={{ 
+                background: 'linear-gradient(135deg, #ffa726, #ff9800)', 
+                color: '#ffffff', 
+                padding: 'clamp(1.2em, 2.5vw, 1.5em)', 
+                borderRadius: '16px', 
+                boxShadow: '0 8px 25px rgba(255,167,38,0.3)',
+                border: '1px solid rgba(255,255,255,0.2)'
+              }}>
+                <h3 style={{ margin: '0 0 0.5em 0', fontSize: 'clamp(14px, 2.5vw, 16px)', opacity: 0.9 }}>RMS Limit</h3>
+                <div style={{ fontSize: 'clamp(1.2em, 2.5vw, 1.5em)', fontWeight: 700, marginBottom: '0.5em' }}>
+                  ₹{dematLimit.net?.toLocaleString() || '0'}
+                </div>
+                <div style={{ fontSize: 'clamp(12px, 2.5vw, 14px)', opacity: 0.8 }}>
+                  Available for Trading
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Chart Section */}
+          <div style={{ 
+            background: 'rgba(255,255,255,0.9)', 
+            borderRadius: '16px', 
+            padding: 'clamp(1.5em, 3vw, 2em)', 
+            marginBottom: '2em',
+            boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+            border: '1px solid rgba(255,255,255,0.3)'
+          }}>
+            <h3 style={{ margin: '0 0 1em 0', color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Portfolio Performance</h3>
+            <TradingViewWidget symbol="NIFTY" />
+          </div>
+        </>
+      )}
+
+      {activeTab === 'trading' && (
+        <div style={{ 
+          background: 'rgba(255,255,255,0.9)', 
+          borderRadius: '16px', 
+          padding: 'clamp(1.5em, 3vw, 2em)', 
+          marginBottom: '2em',
+          boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+          border: '1px solid rgba(255,255,255,0.3)'
+        }}>
+          <h3 style={{ margin: '0 0 1em 0', color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Place Orders</h3>
+          <OrderForm onSubmit={handleOrderSubmit} />
+        </div>
+      )}
+
+      {activeTab === 'history' && (
+        <div style={{ 
+          background: 'rgba(255,255,255,0.9)', 
+          borderRadius: '16px', 
+          padding: 'clamp(1.5em, 3vw, 2em)', 
+          marginBottom: '2em',
+          boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+          border: '1px solid rgba(255,255,255,0.3)'
+        }}>
+          <h3 style={{ margin: '0 0 1em 0', color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Trade History</h3>
+          <TradeList />
+        </div>
+      )}
+
+      {activeTab === 'portfolio' && (
+        <div style={{ 
+          background: 'rgba(255,255,255,0.9)', 
+          borderRadius: '16px', 
+          padding: 'clamp(1.5em, 3vw, 2em)', 
+          marginBottom: '2em',
+          boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+          border: '1px solid rgba(255,255,255,0.3)'
+        }}>
+          <h3 style={{ margin: '0 0 1em 0', color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Positions & Orders</h3>
+          <div style={{ display: 'grid', gap: '1.5em', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+            <div>
+              <h4 style={{ color: '#2c3e50', marginBottom: '1em' }}>Current Positions</h4>
+              <OrderList />
+            </div>
+            <div>
+              <h4 style={{ color: '#2c3e50', marginBottom: '1em' }}>Order History</h4>
+              <OrderList />
+            </div>
           </div>
         </div>
       )}
+
+      {/* Broker Management Section */}
+      <div style={{ 
+        background: 'rgba(255,255,255,0.9)', 
+        borderRadius: '16px', 
+        padding: 'clamp(1.5em, 3vw, 2em)', 
+        marginBottom: '2em',
+        boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+        border: '1px solid rgba(255,255,255,0.3)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1em', flexWrap: 'wrap', gap: '1em' }}>
+          <h3 style={{ margin: 0, color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Broker Management</h3>
+          <div style={{ display: 'flex', gap: '0.5em', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => navigate('/dashboard/profile-settings')}
+              style={{
+                padding: 'clamp(0.6em, 1.5vw, 0.8em) clamp(1em, 2vw, 1.2em)',
+                borderRadius: '8px',
+                border: '1px solid #667eea',
+                background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                color: '#ffffff',
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                fontSize: 'clamp(12px, 2.5vw, 14px)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-1px)';
+                e.target.style.boxShadow = '0 4px 15px rgba(102,126,234,0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = 'none';
+              }}
+            >
+              ⚙️ Profile Settings
+            </button>
+            <button
+              onClick={handleClearBroker}
+              disabled={clearBrokerLoading}
+              style={{
+                padding: 'clamp(0.6em, 1.5vw, 0.8em) clamp(1em, 2vw, 1.2em)',
+                borderRadius: '8px',
+                border: '1px solid #ff6b6b',
+                background: clearBrokerLoading ? '#ccc' : 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
+                color: '#ffffff',
+                fontWeight: 500,
+                cursor: clearBrokerLoading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s ease',
+                fontSize: 'clamp(12px, 2.5vw, 14px)'
+              }}
+              onMouseEnter={(e) => {
+                if (!clearBrokerLoading) {
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 4px 15px rgba(255,107,107,0.3)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!clearBrokerLoading) {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }
+              }}
+            >
+              {clearBrokerLoading ? '🔄 Processing...' : '❌ Disconnect Broker'}
+            </button>
+          </div>
+        </div>
+        
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+          gap: '1em' 
+        }}>
+          <div style={{ 
+            background: 'rgba(102,126,234,0.1)', 
+            padding: '1em', 
+            borderRadius: '8px', 
+            border: '1px solid rgba(102,126,234,0.2)' 
+          }}>
+            <div style={{ fontWeight: 600, color: '#2c3e50', marginBottom: '0.5em' }}>Broker Name</div>
+            <div style={{ color: '#667eea' }}>{userData.broker.broker_name || 'N/A'}</div>
+          </div>
+          <div style={{ 
+            background: 'rgba(0,212,170,0.1)', 
+            padding: '1em', 
+            borderRadius: '8px', 
+            border: '1px solid rgba(0,212,170,0.2)' 
+          }}>
+            <div style={{ fontWeight: 600, color: '#2c3e50', marginBottom: '0.5em' }}>Status</div>
+            <div style={{ color: '#00d4aa' }}>Active</div>
+          </div>
+          <div style={{ 
+            background: 'rgba(255,167,38,0.1)', 
+            padding: '1em', 
+            borderRadius: '8px', 
+            border: '1px solid rgba(255,167,38,0.2)' 
+          }}>
+            <div style={{ fontWeight: 600, color: '#2c3e50', marginBottom: '0.5em' }}>Trading Enabled</div>
+            <div style={{ color: '#ffa726' }}>Yes</div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

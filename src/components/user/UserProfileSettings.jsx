@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { updateProfile, getUserProfile } from '../../api/auth';
 import { 
   addBrokerAccount, 
   fetchMyBrokerProfile, 
-  clearBrokerProfile 
+  clearBrokerConnection 
 } from '../../api/auth';
 import { verifyBrokerTOTP } from '../../api/broker';
 import { useAuth } from '../../context/AuthContext';
-import { Link } from 'react-router-dom';
 import { 
   X, 
   Plus,
-  Trash2
+  Trash2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 const UserProfileSettings = () => {
@@ -39,14 +41,23 @@ const UserProfileSettings = () => {
     angelone_token: '',
     password: '',
     mpin: '',
-    totp: ''
+    totp: '',
+    showHashedDetails: false
   });
   
   const [brokerProfile, setBrokerProfile] = useState(null);
   const [showBrokerForm, setShowBrokerForm] = useState(false);
   const [brokerStep, setBrokerStep] = useState(1);
+  const [showDetailsPopup, setShowDetailsPopup] = useState(false);
 
   const [brokerLoading, setBrokerLoading] = useState(false);
+
+  // Utility function to hash sensitive data
+  const hashSensitiveData = (value) => {
+    if (!value) return '';
+    if (value.length <= 4) return '*'.repeat(value.length);
+    return '*'.repeat(value.length - 4) + value.slice(-4);
+  };
 
   useEffect(() => {
     fetchUserProfile();
@@ -152,7 +163,7 @@ const UserProfileSettings = () => {
 
   const handleClearBroker = async () => {
     try {
-      const result = await clearBrokerProfile();
+      const result = await clearBrokerConnection();
       if (result && result.success) {
         setSuccess('Broker connection cleared successfully');
         setBrokerProfile({
@@ -181,7 +192,8 @@ const UserProfileSettings = () => {
       angelone_token: '',
       password: '',
       mpin: '',
-      totp: ''
+      totp: '',
+      showHashedDetails: false
     });
     setBrokerStep(1);
     setError('');
@@ -573,71 +585,15 @@ const UserProfileSettings = () => {
               border: '1px solid #e9ecef',
               marginBottom: '1.5em'
             }}>
-              <div style={{ display: 'grid', gap: '1em' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#495057', fontWeight: 500 }}>Broker:</span>
-                  <span style={{ color: '#2c3e50', fontWeight: 600 }}>{brokerProfile.brokerName}</span>
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#495057', fontWeight: 500 }}>Account ID:</span>
-                  <span style={{ color: '#2c3e50', fontWeight: 600 }}>{brokerProfile.accountId}</span>
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#495057', fontWeight: 500 }}>Status:</span>
-                  <span style={{ 
-                    color: brokerProfile.status === 'Active' ? '#28a745' : '#dc3545', 
-                    fontWeight: 600,
-                    background: brokerProfile.status === 'Active' ? '#d4edda' : '#f8d7da',
-                    padding: '0.2em 0.6em',
-                    borderRadius: '12px',
-                    fontSize: '0.85em'
-                  }}>
-                    {brokerProfile.status}
-                  </span>
-                </div>
-              </div>
-              
-              <div style={{ 
-                display: 'flex', 
-                gap: '1em', 
-                marginTop: '1.5em',
-                flexWrap: 'wrap'
-              }}>
-                <button
-                  onClick={() => setShowBrokerForm(true)}
-                  style={{
-                    padding: '0.6em 1.2em',
-                    background: '#007bff',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: 14,
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5em'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = '#0056b3';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = '#007bff';
-                  }}
-                >
-                  <Plus size={16} />
-                  {brokerProfile.brokerName === 'No Broker Connected' ? 'Connect Broker' : 'Change Broker'}
-                </button>
-                
-                {brokerProfile.brokerName !== 'No Broker Connected' && (
+              {brokerProfile.brokerName === 'No Broker Connected' ? (
+                // No broker connected state
+                <div style={{ textAlign: 'center', padding: '1em' }}>
+                  <p style={{ color: '#6c757d', marginBottom: '1em' }}>No broker account connected</p>
                   <button
-                    onClick={handleClearBroker}
+                    onClick={() => setShowBrokerForm(true)}
                     style={{
                       padding: '0.6em 1.2em',
-                      background: '#dc3545',
+                      background: '#007bff',
                       color: '#fff',
                       border: 'none',
                       borderRadius: '6px',
@@ -647,20 +603,135 @@ const UserProfileSettings = () => {
                       transition: 'all 0.3s ease',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.5em'
+                      gap: '0.5em',
+                      margin: '0 auto'
                     }}
                     onMouseEnter={(e) => {
-                      e.target.style.background = '#c82333';
+                      e.target.style.background = '#0056b3';
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.background = '#dc3545';
+                      e.target.style.background = '#007bff';
                     }}
                   >
-                    <Trash2 size={16} />
-                    Disconnect
+                    <Plus size={16} />
+                    Connect Broker
                   </button>
-                )}
-              </div>
+                </div>
+              ) : (
+                // Broker connected state - simplified display
+                <div style={{ display: 'grid', gap: '1em' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    padding: '0.8em',
+                    background: '#e8f5e8',
+                    borderRadius: '6px',
+                    border: '1px solid #c3e6cb'
+                  }}>
+                    <span style={{ color: '#155724', fontWeight: 600, fontSize: '1.1em' }}>
+                      🏦 Broker Connected: {brokerProfile.brokerName}
+                    </span>
+                    <span style={{ 
+                      color: brokerProfile.status === 'Active' ? '#28a745' : '#dc3545', 
+                      fontWeight: 600,
+                      background: brokerProfile.status === 'Active' ? '#d4edda' : '#f8d7da',
+                      padding: '0.3em 0.8em',
+                      borderRadius: '12px',
+                      fontSize: '0.85em'
+                    }}>
+                      {brokerProfile.status}
+                    </span>
+                  </div>
+                  
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: '1em', 
+                    marginTop: '0.5em',
+                    flexWrap: 'wrap'
+                  }}>
+                    <button
+                      onClick={() => setShowDetailsPopup(true)}
+                      style={{
+                        padding: '0.6em 1.2em',
+                        background: '#17a2b8',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5em'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = '#138496';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = '#17a2b8';
+                      }}
+                    >
+                      👁️ View Details
+                    </button>
+                    
+                    <button
+                      onClick={() => setShowBrokerForm(true)}
+                      style={{
+                        padding: '0.6em 1.2em',
+                        background: '#007bff',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5em'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = '#0056b3';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = '#007bff';
+                      }}
+                    >
+                      <Plus size={16} />
+                      Change Broker
+                    </button>
+                    
+                    <button
+                      onClick={handleClearBroker}
+                      style={{
+                        padding: '0.6em 1.2em',
+                        background: '#dc3545',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5em'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = '#c82333';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = '#dc3545';
+                      }}
+                    >
+                      <Trash2 size={16} />
+                      Disconnect
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -686,22 +757,49 @@ const UserProfileSettings = () => {
                 }}>
                   {brokerStep === 1 ? 'Step 1: Enter Broker Details' : 'Step 2: Enter TOTP'}
                 </h3>
-                <button
-                  onClick={() => {
-                    setShowBrokerForm(false);
-                    resetBrokerForm();
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '1.5em',
-                    cursor: 'pointer',
-                    color: '#6c757d',
-                    padding: '0.2em'
-                  }}
-                >
-                  <X />
-                </button>
+                <div style={{ display: 'flex', gap: '0.5em', alignItems: 'center' }}>
+                  {brokerStep === 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setBrokerData(prev => ({ ...prev, showHashedDetails: !prev.showHashedDetails }))}
+                      style={{
+                        padding: '0.4em 0.8em',
+                        background: '#17a2b8',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3em'
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = '#138496'}
+                      onMouseLeave={(e) => e.target.style.background = '#17a2b8'}
+                    >
+                      {brokerData.showHashedDetails ? <EyeOff size={14} /> : <Eye size={14} />}
+                      {brokerData.showHashedDetails ? 'Hide Details' : 'View Details'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowBrokerForm(false);
+                      resetBrokerForm();
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '1.5em',
+                      cursor: 'pointer',
+                      color: '#6c757d',
+                      padding: '0.2em'
+                    }}
+                  >
+                    <X />
+                  </button>
+                </div>
               </div>
 
               <form onSubmit={handleAddBroker}>
@@ -717,22 +815,48 @@ const UserProfileSettings = () => {
                       }}>
                         Broker Client ID
                       </label>
-                      <input
-                        type="text"
-                        name="broker_client_id"
-                        value={brokerData.broker_client_id}
-                        onChange={handleBrokerChange}
-                        placeholder="Enter your broker client ID"
-                        style={{ 
-                          width: '100%', 
-                          padding: '0.8em', 
-                          border: '1px solid #e0e0e0', 
-                          borderRadius: '6px', 
-                          fontSize: 14, 
-                          background: '#fff' 
-                        }}
-                        required
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          name="broker_client_id"
+                          value={brokerData.showHashedDetails ? brokerData.broker_client_id : hashSensitiveData(brokerData.broker_client_id)}
+                          onChange={handleBrokerChange}
+                          placeholder="Enter your broker client ID"
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.8em', 
+                            paddingRight: '3em',
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
+                            fontSize: 14, 
+                            background: '#fff',
+                            fontFamily: brokerData.showHashedDetails ? 'inherit' : 'monospace'
+                          }}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setBrokerData(prev => ({ ...prev, showHashedDetails: !prev.showHashedDetails }))}
+                          style={{
+                            position: 'absolute',
+                            right: '8px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            color: '#007bff',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            transition: 'background-color 0.3s ease'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#f0f0f0'}
+                          onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                        >
+                          {brokerData.showHashedDetails ? 'Hide' : 'View'}
+                        </button>
+                      </div>
                     </div>
                     
                     <div style={{ marginBottom: '1em' }}>
@@ -745,22 +869,48 @@ const UserProfileSettings = () => {
                       }}>
                         API Key
                       </label>
-                      <input
-                        type="text"
-                        name="broker_api_key"
-                        value={brokerData.broker_api_key}
-                        onChange={handleBrokerChange}
-                        placeholder="Enter your API key"
-                        style={{ 
-                          width: '100%', 
-                          padding: '0.8em', 
-                          border: '1px solid #e0e0e0', 
-                          borderRadius: '6px', 
-                          fontSize: 14, 
-                          background: '#fff' 
-                        }}
-                        required
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          name="broker_api_key"
+                          value={brokerData.showHashedDetails ? brokerData.broker_api_key : hashSensitiveData(brokerData.broker_api_key)}
+                          onChange={handleBrokerChange}
+                          placeholder="Enter your API key"
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.8em', 
+                            paddingRight: '3em',
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
+                            fontSize: 14, 
+                            background: '#fff',
+                            fontFamily: brokerData.showHashedDetails ? 'inherit' : 'monospace'
+                          }}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setBrokerData(prev => ({ ...prev, showHashedDetails: !prev.showHashedDetails }))}
+                          style={{
+                            position: 'absolute',
+                            right: '8px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            color: '#007bff',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            transition: 'background-color 0.3s ease'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#f0f0f0'}
+                          onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                        >
+                          {brokerData.showHashedDetails ? 'Hide' : 'View'}
+                        </button>
+                      </div>
                     </div>
                     
                     <div style={{ marginBottom: '1em' }}>
@@ -773,22 +923,48 @@ const UserProfileSettings = () => {
                       }}>
                         API Secret
                       </label>
-                      <input
-                        type="text"
-                        name="broker_api_secret"
-                        value={brokerData.broker_api_secret}
-                        onChange={handleBrokerChange}
-                        placeholder="Enter your API secret"
-                        style={{ 
-                          width: '100%', 
-                          padding: '1em', 
-                          border: '1px solid #e0e0e0', 
-                          borderRadius: '6px', 
-                          fontSize: 14, 
-                          background: '#fff' 
-                        }}
-                        required
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          name="broker_api_secret"
+                          value={brokerData.showHashedDetails ? brokerData.broker_api_secret : hashSensitiveData(brokerData.broker_api_secret)}
+                          onChange={handleBrokerChange}
+                          placeholder="Enter your API secret"
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.8em', 
+                            paddingRight: '3em',
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
+                            fontSize: 14, 
+                            background: '#fff',
+                            fontFamily: brokerData.showHashedDetails ? 'inherit' : 'monospace'
+                          }}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setBrokerData(prev => ({ ...prev, showHashedDetails: !prev.showHashedDetails }))}
+                          style={{
+                            position: 'absolute',
+                            right: '8px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            color: '#007bff',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            transition: 'background-color 0.3s ease'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#f0f0f0'}
+                          onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                        >
+                          {brokerData.showHashedDetails ? 'Hide' : 'View'}
+                        </button>
+                      </div>
                     </div>
                     
                     <div style={{ marginBottom: '1em' }}>
@@ -801,22 +977,48 @@ const UserProfileSettings = () => {
                       }}>
                         Angel One Token
                       </label>
-                      <input
-                        type="text"
-                        name="angelone_token"
-                        value={brokerData.angelone_token}
-                        onChange={handleBrokerChange}
-                        placeholder="Enter your Angel One token"
-                        style={{ 
-                          width: '100%', 
-                          padding: '0.8em', 
-                          border: '1px solid #e0e0e0', 
-                          borderRadius: '6px', 
-                          fontSize: 14, 
-                          background: '#fff' 
-                        }}
-                        required
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="text"
+                          name="angelone_token"
+                          value={brokerData.showHashedDetails ? brokerData.angelone_token : hashSensitiveData(brokerData.angelone_token)}
+                          onChange={handleBrokerChange}
+                          placeholder="Enter your Angel One token"
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.8em', 
+                            paddingRight: '3em',
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
+                            fontSize: 14, 
+                            background: '#fff',
+                            fontFamily: brokerData.showHashedDetails ? 'inherit' : 'monospace'
+                          }}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setBrokerData(prev => ({ ...prev, showHashedDetails: !prev.showHashedDetails }))}
+                          style={{
+                            position: 'absolute',
+                            right: '8px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            color: '#007bff',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            transition: 'background-color 0.3s ease'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#f0f0f0'}
+                          onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                        >
+                          {brokerData.showHashedDetails ? 'Hide' : 'View'}
+                        </button>
+                      </div>
                     </div>
                     
                     <div style={{ marginBottom: '1.5em' }}>
@@ -829,22 +1031,48 @@ const UserProfileSettings = () => {
                       }}>
                         MPIN
                       </label>
-                      <input
-                        type="password"
-                        name="mpin"
-                        value={brokerData.mpin}
-                        onChange={handleBrokerChange}
-                        placeholder="Enter your MPIN"
-                        style={{ 
-                          width: '100%', 
-                          padding: '0.8em', 
-                          border: '1px solid #e0e0e0', 
-                          borderRadius: '6px', 
-                          fontSize: 14, 
-                          background: '#fff' 
-                        }}
-                        required
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="password"
+                          name="mpin"
+                          value={brokerData.showHashedDetails ? brokerData.mpin : hashSensitiveData(brokerData.mpin)}
+                          onChange={handleBrokerChange}
+                          placeholder="Enter your MPIN"
+                          style={{ 
+                            width: '100%', 
+                            padding: '0.8em', 
+                            paddingRight: '3em',
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
+                            fontSize: 14, 
+                            background: '#fff',
+                            fontFamily: brokerData.showHashedDetails ? 'inherit' : 'monospace'
+                          }}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setBrokerData(prev => ({ ...prev, showHashedDetails: !prev.showHashedDetails }))}
+                          style={{
+                            position: 'absolute',
+                            right: '8px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            color: '#007bff',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            transition: 'background-color 0.3s ease'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#f0f0f0'}
+                          onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                        >
+                          {brokerData.showHashedDetails ? 'Hide' : 'View'}
+                        </button>
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -896,6 +1124,137 @@ const UserProfileSettings = () => {
                   {brokerLoading ? 'Processing...' : (brokerStep === 1 ? 'Add Broker Account' : 'Verify TOTP')}
                 </button>
               </form>
+            </div>
+          )}
+
+          {/* Broker Details Popup */}
+          {showDetailsPopup && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '1em'
+            }}>
+              <div style={{
+                background: '#fff',
+                borderRadius: '12px',
+                padding: '2em',
+                maxWidth: '600px',
+                width: '100%',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                position: 'relative'
+              }}>
+                <button
+                  onClick={() => setShowDetailsPopup(false)}
+                  style={{
+                    position: 'absolute',
+                    top: '1em',
+                    right: '1em',
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '1.5em',
+                    cursor: 'pointer',
+                    color: '#6c757d',
+                    padding: '0.2em'
+                  }}
+                >
+                  <X />
+                </button>
+                
+                <h3 style={{
+                  color: '#2c3e50',
+                  marginBottom: '1.5em',
+                  fontWeight: 600,
+                  fontSize: '1.3em',
+                  textAlign: 'center'
+                }}>
+                  🏦 Broker Account Details
+                </h3>
+                
+                <div style={{ display: 'grid', gap: '1em' }}>
+                  <div style={{
+                    padding: '1em',
+                    background: '#f8f9fa',
+                    borderRadius: '8px',
+                    border: '1px solid #e9ecef'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5em' }}>
+                      <span style={{ color: '#495057', fontWeight: 500 }}>Broker Name:</span>
+                      <span style={{ color: '#2c3e50', fontWeight: 600 }}>{brokerProfile.brokerName}</span>
+                    </div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5em' }}>
+                      <span style={{ color: '#495057', fontWeight: 500 }}>Account ID:</span>
+                      <span style={{ color: '#2c3e50', fontWeight: 600 }}>{brokerProfile.accountId}</span>
+                    </div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5em' }}>
+                      <span style={{ color: '#495057', fontWeight: 500 }}>Status:</span>
+                      <span style={{
+                        color: brokerProfile.status === 'Active' ? '#28a745' : '#dc3545',
+                        fontWeight: 600,
+                        background: brokerProfile.status === 'Active' ? '#d4edda' : '#f8d7da',
+                        padding: '0.2em 0.6em',
+                        borderRadius: '12px',
+                        fontSize: '0.85em'
+                      }}>
+                        {brokerProfile.status}
+                      </span>
+                    </div>
+                    
+                    {brokerProfile.exchanges && brokerProfile.exchanges.length > 0 && (
+                      <div style={{ marginTop: '1em' }}>
+                        <span style={{ color: '#495057', fontWeight: 500 }}>Exchanges: </span>
+                        <span style={{ color: '#2c3e50', fontWeight: 600 }}>
+                          {brokerProfile.exchanges.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {brokerProfile.products && brokerProfile.products.length > 0 && (
+                      <div style={{ marginTop: '0.5em' }}>
+                        <span style={{ color: '#495057', fontWeight: 500 }}>Products: </span>
+                        <span style={{ color: '#2c3e50', fontWeight: 600 }}>
+                          {brokerProfile.products.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div style={{ textAlign: 'center', marginTop: '1em' }}>
+                    <button
+                      onClick={() => setShowDetailsPopup(false)}
+                      style={{
+                        padding: '0.6em 1.2em',
+                        background: '#6c757d',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = '#5a6268';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = '#6c757d';
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

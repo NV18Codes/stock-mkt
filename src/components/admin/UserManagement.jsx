@@ -7,7 +7,7 @@ import {
   deleteSegmentById,
   addUserToSegment
 } from '../../api/admin';
-import APITestUtility from '../../utils/apiTestUtility';
+
 
 // A helper function to format numbers as currency
 const formatCurrency = (value) => {
@@ -21,6 +21,50 @@ const formatCurrency = (value) => {
 
 
 const UserManagement = () => {
+  // Add responsive CSS
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @media (max-width: 768px) {
+        .user-management-container {
+          padding: 1rem !important;
+        }
+        .user-management-table {
+          font-size: 12px !important;
+        }
+        .user-management-table th,
+        .user-management-table td {
+          padding: 0.5rem 0.3rem !important;
+        }
+        .segment-card {
+          margin-bottom: 1rem !important;
+        }
+        .action-buttons {
+          flex-direction: column !important;
+          gap: 0.5rem !important;
+        }
+        .user-pool-item {
+          font-size: 13px !important;
+          padding: 0.5rem !important;
+        }
+        .segment-card {
+          padding: 1rem !important;
+        }
+        .panel-header {
+          flex-direction: column !important;
+          align-items: flex-start !important;
+        }
+        .user-pool-item:hover {
+          background: #e9ecef !important;
+          transform: translateY(-1px) !important;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
   // --- STATE MANAGEMENT ---
   const [users, setUsers] = useState([]);
   const [segments, setSegments] = useState([]);
@@ -32,8 +76,6 @@ const UserManagement = () => {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [errorUsers, setErrorUsers] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [apiTestResults, setApiTestResults] = useState(null);
-  const [apiTestLoading, setApiTestLoading] = useState(false);
 
   const rightPanelRef = useRef(null);
 
@@ -143,54 +185,7 @@ const UserManagement = () => {
   
   const getUserById = (id) => users.find(u => u.id === id);
 
-  // Test API connectivity for specific functions
-  const testAPIConnectivity = async () => {
-    setApiTestLoading(true);
-    setApiTestResults(null);
-    
-    try {
-      const results = {};
-      
-      // Test getAdminUsers
-      try {
-        const usersResponse = await getAdminUsers();
-        results.getAdminUsers = { success: true, data: usersResponse };
-      } catch (error) {
-        results.getAdminUsers = { success: false, error: error.message };
-      }
-      
-      // Test getAllSegments
-      try {
-        const segmentsResponse = await getAllSegments();
-        results.getAllSegments = { success: true, data: segmentsResponse };
-      } catch (error) {
-        results.getAllSegments = { success: false, error: error.message };
-      }
-      
-      setApiTestResults(results);
-    } catch (error) {
-      setApiTestResults({ error: error.message });
-    } finally {
-      setApiTestLoading(false);
-    }
-  };
 
-  // Comprehensive API test using the utility
-  const runComprehensiveAPITest = async () => {
-    setApiTestLoading(true);
-    setApiTestResults(null);
-    
-    try {
-      const apiTest = new APITestUtility();
-      const results = await apiTest.runAllTests();
-      setApiTestResults(results);
-    } catch (error) {
-      console.error('Comprehensive API test failed:', error);
-      setApiTestResults({ error: error.message });
-    } finally {
-      setApiTestLoading(false);
-    }
-  };
 
 
   // --- **NEW & REFACTORED API HANDLER** ---
@@ -252,7 +247,7 @@ const UserManagement = () => {
              // --- ASSIGN OR MOVE USER ---
              // This action assigns a user to a new segment.
              console.log(`Attempting to assign user to segment ${targetSegmentId}`);
-             await addUserToSegment(targetSegmentId, userId);
+             await addUserToSegment(targetSegmentId, { userId: userId });
              console.log(`User ${userId} successfully assigned to segment ${targetSegmentId}.`);
          }
     } catch (error) {
@@ -364,19 +359,30 @@ const UserManagement = () => {
 
   // --- STYLING ---
   const styles = {
-    page: { minHeight: '100vh', background: '#ffffff', color: '#333333', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem', fontFamily: 'sans-serif' },
-    header: { color: '#0095ff', marginBottom: '2rem' },
-    dashboardContainer: { display: 'flex', gap: '2rem', width: '100%', maxWidth: '1400px', alignItems: 'flex-start' },
-    leftPanel: { flex: 1, background: '#ffffff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', border: '1px solid #e0e0e0' },
-    rightPanel: { flex: 2, background: '#ffffff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '85vh', overflowY: 'auto', border: '1px solid #e0e0e0' },
-    panel: { marginBottom: '2rem' },
-    panelHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0', paddingBottom: '1rem', marginBottom: '1rem' },
-    panelTitle: { color: '#0095ff', margin: 0 },
-    userPool: { maxHeight: '70vh', overflowY: 'auto' },
-    userPoolItem: { background: '#f8f9fa', padding: '0.75rem 1rem', borderRadius: '4px', marginBottom: '0.5rem', cursor: 'grab', transition: 'background-color 0.2s', color: '#333333', border: '1px solid #e0e0e0' },
-    segmentCard: { background: '#ffffff', padding: '1.5rem', borderRadius: '6px', marginBottom: '1.5rem', border: '2px dashed #e0e0e0', transition: 'border-color 0.2s, background-color 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
-    segmentCardOver: { borderColor: '#0095ff', backgroundColor: '#f8f9fa' },
-    segmentCardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' },
+    page: { minHeight: '100vh', background: '#ffffff', color: '#333333', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 'clamp(1rem, 4vw, 2rem)', fontFamily: 'sans-serif' },
+    header: { color: '#0095ff', marginBottom: 'clamp(1.5rem, 4vw, 2rem)', fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 600, textAlign: 'center' },
+    dashboardContainer: { display: 'flex', gap: 'clamp(1rem, 3vw, 2rem)', width: '100%', maxWidth: 'min(1400px, 95vw)', alignItems: 'flex-start', flexDirection: 'column' },
+    leftPanel: { width: '100%', background: '#ffffff', padding: 'clamp(1rem, 3vw, 1.5rem)', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid #e0e0e0', transition: 'all 0.3s ease' },
+    rightPanel: { width: '100%', background: '#ffffff', padding: 'clamp(1rem, 3vw, 1.5rem)', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', maxHeight: '85vh', overflowY: 'auto', border: '1px solid #e0e0e0', transition: 'all 0.3s ease' },
+    panel: { marginBottom: 'clamp(1.5rem, 4vw, 2rem)' },
+    panelHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0', paddingBottom: 'clamp(0.8rem, 2vw, 1rem)', marginBottom: 'clamp(0.8rem, 2vw, 1rem)', flexWrap: 'wrap', gap: '1rem' },
+    panelTitle: { color: '#0095ff', margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.3rem)', fontWeight: 600 },
+    userPool: { maxHeight: '70vh', overflowY: 'auto', padding: 'clamp(0.5rem, 2vw, 1rem)' },
+    userPoolItem: { 
+      background: '#f8f9fa', 
+      padding: 'clamp(0.6rem, 2vw, 0.75rem) clamp(0.8rem, 2vw, 1rem)', 
+      borderRadius: '8px', 
+      marginBottom: 'clamp(0.4rem, 1.5vw, 0.5rem)', 
+      cursor: 'grab', 
+      transition: 'all 0.3s ease', 
+      color: '#333333', 
+      border: '1px solid #e0e0e0', 
+      fontSize: 'clamp(13px, 2.5vw, 14px)', 
+      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+    },
+    segmentCard: { background: '#ffffff', padding: 'clamp(1.2rem, 3vw, 1.5rem)', borderRadius: '12px', marginBottom: 'clamp(1.2rem, 3vw, 1.5rem)', border: '2px dashed #e0e0e0', transition: 'all 0.3s ease', boxShadow: '0 4px 15px rgba(0,0,0,0.08)', overflow: 'hidden' },
+    segmentCardOver: { borderColor: '#0095ff', backgroundColor: '#f8f9fa', transform: 'scale(1.02)' },
+    segmentCardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'clamp(0.8rem, 2vw, 1rem)', flexWrap: 'wrap', gap: '1rem' },
     segmentInfo: { margin: 0, flexGrow: 1 },
     segmentDesc: { fontSize: '0.9rem', color: '#666666', marginTop: '0.25rem' },
     segmentUserTable: { width: '100%', borderCollapse: 'collapse', marginTop: '1rem' },
@@ -384,74 +390,44 @@ const UserManagement = () => {
     segmentUserTableTd: { padding: '1rem', borderBottom: '1px solid #e0e0e0', color: '#333333' },
     userRow: { cursor: 'grab', transition: 'background-color 0.2s' },
     statusIndicator: { height: '10px', width: '10px', borderRadius: '50%', display: 'inline-block', marginRight: '0.5rem' },
-    actionButton: { background: 'none', border: '1px solid #e0e0e0', color: '#333333', padding: '0.4em 0.8em', borderRadius: '4px', cursor: 'pointer', transition: 'background-color 0.2s' },
-    addButton: { backgroundColor: '#28a745', border: 'none', color: 'white' },
-    modalBackdrop: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modalContent: { background: '#ffffff', padding: '2rem', borderRadius: '8px', width: '90%', maxWidth: '500px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' },
-    formGroup: { marginBottom: '1rem' },
-    label: { display: 'block', marginBottom: '0.5rem', color: '#333333' },
-    input: { width: '100%', padding: '0.75rem', boxSizing: 'border-box', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '5px', color: '#333333', fontSize: '1rem' },
-    modalActions: { display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem' },
+    actionButton: { background: 'none', border: '1px solid #e0e0e0', color: '#333333', padding: 'clamp(0.3em, 1.5vw, 0.4em) clamp(0.6em, 2vw, 0.8em)', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.3s ease', fontSize: 'clamp(11px, 2.5vw, 12px)', fontWeight: 500 },
+    addButton: { backgroundColor: '#28a745', border: 'none', color: 'white', boxShadow: '0 2px 8px rgba(40, 167, 69, 0.2)' },
+    modalBackdrop: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: 'clamp(1rem, 4vw, 2rem)' },
+    modalContent: { background: '#ffffff', padding: 'clamp(1.5rem, 4vw, 2rem)', borderRadius: '12px', width: '90%', maxWidth: 'min(500px, 90vw)', boxShadow: '0 8px 30px rgba(0,0,0,0.2)', maxHeight: '90vh', overflowY: 'auto' },
+    formGroup: { marginBottom: 'clamp(0.8rem, 2vw, 1rem)' },
+    label: { display: 'block', marginBottom: 'clamp(0.3rem, 1.5vw, 0.5rem)', color: '#333333', fontSize: 'clamp(13px, 2.5vw, 14px)', fontWeight: 500 },
+    input: { width: '100%', padding: 'clamp(0.6rem, 2vw, 0.75rem)', boxSizing: 'border-box', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '8px', color: '#333333', fontSize: 'clamp(13px, 2.5vw, 14px)', transition: 'all 0.3s ease' },
+    modalActions: { display: 'flex', justifyContent: 'flex-end', gap: 'clamp(0.8rem, 2vw, 1rem)', marginTop: 'clamp(1.2rem, 3vw, 1.5rem)', flexWrap: 'wrap' },
     searchContainer: {
       display: 'flex',
       alignItems: 'center',
-      background: '#f0f0f0',
-      borderRadius: '5px',
-      padding: '0.5rem 1rem',
-      marginBottom: '1rem',
+      background: '#f8f9fa',
+      borderRadius: '8px',
+      padding: 'clamp(0.4rem, 1.5vw, 0.5rem) clamp(0.8rem, 2vw, 1rem)',
+      marginBottom: 'clamp(0.8rem, 2vw, 1rem)',
       border: '1px solid #e0e0e0',
+      flexWrap: 'wrap',
+      gap: '0.5rem'
     },
     searchInput: {
       flex: 1,
       border: 'none',
       background: 'transparent',
-      padding: '0.5rem',
-      fontSize: '0.9rem',
+      padding: 'clamp(0.4rem, 1.5vw, 0.5rem)',
+      fontSize: 'clamp(13px, 2.5vw, 14px)',
       color: '#333333',
+      minWidth: '200px'
     },
     clearSearchButton: {
       background: 'none',
       border: 'none',
       color: '#666666',
       cursor: 'pointer',
-      fontSize: '1.2rem',
-      padding: '0.2rem',
-    },
-    apiTestResults: {
-      background: '#f8f9fa',
-      border: '1px solid #e0e0e0',
-      borderRadius: '5px',
-      padding: '1rem',
-      marginTop: '1rem',
-      marginBottom: '1rem',
-      fontSize: '0.9rem',
-      color: '#333333',
-    },
-    buttonGroup: {
-      display: 'flex',
-      gap: '0.5rem',
-      marginBottom: '1rem',
-    },
-    testButton: {
-      backgroundColor: '#007bff',
-      border: 'none',
-      color: 'white',
-      padding: '0.75rem 1.5rem',
-      borderRadius: '5px',
-      cursor: 'pointer',
-      transition: 'background-color 0.2s',
-      flex: 1,
-    },
-    clearButton: {
-      backgroundColor: '#6c757d',
-      border: 'none',
-      color: 'white',
-      padding: '0.75rem 1.5rem',
-      borderRadius: '5px',
-      cursor: 'pointer',
-      transition: 'background-color 0.2s',
-      flex: 1,
-    },
+      fontSize: 'clamp(1rem, 2.5vw, 1.2rem)',
+      padding: 'clamp(0.15rem, 1vw, 0.2rem)',
+      borderRadius: '4px',
+      transition: 'all 0.3s ease'
+    }
   };
   const getStatusStyle = (status) => {
     switch (status) {
@@ -464,7 +440,7 @@ const UserManagement = () => {
 
   // --- JSX RENDER ---
   return (
-    <div style={styles.page}>
+    <div style={styles.page} className="user-management-container">
       <h1 style={styles.header}>User & Segment Management</h1>
       <div style={styles.dashboardContainer}>
         <div
@@ -474,7 +450,7 @@ const UserManagement = () => {
           onDragEnter={() => onDragEnterSegment('unassigned')}
           onDragLeave={onDragLeaveSegment}
         >
-          <div style={styles.panelHeader}>
+          <div style={styles.panelHeader} className="panel-header">
             <h2 style={styles.panelTitle}>Unassigned Users Pool</h2>
           </div>
           
@@ -509,7 +485,7 @@ const UserManagement = () => {
                 user.email.toLowerCase().includes(searchTerm.toLowerCase())
               )
               .map(user => (
-                <div key={user.id} draggable onDragStart={(e) => onDragStartUser(e, user.id)} style={styles.userPoolItem}>
+                <div key={user.id} draggable onDragStart={(e) => onDragStartUser(e, user.id)} style={styles.userPoolItem} className="user-pool-item">
                   {user.name} - ({user.rmsLimit})
                 </div>
               ))}
@@ -530,116 +506,16 @@ const UserManagement = () => {
           style={styles.rightPanel}
           onDragOver={handlePanelDragOver}
         >
-          {/* API Test Section */}
-          <div style={styles.panel}>
-            <div style={styles.panelHeader}>
-              <h2 style={styles.panelTitle}>🧪 API Testing</h2>
-            </div>
-            <div style={styles.buttonGroup}>
-              <button 
-                onClick={testAPIConnectivity}
-                style={styles.testButton}
-                disabled={apiTestLoading}
-              >
-                Test Basic APIs
-              </button>
-              <button 
-                onClick={runComprehensiveAPITest}
-                style={styles.testButton}
-                disabled={apiTestLoading}
-              >
-                🧪 Test ALL APIs
-              </button>
-              {apiTestResults && (
-                <button 
-                  onClick={() => setApiTestResults(null)}
-                  style={styles.clearButton}
-                >
-                  Clear Results
-                </button>
-              )}
-            </div>
-            
-            {/* API Test Results */}
-            {apiTestLoading && <p>Running comprehensive API test...</p>}
-            {apiTestResults && (
-              <div style={styles.apiTestResults}>
-                <h3>API Test Results:</h3>
-                {apiTestResults.error ? (
-                  <p style={{ color: '#dc3545' }}>Error: {apiTestResults.error}</p>
-                ) : (
-                  <div>
-                    <div style={{ marginBottom: '0.25rem' }}>
-                      <strong>Users API:</strong> 
-                      <span style={{ color: apiTestResults.getAdminUsers?.success ? '#28a745' : '#dc3545', marginLeft: '0.5rem' }}>
-                        {apiTestResults.getAdminUsers?.success ? '✓ Working' : '✗ Failed'}
-                      </span>
-                      {!apiTestResults.getAdminUsers?.success && (
-                        <span style={{ color: '#dc3545', marginLeft: '0.5rem' }}>
-                          {apiTestResults.getAdminUsers?.error}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <strong>Segments API:</strong> 
-                      <span style={{ color: apiTestResults.getAllSegments?.success ? '#28a745' : '#dc3545', marginLeft: '0.5rem' }}>
-                        {apiTestResults.getAllSegments?.success ? '✓ Working' : '✗ Failed'}
-                      </span>
-                      {!apiTestResults.getAllSegments?.success && (
-                        <span style={{ color: '#dc3545', marginLeft: '0.5rem' }}>
-                          {apiTestResults.getAllSegments?.error}
-                        </span>
-                      )}
-                    </div>
-                    {/* Show comprehensive results if available */}
-                    {apiTestResults.signup !== undefined && (
-                      <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '5px' }}>
-                        <h4>Comprehensive API Test Results:</h4>
-                        <div style={{ fontSize: '0.9rem' }}>
-                          {Object.keys(apiTestResults).map(endpoint => {
-                            const result = apiTestResults[endpoint];
-                            if (result && typeof result === 'object' && 'success' in result) {
-                              return (
-                                <div key={endpoint} style={{ marginBottom: '0.5rem' }}>
-                                  <strong>{endpoint}:</strong> 
-                                  <span style={{ color: result.success ? '#28a745' : '#dc3545', marginLeft: '0.5rem' }}>
-                                    {result.success ? '✓ OK' : `❌ ${result.status || 'FAILED'}`}
-                                  </span>
-                                  {!result.success && result.error && (
-                                    <span style={{ color: '#dc3545', marginLeft: '0.5rem' }}>
-                                      - {result.error}
-                                    </span>
-                                  )}
-                                  {!result.success && result.status && (
-                                    <span style={{ color: '#ffc107', marginLeft: '0.5rem', fontSize: '0.8rem' }}>
-                                      (Status: {result.status})
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            }
-                            return null;
-                          })}
-                        </div>
-                        <div style={{ marginTop: '1rem', padding: '0.5rem', background: '#e9ecef', borderRadius: '3px', fontSize: '0.8rem' }}>
-                          <strong>Note:</strong> Some endpoints (like broker-related ones) may fail if the user is not connected to a broker account.
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+
 
           {/* Segments Panel */}
           <div style={styles.panel}>
-            <div style={styles.panelHeader}>
-              <h2 style={styles.panelTitle}>Segments</h2>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button style={{ ...styles.actionButton, ...styles.addButton }} onClick={() => openModal('add')}>+ New Segment</button>
-              </div>
+                      <div style={styles.panelHeader} className="panel-header">
+            <h2 style={styles.panelTitle}>Segments</h2>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button style={{ ...styles.actionButton, ...styles.addButton }} onClick={() => openModal('add')}>+ New Segment</button>
             </div>
+          </div>
           
             {/* Search Bar */}
             <div style={styles.searchContainer}>
@@ -714,6 +590,7 @@ const UserManagement = () => {
                 <div
                   key={segment.id}
                   style={{ ...styles.segmentCard, ...(dragOverSegmentId === segment.id ? styles.segmentCardOver : {}) }}
+                  className="segment-card"
                   onDrop={(e) => onDrop(e, segment.id)}
                   onDragEnter={() => onDragEnterSegment(segment.id)}
                   onDragLeave={onDragLeaveSegment}
@@ -723,12 +600,12 @@ const UserManagement = () => {
                       <h3 style={{ margin: 0 }}>{segment.name}</h3>
                       <p style={styles.segmentDesc}>{segment.description}</p>
                     </div>
-                    <div>
+                    <div className="action-buttons">
                       <button style={{ ...styles.actionButton, marginRight: '0.5rem' }} onClick={() => openModal('edit', segment)}>Edit</button>
                       <button style={{ ...styles.actionButton, color: '#ff4d4d' }} onClick={() => handleDeleteSegment(segment.id)}>Delete</button>
                     </div>
                   </div>
-                  <table style={styles.segmentUserTable}>
+                  <table style={styles.segmentUserTable} className="user-management-table">
                     <thead>
                       <tr>
                         <th style={styles.segmentUserTableTh}>Name</th>

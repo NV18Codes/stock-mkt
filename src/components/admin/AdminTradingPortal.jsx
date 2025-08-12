@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAdminUsers } from '../../api/admin';
+import { getAdminUsers, getAllSegments, initiateTrade } from '../../api/admin';
 import AdminOrderForm from './AdminOrderForm';
 
 const formatINR = (value) => {
@@ -10,21 +10,24 @@ const formatINR = (value) => {
 
 const AdminTradingPortal = () => {
   const [users, setUsers] = useState([]);
+  const [segments, setSegments] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [selectedSegment, setSelectedSegment] = useState('all');
 
   const [loading, setLoading] = useState({
-    users: true
+    users: true,
+    segments: true
   });
   const [error, setError] = useState({
-    users: ''
+    users: '',
+    segments: ''
   });
   const [orderStatus, setOrderStatus] = useState('');
 
-
-
   // Load users and segments on component mount with better error handling
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
+      // Fetch users
       setLoading(prev => ({ ...prev, users: true }));
       setError(prev => ({ ...prev, users: '' }));
       try {
@@ -50,9 +53,36 @@ const AdminTradingPortal = () => {
       } finally {
         setLoading(prev => ({ ...prev, users: false }));
       }
+
+      // Fetch segments
+      setLoading(prev => ({ ...prev, segments: true }));
+      setError(prev => ({ ...prev, segments: '' }));
+      try {
+        console.log('Fetching segments for admin...');
+        const segmentsResponse = await getAllSegments();
+        console.log('Segments response:', segmentsResponse);
+        
+        let segmentsData = [];
+        if (segmentsResponse && segmentsResponse.data && Array.isArray(segmentsResponse.data)) {
+          segmentsData = segmentsResponse.data;
+        } else if (segmentsResponse && Array.isArray(segmentsResponse)) {
+          segmentsData = segmentsResponse;
+        } else if (segmentsResponse && segmentsResponse.success && segmentsResponse.data) {
+          segmentsData = segmentsResponse.data;
+        }
+        
+        console.log('Setting segments data:', segmentsData);
+        setSegments(segmentsData);
+      } catch (err) {
+        console.error('Error fetching segments:', err);
+        setError(prev => ({ ...prev, segments: 'Failed to load segments' }));
+        setSegments([]);
+      } finally {
+        setLoading(prev => ({ ...prev, segments: false }));
+      }
     };
 
-    fetchUsers();
+    fetchData();
   }, []);
 
 
@@ -81,17 +111,23 @@ const AdminTradingPortal = () => {
       setOrderStatus('Placing order...');
       console.log('Placing order:', orderData);
       
-      // Here you would call your trading API
+      // Call the actual trading API
+      const response = await initiateTrade(orderData);
+      console.log('Trade initiation response:', response);
       
-      // For now, just log the order
-      console.log('Order placed successfully:', orderData);
-      setOrderStatus('Order placed successfully!');
+      if (response && response.success) {
+        setOrderStatus('Order placed successfully!');
+        // Refresh users data to show updated status
+        // You might want to add a callback to refresh the users list
+      } else {
+        setOrderStatus('Order placement failed. Please check the details.');
+      }
       
-      // Clear status after 3 seconds
-      setTimeout(() => setOrderStatus(''), 3000);
+      // Clear status after 5 seconds
+      setTimeout(() => setOrderStatus(''), 5000);
     } catch (error) {
       console.error('Error placing order:', error);
-      setOrderStatus('Failed to place order. Please try again.');
+      setOrderStatus(`Failed to place order: ${error.response?.data?.message || error.message || 'Unknown error'}`);
       setTimeout(() => setOrderStatus(''), 5000);
     }
   };
@@ -99,11 +135,13 @@ const AdminTradingPortal = () => {
   // Filter out admin users for trading
   const filteredUsers = users.filter(user => (user.role || user.user_role || 'user') !== 'admin');
 
-  if (loading.users) {
+  if (loading.users || loading.segments) {
     return (
       <div style={{ textAlign: 'center', padding: '2em' }}>
         <div className="loading-spinner" />
-        <p style={{ color: '#333', marginTop: '1em', fontSize: 14 }}>Loading users...</p>
+        <p style={{ color: '#333', marginTop: '1em', fontSize: 14 }}>
+          {loading.users ? 'Loading users...' : 'Loading segments...'}
+        </p>
       </div>
     );
   }
@@ -154,7 +192,8 @@ const AdminTradingPortal = () => {
         <div style={{ flex: 1 }}>
           <label style={{ fontWeight: 500, fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Filter by Segment:</label>
           <select 
-            value="all" 
+            value={selectedSegment} 
+            onChange={(e) => setSelectedSegment(e.target.value)} 
             style={{ 
               width: '100%',
               padding: 'clamp(0.3em, 1.5vw, 0.5em) clamp(0.5em, 2vw, 1em)', 
@@ -166,7 +205,20 @@ const AdminTradingPortal = () => {
             }}
           >
             <option value="all">All Segments</option>
+            {segments.map(segment => (
+              <option key={segment.id} value={segment.id}>{segment.name}</option>
+            ))}
           </select>
+          {error.segments && (
+            <p style={{ 
+              color: '#dc3545', 
+              fontSize: 'clamp(10px, 2vw, 12px)', 
+              marginTop: '0.3em',
+              marginBottom: 0
+            }}>
+              {error.segments}
+            </p>
+          )}
         </div>
         
         <button 

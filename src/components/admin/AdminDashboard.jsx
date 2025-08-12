@@ -13,7 +13,8 @@ import {
   RefreshCw,
   CheckCircle,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  Search
 } from 'lucide-react';
 import { getAdminDashboardStats, getAdminUsers } from '../../api/admin';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +24,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
@@ -30,6 +32,12 @@ const AdminDashboard = () => {
     totalVolume: 0,
     totalProfitLoss: 0
   });
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => 
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -304,6 +312,39 @@ const AdminDashboard = () => {
         </div>
       </motion.div>
 
+      {/* Search Bar */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        style={{ 
+          background: 'white', 
+          padding: 'clamp(1em, 2.5vw, 1.2em)', 
+          borderRadius: '12px', 
+          boxShadow: 'var(--shadow-md)', 
+          border: '1px solid var(--border-color)',
+          marginBottom: '2em',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.8em'
+        }}
+      >
+        <Search size={20} color="var(--text-muted)" />
+        <input 
+          type="text" 
+          placeholder="Search users..." 
+          value={searchTerm} 
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ 
+            flex: 1, 
+            border: 'none', 
+            outline: 'none', 
+            fontSize: 'clamp(13px, 2.8vw, 15px)', 
+            color: 'var(--text-primary)'
+          }}
+        />
+      </motion.div>
+
       {/* Recent Users */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -334,7 +375,7 @@ const AdminDashboard = () => {
           <Users size={24} />
           Recent Users
         </motion.h3>
-        {users.length > 0 ? (
+        {filteredUsers.length > 0 ? (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ 
               width: '100%', 
@@ -383,7 +424,7 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {users.slice(0, 5).map((user, index) => (
+                {filteredUsers.slice(0, 5).map((user, index) => (
                   <motion.tr 
                     key={user.id} 
                     initial={{ opacity: 0, x: -20 }}
@@ -504,14 +545,14 @@ const AdminDashboard = () => {
               fontSize: 'clamp(14px, 3vw, 16px)',
               fontWeight: 500
             }}>
-              No users found
+              {searchTerm ? 'No users found matching your search' : 'No users found'}
             </p>
             <p style={{ 
               color: 'var(--text-secondary)', 
               fontSize: 'clamp(12px, 2.5vw, 14px)',
               marginTop: '0.5em'
             }}>
-              Users will appear here once they register
+              {searchTerm ? 'Try adjusting your search terms' : 'Users will appear here once they register'}
             </p>
           </motion.div>
         )}

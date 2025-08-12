@@ -21,7 +21,6 @@ const UserLayout = () => {
   const getActiveRouteName = () => {
     const path = location.pathname;
     if (path === '/dashboard') return 'Trading Portal';
-    if (path === '/dashboard/broker-settings') return 'Broker Settings';
     if (path === '/dashboard/profile-settings') return 'Profile Settings';
     return 'Dashboard';
   };
@@ -80,27 +79,7 @@ const UserLayout = () => {
             {!isSidebarCollapsed && 'Trading Portal'}
           </NavLink>
           
-          <NavLink
-            to="/dashboard/broker-settings"
-            style={({ isActive }) => ({
-              padding: isSidebarCollapsed ? '1em 0.5em' : '1em 1.2em',
-              borderRadius: '8px',
-              color: isActive ? 'var(--text-inverse)' : 'var(--text-secondary)',
-              background: isActive ? 'var(--gradient-primary)' : 'transparent',
-              textDecoration: 'none',
-              transition: 'all 0.3s ease',
-              fontWeight: isActive ? 600 : 500,
-              border: isActive ? 'none' : '1px solid transparent',
-              display: 'flex',
-              alignItems: 'center',
-              gap: isSidebarCollapsed ? '0' : '0.8em',
-              fontSize: '0.95em',
-              boxShadow: isActive ? '0 2px 8px rgba(0, 212, 170, 0.3)' : 'none'
-            })}
-          >
-            <span style={{ fontSize: '1.2em' }}>🏦</span>
-            {!isSidebarCollapsed && 'Broker Settings'}
-          </NavLink>
+
           
           <NavLink
             to="/dashboard/profile-settings"

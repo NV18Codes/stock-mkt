@@ -6,7 +6,7 @@ import Signup from './components/auth/Signup';
 import ForgotPassword from './components/auth/ForgotPassword';
 import ResetPassword from './components/auth/ResetPassword';
 import UserProfileSettings from './components/user/UserProfileSettings';
-import BrokerAccountSettings from './components/user/BrokerAccountSettings';
+
 import TradingPortal from './components/user/TradingPortal';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminProfileSettings from './components/admin/AdminProfileSettings';
@@ -17,7 +17,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import UserLayout from './layouts/UserLayout';
 import AdminLayout from './layouts/AdminLayout';
 import TradeHistory from './components/admin/TradeHistory';
-import TradeLog from './components/admin/TradeLog';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -334,7 +333,7 @@ function AppRoutes() {
         }>
           <Route index element={<TradingPortal />} />
           <Route path="profile-settings" element={<UserProfileSettings />} />
-          <Route path="broker-settings" element={<BrokerAccountSettings />} />
+  
         </Route>
 
         {/* Admin Routes */}

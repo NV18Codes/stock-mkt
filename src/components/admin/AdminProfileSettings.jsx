@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  X, 
-  Plus,
-  Trash2
-} from 'lucide-react';
 import { updateProfile, getUserProfile } from '../../api/auth';
 import { 
   addBrokerAccount, 
   fetchMyBrokerProfile, 
-  clearBrokerProfile 
+  clearBrokerConnection 
 } from '../../api/auth';
 import { verifyBrokerTOTP } from '../../api/broker';
 import { useAuth } from '../../context/AuthContext';
+import { 
+  X, 
+  Plus,
+  Trash2,
+  Eye,
+  EyeOff
+} from 'lucide-react';
 
 const AdminProfileSettings = () => {
   const { role } = useAuth();
@@ -33,7 +35,8 @@ const AdminProfileSettings = () => {
     angelone_token: '',
     password: '',
     mpin: '',
-    totp: ''
+    totp: '',
+    showHashedDetails: false
   });
   
   const [brokerProfile, setBrokerProfile] = useState(null);
@@ -45,6 +48,13 @@ const AdminProfileSettings = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Utility function to hash sensitive data
+  const hashSensitiveData = (value) => {
+    if (!value) return '';
+    if (value.length <= 4) return '*'.repeat(value.length);
+    return '*'.repeat(value.length - 4) + value.slice(-4);
+  };
 
   useEffect(() => {
     fetchAdminProfile();
@@ -133,8 +143,12 @@ const AdminProfileSettings = () => {
   };
 
   const handleClearBroker = async () => {
+    if (!window.confirm('Are you sure you want to disconnect your broker account? This action cannot be undone.')) {
+      return;
+    }
+    
     try {
-      const result = await clearBrokerProfile();
+      const result = await clearBrokerConnection();
       if (result && result.success) {
         setSuccess('Broker connection cleared successfully');
         setBrokerProfile({
@@ -163,7 +177,8 @@ const AdminProfileSettings = () => {
       angelone_token: '',
       password: '',
       mpin: '',
-      totp: ''
+      totp: '',
+      showHashedDetails: false
     });
     setBrokerStep(1);
     setError('');
@@ -219,13 +234,13 @@ const AdminProfileSettings = () => {
   };
 
   const InputField = ({ label, name, type = 'text', required = false, placeholder }) => (
-    <div style={{ marginBottom: '1.5em' }}>
+    <div style={{ marginBottom: 'clamp(1.2em, 3vw, 1.5em)' }}>
       <label style={{ 
         color: '#495057', 
         fontWeight: 500, 
         display: 'block', 
         marginBottom: '0.5em', 
-        fontSize: 14 
+        fontSize: 'clamp(13px, 2.5vw, 14px)'
       }}>
         {label} {required && <span style={{ color: '#dc3545' }}>*</span>}
       </label>
@@ -237,14 +252,99 @@ const AdminProfileSettings = () => {
         placeholder={placeholder}
         style={{ 
           width: '100%', 
-          padding: '0.8em', 
+          padding: 'clamp(0.7em, 2vw, 0.8em)', 
           border: '1px solid #e0e0e0', 
-          borderRadius: '6px', 
-          fontSize: 14, 
+          borderRadius: '8px', 
+          fontSize: 'clamp(13px, 2.5vw, 14px)', 
           background: '#fff',
-          transition: 'border-color 0.3s ease'
+          transition: 'all 0.3s ease',
+          boxSizing: 'border-box'
+        }}
+        onFocus={(e) => {
+          e.target.style.borderColor = '#007bff';
+          e.target.style.boxShadow = '0 0 0 3px rgba(0, 123, 255, 0.1)';
+        }}
+        onBlur={(e) => {
+          e.target.style.borderColor = '#e0e0e0';
+          e.target.style.boxShadow = 'none';
         }}
       />
+    </div>
+  );
+
+  const SensitiveInputField = ({ label, name, type = 'text', required = false, placeholder }) => (
+    <div style={{ marginBottom: 'clamp(1.2em, 3vw, 1.5em)' }}>
+      <label style={{ 
+        color: '#495057', 
+        fontWeight: 500, 
+        display: 'block', 
+        marginBottom: '0.5em', 
+        fontSize: 'clamp(13px, 2.5vw, 14px)'
+      }}>
+        {label} {required && <span style={{ color: '#dc3545' }}>*</span>}
+      </label>
+      <div style={{ position: 'relative' }}>
+        <input
+          type={type}
+          name={name}
+          value={brokerData.showHashedDetails ? brokerData[name] : hashSensitiveData(brokerData[name])}
+          onChange={handleBrokerChange}
+          placeholder={placeholder}
+          style={{ 
+            width: '100%', 
+            padding: 'clamp(0.7em, 2vw, 0.8em)', 
+            paddingRight: '3.5em',
+            border: '1px solid #e0e0e0', 
+            borderRadius: '8px', 
+            fontSize: 'clamp(13px, 2.5vw, 14px)', 
+            background: '#fff',
+            transition: 'all 0.3s ease',
+            boxSizing: 'border-box',
+            fontFamily: brokerData.showHashedDetails ? 'inherit' : 'monospace',
+            letterSpacing: brokerData.showHashedDetails ? 'normal' : '0.1em'
+          }}
+          required
+          onFocus={(e) => {
+            e.target.style.borderColor = '#007bff';
+            e.target.style.boxShadow = '0 0 0 3px rgba(0, 123, 255, 0.1)';
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = '#e0e0e0';
+            e.target.style.boxShadow = 'none';
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => setBrokerData(prev => ({ ...prev, showHashedDetails: !prev.showHashedDetails }))}
+          style={{
+            position: 'absolute',
+            right: '0.5em',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            background: 'none',
+            border: 'none',
+            color: '#6c757d',
+            cursor: 'pointer',
+            padding: '0.3em',
+            borderRadius: '4px',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#f8f9fa';
+            e.target.style.color = '#495057';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = 'none';
+            e.target.style.color = '#6c757d';
+          }}
+          title={brokerData.showHashedDetails ? 'Hide sensitive data' : 'Show sensitive data'}
+        >
+          {brokerData.showHashedDetails ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
     </div>
   );
 
@@ -252,7 +352,7 @@ const AdminProfileSettings = () => {
     return (
       <div style={{ 
         textAlign: 'center', 
-        padding: '3em',
+        padding: 'clamp(2em, 5vw, 3em)',
         background: '#ffffff',
         minHeight: '100vh',
         display: 'flex',
@@ -261,13 +361,13 @@ const AdminProfileSettings = () => {
         alignItems: 'center'
       }}>
         <div className="loading-spinner" style={{
-          width: '50px',
-          height: '50px',
+          width: 'clamp(40px, 8vw, 50px)',
+          height: 'clamp(40px, 8vw, 50px)',
           border: '4px solid #e3e3e3',
           borderTop: '4px solid #007bff',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite',
-          marginBottom: '1em'
+          marginBottom: 'clamp(1em, 3vw, 1.5em)'
         }} />
         <p style={{ 
           color: '#2c3e50', 
@@ -282,18 +382,18 @@ const AdminProfileSettings = () => {
 
   return (
     <div style={{ 
-      maxWidth: 1200, 
+      maxWidth: 'min(1200px, 95vw)', 
       margin: '0 auto', 
-      padding: 'clamp(1.5em, 3vw, 2em)', 
+      padding: 'clamp(1em, 3vw, 2em)', 
       background: '#f8f9fa', 
       minHeight: '100vh' 
     }}>
       <h1 style={{ 
         color: '#2c3e50', 
-        marginBottom: '1.5em', 
+        marginBottom: 'clamp(1.2em, 3vw, 1.5em)', 
         textAlign: 'center', 
         fontWeight: 600, 
-        fontSize: 'clamp(1.8em, 4vw, 2.2em)'
+        fontSize: 'clamp(1.5em, 4vw, 2.2em)'
       }}>
         Admin Profile Settings
       </h1>
@@ -302,14 +402,15 @@ const AdminProfileSettings = () => {
         <div style={{ 
           background: '#f8d7da', 
           color: '#721c24', 
-          padding: '1em', 
-          borderRadius: '8px', 
-          marginBottom: '1.5em', 
+          padding: 'clamp(0.8em, 2vw, 1em)', 
+          borderRadius: '12px', 
+          marginBottom: 'clamp(1.2em, 3vw, 1.5em)', 
           border: '1px solid #f5c6cb', 
-          fontSize: 14,
+          fontSize: 'clamp(13px, 2.5vw, 14px)',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5em'
+          gap: '0.5em',
+          boxShadow: '0 2px 8px rgba(220, 53, 69, 0.1)'
         }}>
           <span>⚠️</span>
           <span>{error}</span>
@@ -320,14 +421,15 @@ const AdminProfileSettings = () => {
         <div style={{ 
           background: '#d4edda', 
           color: '#155724', 
-          padding: '1em', 
-          borderRadius: '8px', 
-          marginBottom: '1.5em', 
+          padding: 'clamp(0.8em, 2vw, 1em)', 
+          borderRadius: '12px', 
+          marginBottom: 'clamp(1.2em, 3vw, 1.5em)', 
           border: '1px solid #c3e6cb', 
-          fontSize: 14,
+          fontSize: 'clamp(13px, 2.5vw, 14px)',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5em'
+          gap: '0.5em',
+          boxShadow: '0 2px 8px rgba(40, 167, 69, 0.1)'
         }}>
           <span>✅</span>
           <span>{success}</span>
@@ -336,22 +438,31 @@ const AdminProfileSettings = () => {
 
       <div style={{ 
         display: 'grid', 
-        gap: '2em', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' 
+        gap: 'clamp(1.5em, 4vw, 2em)', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(400px, 100%), 1fr))' 
       }}>
         {/* Personal Information */}
         <div style={{ 
-          padding: '2em', 
+          padding: 'clamp(1.5em, 4vw, 2em)', 
           background: '#fff', 
-          borderRadius: '12px', 
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-          border: '1px solid #e0e0e0' 
+          borderRadius: '16px', 
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)', 
+          border: '1px solid #e9ecef',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.12)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
         }}>
           <h2 style={{ 
             color: '#2c3e50', 
-            marginBottom: '1.5em', 
+            marginBottom: 'clamp(1.2em, 3vw, 1.5em)', 
             fontWeight: 600, 
-            fontSize: '1.4em',
+            fontSize: 'clamp(1.2em, 3vw, 1.4em)',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5em'
@@ -362,41 +473,43 @@ const AdminProfileSettings = () => {
 
           {/* Role Display Section */}
           <div style={{ 
-            padding: '1em', 
-            background: '#e3f2fd', 
-            borderRadius: '6px', 
+            padding: 'clamp(0.8em, 2vw, 1em)', 
+            background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)', 
+            borderRadius: '12px', 
             border: '1px solid #bbdefb',
-            marginBottom: '1.5em'
+            marginBottom: 'clamp(1.2em, 3vw, 1.5em)',
+            boxShadow: '0 2px 8px rgba(25, 118, 210, 0.1)'
           }}>
             <div style={{ marginBottom: '0.5em' }}>
-              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Role: </span>
-              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12, textTransform: 'capitalize' }}>{role || 'Admin'}</span>
+              <span style={{ color: '#495057', fontWeight: 500, fontSize: 'clamp(11px, 2.5vw, 12px)' }}>Role: </span>
+              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 'clamp(11px, 2.5vw, 12px)', textTransform: 'capitalize' }}>{role || 'Admin'}</span>
             </div>
             
             <div style={{ marginBottom: '0.5em' }}>
-              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Account Type: </span>
-              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>Administrator Account</span>
+              <span style={{ color: '#495057', fontWeight: 500, fontSize: 'clamp(11px, 2.5vw, 12px)' }}>Account Type: </span>
+              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 'clamp(11px, 2.5vw, 12px)' }}>Administrator Account</span>
             </div>
             
             <div>
-              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Access Level: </span>
-              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>Full System Access</span>
+              <span style={{ color: '#495057', fontWeight: 500, fontSize: 'clamp(11px, 2.5vw, 12px)' }}>Access Level: </span>
+              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 'clamp(11px, 2.5vw, 12px)' }}>Full System Access</span>
             </div>
           </div>
 
           {/* Password Management Section */}
           <div style={{ 
-            padding: '1em', 
-            background: '#fff3cd', 
-            borderRadius: '6px', 
+            padding: 'clamp(0.8em, 2vw, 1em)', 
+            background: 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)', 
+            borderRadius: '12px', 
             border: '1px solid #ffeaa7',
-            marginBottom: '1.5em'
+            marginBottom: 'clamp(1.2em, 3vw, 1.5em)',
+            boxShadow: '0 2px 8px rgba(133, 100, 4, 0.1)'
           }}>
             <h3 style={{ 
               color: '#856404', 
               marginBottom: '0.5em', 
               fontWeight: 600, 
-              fontSize: '1em',
+              fontSize: 'clamp(0.9em, 2.5vw, 1em)',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5em'
@@ -404,22 +517,25 @@ const AdminProfileSettings = () => {
               <span>🔐</span>
               Password Management
             </h3>
-            <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 'clamp(0.8em, 2vw, 1em)', flexWrap: 'wrap' }}>
               <Link to="/reset-password" style={{
-                padding: '0.5em 1em',
-                background: '#28a745',
+                padding: 'clamp(0.4em, 1.5vw, 0.5em) clamp(0.8em, 2vw, 1em)',
+                background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
                 color: '#fff',
                 textDecoration: 'none',
-                borderRadius: '4px',
-                fontSize: 12,
+                borderRadius: '8px',
+                fontSize: 'clamp(11px, 2.5vw, 12px)',
                 fontWeight: 500,
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                boxShadow: '0 2px 8px rgba(40, 167, 69, 0.2)'
               }}
               onMouseEnter={(e) => {
-                e.target.style.background = '#1e7e34';
+                e.target.style.transform = 'translateY(-1px)';
+                e.target.style.boxShadow = '0 4px 12px rgba(40, 167, 69, 0.3)';
               }}
               onMouseLeave={(e) => {
-                e.target.style.background = '#28a745';
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 2px 8px rgba(40, 167, 69, 0.2)';
               }}>
                 Reset Password
               </Link>
@@ -461,16 +577,29 @@ const AdminProfileSettings = () => {
               disabled={saving}
               style={{
                 width: '100%',
-                padding: '1em',
-                background: saving ? '#6c757d' : '#007bff',
+                padding: 'clamp(0.8em, 2vw, 1em)',
+                background: saving ? '#6c757d' : 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)',
                 color: '#fff',
                 border: 'none',
-                borderRadius: '8px',
-                fontSize: 16,
+                borderRadius: '12px',
+                fontSize: 'clamp(14px, 2.5vw, 16px)',
                 fontWeight: 600,
                 cursor: saving ? 'not-allowed' : 'pointer',
                 transition: 'all 0.3s ease',
-                marginTop: '1em'
+                marginTop: 'clamp(1em, 2.5vw, 1.2em)',
+                boxShadow: saving ? 'none' : '0 4px 15px rgba(0, 123, 255, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                if (!saving) {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 6px 20px rgba(0, 123, 255, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!saving) {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 15px rgba(0, 123, 255, 0.3)';
+                }
               }}
             >
               {saving ? 'Saving...' : 'Save Changes'}
@@ -480,17 +609,26 @@ const AdminProfileSettings = () => {
 
         {/* Broker Account Section */}
         <div style={{ 
-          padding: '2em', 
+          padding: 'clamp(1.5em, 4vw, 2em)', 
           background: '#fff', 
-          borderRadius: '12px', 
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-          border: '1px solid #e0e0e0' 
+          borderRadius: '16px', 
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)', 
+          border: '1px solid #e9ecef',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.12)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
         }}>
           <h2 style={{ 
             color: '#2c3e50', 
-            marginBottom: '1.5em', 
+            marginBottom: 'clamp(1.2em, 3vw, 1.5em)', 
             fontWeight: 600, 
-            fontSize: '1.4em',
+            fontSize: 'clamp(1.2em, 3vw, 1.4em)',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5em'
@@ -501,32 +639,34 @@ const AdminProfileSettings = () => {
 
           {brokerProfile && (
             <div style={{ 
-              padding: '1.5em', 
-              background: '#f8f9fa', 
-              borderRadius: '8px', 
+              padding: 'clamp(1.2em, 3vw, 1.5em)', 
+              background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', 
+              borderRadius: '12px', 
               border: '1px solid #e9ecef',
-              marginBottom: '1.5em'
+              marginBottom: 'clamp(1.2em, 3vw, 1.5em)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
             }}>
-              <div style={{ display: 'grid', gap: '1em' }}>
+              <div style={{ display: 'grid', gap: 'clamp(0.8em, 2vw, 1em)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#495057', fontWeight: 500 }}>Broker:</span>
-                  <span style={{ color: '#2c3e50', fontWeight: 600 }}>{brokerProfile.brokerName}</span>
+                  <span style={{ color: '#495057', fontWeight: 500, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>Broker:</span>
+                  <span style={{ color: '#2c3e50', fontWeight: 600, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>{brokerProfile.brokerName}</span>
                 </div>
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#495057', fontWeight: 500 }}>Account ID:</span>
-                  <span style={{ color: '#2c3e50', fontWeight: 600 }}>{brokerProfile.accountId}</span>
+                  <span style={{ color: '#495057', fontWeight: 500, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>Account ID:</span>
+                  <span style={{ color: '#2c3e50', fontWeight: 600, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>{brokerProfile.accountId}</span>
                 </div>
                 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#495057', fontWeight: 500 }}>Status:</span>
+                  <span style={{ color: '#495057', fontWeight: 500, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>Status:</span>
                   <span style={{ 
                     color: brokerProfile.status === 'Active' ? '#28a745' : '#dc3545', 
                     fontWeight: 600,
-                    background: brokerProfile.status === 'Active' ? '#d4edda' : '#f8d7da',
-                    padding: '0.2em 0.6em',
-                    borderRadius: '12px',
-                    fontSize: '0.85em'
+                    background: brokerProfile.status === 'Active' ? 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)' : 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)',
+                    padding: 'clamp(0.15em, 1vw, 0.2em) clamp(0.4em, 1.5vw, 0.6em)',
+                    borderRadius: '20px',
+                    fontSize: 'clamp(11px, 2.5vw, 12px)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                   }}>
                     {brokerProfile.status}
                   </span>
@@ -535,31 +675,34 @@ const AdminProfileSettings = () => {
               
               <div style={{ 
                 display: 'flex', 
-                gap: '1em', 
-                marginTop: '1.5em',
+                gap: 'clamp(0.8em, 2vw, 1em)', 
+                marginTop: 'clamp(1.2em, 3vw, 1.5em)',
                 flexWrap: 'wrap'
               }}>
                 <button
                   onClick={() => setShowBrokerForm(true)}
                   style={{
-                    padding: '0.6em 1.2em',
-                    background: '#007bff',
+                    padding: 'clamp(0.5em, 1.5vw, 0.6em) clamp(1em, 2.5vw, 1.2em)',
+                    background: 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)',
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '6px',
-                    fontSize: 14,
+                    borderRadius: '8px',
+                    fontSize: 'clamp(12px, 2.5vw, 14px)',
                     fontWeight: 500,
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5em'
+                    gap: '0.5em',
+                    boxShadow: '0 2px 8px rgba(0, 123, 255, 0.2)'
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.background = '#0056b3';
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.background = '#007bff';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 2px 8px rgba(0, 123, 255, 0.2)';
                   }}
                 >
                   <Plus size={16} />
@@ -570,24 +713,27 @@ const AdminProfileSettings = () => {
                   <button
                     onClick={handleClearBroker}
                     style={{
-                      padding: '0.6em 1.2em',
-                      background: '#dc3545',
+                      padding: 'clamp(0.5em, 1.5vw, 0.6em) clamp(1em, 2.5vw, 1.2em)',
+                      background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
                       color: '#fff',
                       border: 'none',
-                      borderRadius: '6px',
-                      fontSize: 14,
+                      borderRadius: '8px',
+                      fontSize: 'clamp(12px, 2.5vw, 14px)',
                       fontWeight: 500,
                       cursor: 'pointer',
                       transition: 'all 0.3s ease',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.5em'
+                      gap: '0.5em',
+                      boxShadow: '0 2px 8px rgba(220, 53, 69, 0.2)'
                     }}
                     onMouseEnter={(e) => {
-                      e.target.style.background = '#c82333';
+                      e.target.style.transform = 'translateY(-1px)';
+                      e.target.style.boxShadow = '0 4px 12px rgba(220, 53, 69, 0.3)';
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.background = '#dc3545';
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 2px 8px rgba(220, 53, 69, 0.2)';
                     }}
                   >
                     <Trash2 size={16} />
@@ -601,194 +747,135 @@ const AdminProfileSettings = () => {
           {/* Broker Connection Form */}
           {showBrokerForm && (
             <div style={{ 
-              padding: '1.5em', 
-              background: '#f8f9fa', 
-              borderRadius: '8px', 
-              border: '1px solid #e9ecef'
+              padding: 'clamp(1.2em, 3vw, 1.5em)', 
+              background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', 
+              borderRadius: '12px', 
+              border: '1px solid #e9ecef',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
             }}>
               <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
                 alignItems: 'center',
-                marginBottom: '1.5em'
+                marginBottom: 'clamp(1.2em, 3vw, 1.5em)'
               }}>
                 <h3 style={{ 
                   color: '#2c3e50', 
                   margin: 0, 
                   fontWeight: 600, 
-                  fontSize: '1.2em'
+                  fontSize: 'clamp(1em, 2.5vw, 1.2em)'
                 }}>
                   {brokerStep === 1 ? 'Step 1: Enter Broker Details' : 'Step 2: Enter TOTP'}
                 </h3>
-                <button
-                  onClick={() => {
-                    setShowBrokerForm(false);
-                    resetBrokerForm();
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '1.5em',
-                    cursor: 'pointer',
-                    color: '#6c757d',
-                    padding: '0.2em'
-                  }}
-                >
-                  <X />
-                </button>
+                <div style={{ display: 'flex', gap: '0.5em', alignItems: 'center' }}>
+                  {brokerStep === 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setBrokerData(prev => ({ ...prev, showHashedDetails: !prev.showHashedDetails }))}
+                      style={{
+                        padding: 'clamp(0.3em, 1vw, 0.4em) clamp(0.6em, 1.5vw, 0.8em)',
+                        background: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: 'clamp(10px, 2.5vw, 12px)',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3em',
+                        boxShadow: '0 2px 6px rgba(23, 162, 184, 0.2)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-1px)';
+                        e.target.style.boxShadow = '0 4px 10px rgba(23, 162, 184, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 2px 6px rgba(23, 162, 184, 0.2)';
+                      }}
+                    >
+                      {brokerData.showHashedDetails ? <EyeOff size={14} /> : <Eye size={14} />}
+                      {brokerData.showHashedDetails ? 'Hide Details' : 'View Details'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowBrokerForm(false);
+                      resetBrokerForm();
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: 'clamp(1.2em, 3vw, 1.5em)',
+                      cursor: 'pointer',
+                      color: '#6c757d',
+                      padding: '0.2em',
+                      borderRadius: '4px',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = '#f8f9fa';
+                      e.target.style.color = '#495057';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = 'none';
+                      e.target.style.color = '#6c757d';
+                    }}
+                  >
+                    <X />
+                  </button>
+                </div>
               </div>
 
               <form onSubmit={handleAddBroker}>
                 {brokerStep === 1 ? (
                   <>
-                    <div style={{ marginBottom: '1em' }}>
-                      <label style={{ 
-                        color: '#495057', 
-                        fontWeight: 500, 
-                        display: 'block', 
-                        marginBottom: '0.5em', 
-                        fontSize: 14 
-                      }}>
-                        Broker Client ID
-                      </label>
-                      <input
-                        type="text"
-                        name="broker_client_id"
-                        value={brokerData.broker_client_id}
-                        onChange={handleBrokerChange}
-                        placeholder="Enter your broker client ID"
-                        style={{ 
-                          width: '100%', 
-                          padding: '0.8em', 
-                          border: '1px solid #e0e0e0', 
-                          borderRadius: '6px', 
-                          fontSize: 14, 
-                          background: '#fff' 
-                        }}
-                        required
-                      />
-                    </div>
+                    <SensitiveInputField
+                      label="Broker Client ID"
+                      name="broker_client_id"
+                      required
+                      placeholder="Enter your broker client ID"
+                    />
                     
-                    <div style={{ marginBottom: '1em' }}>
-                      <label style={{ 
-                        color: '#495057', 
-                        fontWeight: 500, 
-                        display: 'block', 
-                        marginBottom: '0.5em', 
-                        fontSize: 14 
-                      }}>
-                        API Key
-                      </label>
-                      <input
-                        type="text"
-                        name="broker_api_key"
-                        value={brokerData.broker_api_key}
-                        onChange={handleBrokerChange}
-                        placeholder="Enter your API key"
-                        style={{ 
-                          width: '100%', 
-                          padding: '0.8em', 
-                          border: '1px solid #e0e0e0', 
-                          borderRadius: '6px', 
-                          fontSize: 14, 
-                          background: '#fff' 
-                        }}
-                        required
-                      />
-                    </div>
+                    <SensitiveInputField
+                      label="API Key"
+                      name="broker_api_key"
+                      required
+                      placeholder="Enter your API key"
+                    />
                     
-                    <div style={{ marginBottom: '1em' }}>
-                      <label style={{ 
-                        color: '#495057', 
-                        fontWeight: 500, 
-                        display: 'block', 
-                        marginBottom: '0.5em', 
-                        fontSize: 14 
-                      }}>
-                        API Secret
-                      </label>
-                      <input
-                        type="text"
-                        name="broker_api_secret"
-                        value={brokerData.broker_api_secret}
-                        onChange={handleBrokerChange}
-                        placeholder="Enter your API secret"
-                        style={{ 
-                          width: '100%', 
-                          padding: '1em', 
-                          border: '1px solid #e0e0e0', 
-                          borderRadius: '6px', 
-                          fontSize: 14, 
-                          background: '#fff' 
-                        }}
-                        required
-                      />
-                    </div>
+                    <SensitiveInputField
+                      label="API Secret"
+                      name="broker_api_secret"
+                      required
+                      placeholder="Enter your API secret"
+                    />
                     
-                    <div style={{ marginBottom: '1em' }}>
-                      <label style={{ 
-                        color: '#495057', 
-                        fontWeight: 500, 
-                        display: 'block', 
-                        marginBottom: '0.5em', 
-                        fontSize: 14 
-                      }}>
-                        Angel One Token
-                      </label>
-                      <input
-                        type="text"
-                        name="angelone_token"
-                        value={brokerData.angelone_token}
-                        onChange={handleBrokerChange}
-                        placeholder="Enter your Angel One token"
-                        style={{ 
-                          width: '100%', 
-                          padding: '0.8em', 
-                          border: '1px solid #e0e0e0', 
-                          borderRadius: '6px', 
-                          fontSize: 14, 
-                          background: '#fff' 
-                        }}
-                        required
-                      />
-                    </div>
+                    <SensitiveInputField
+                      label="Angel One Token"
+                      name="angelone_token"
+                      required
+                      placeholder="Enter your Angel One token"
+                    />
                     
-                    <div style={{ marginBottom: '1.5em' }}>
-                      <label style={{ 
-                        color: '#495057', 
-                        fontWeight: 500, 
-                        display: 'block', 
-                        marginBottom: '0.5em', 
-                        fontSize: 14 
-                      }}>
-                        MPIN
-                      </label>
-                      <input
-                        type="password"
-                        name="mpin"
-                        value={brokerData.mpin}
-                        onChange={handleBrokerChange}
-                        placeholder="Enter your MPIN"
-                        style={{ 
-                          width: '100%', 
-                          padding: '0.8em', 
-                          border: '1px solid #e0e0e0', 
-                          borderRadius: '6px', 
-                          fontSize: 14, 
-                          background: '#fff' 
-                        }}
-                        required
-                      />
-                    </div>
+                    <SensitiveInputField
+                      label="MPIN"
+                      name="mpin"
+                      type="password"
+                      required
+                      placeholder="Enter your MPIN"
+                    />
                   </>
                 ) : (
-                  <div style={{ marginBottom: '1.5em' }}>
+                  <div style={{ marginBottom: 'clamp(1.2em, 3vw, 1.5em)' }}>
                     <label style={{ 
                       color: '#495057', 
                       fontWeight: 500, 
                       display: 'block', 
                       marginBottom: '0.5em', 
-                      fontSize: 14 
+                      fontSize: 'clamp(13px, 2.5vw, 14px)' 
                     }}>
                       TOTP Code
                     </label>
@@ -800,13 +887,23 @@ const AdminProfileSettings = () => {
                       placeholder="Enter TOTP from your authenticator app"
                       style={{ 
                         width: '100%', 
-                        padding: '0.8em', 
+                        padding: 'clamp(0.7em, 2vw, 0.8em)', 
                         border: '1px solid #e0e0e0', 
-                        borderRadius: '6px', 
-                        fontSize: 14, 
-                        background: '#fff' 
+                        borderRadius: '8px', 
+                        fontSize: 'clamp(13px, 2.5vw, 14px)', 
+                        background: '#fff',
+                        transition: 'all 0.3s ease',
+                        boxSizing: 'border-box'
                       }}
                       required
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#007bff';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(0, 123, 255, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e0e0e0';
+                        e.target.style.boxShadow = 'none';
+                      }}
                     />
                   </div>
                 )}
@@ -816,15 +913,28 @@ const AdminProfileSettings = () => {
                   disabled={brokerLoading}
                   style={{
                     width: '100%',
-                    padding: '1em',
-                    background: brokerLoading ? '#6c757d' : '#28a745',
+                    padding: 'clamp(0.8em, 2vw, 1em)',
+                    background: brokerLoading ? '#6c757d' : 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '8px',
-                    fontSize: 16,
+                    borderRadius: '12px',
+                    fontSize: 'clamp(14px, 2.5vw, 16px)',
                     fontWeight: 600,
                     cursor: brokerLoading ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    boxShadow: brokerLoading ? 'none' : '0 4px 15px rgba(40, 167, 69, 0.3)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!brokerLoading) {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 6px 20px rgba(40, 167, 69, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!brokerLoading) {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 4px 15px rgba(40, 167, 69, 0.3)';
+                    }
                   }}
                 >
                   {brokerLoading ? 'Processing...' : (brokerStep === 1 ? 'Add Broker Account' : 'Verify TOTP')}
