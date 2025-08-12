@@ -55,7 +55,7 @@ const TradingPortal = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedSegment, setSelectedSegment] = useState('EQUITY');
+  const [selectedSegment, setSelectedSegment] = useState('All Segments');
   const [clearBrokerStatus, setClearBrokerStatus] = useState('');
   const [clearBrokerLoading, setClearBrokerLoading] = useState(false);
   const [portfolioData, setPortfolioData] = useState(null);
@@ -76,6 +76,10 @@ const TradingPortal = () => {
           const isBrokerConnected = profileRes.data.broker_name && 
                                   profileRes.data.broker_name !== 'No Broker Connected';
           const isActiveForTrading = profileRes.data.is_active_for_trading;
+          
+          console.log('Broker profile data:', profileRes.data);
+          console.log('Is broker connected:', isBrokerConnected);
+          console.log('Is active for trading:', isActiveForTrading);
           
           if (isBrokerConnected && isActiveForTrading) {
             setUserData({ 
@@ -99,38 +103,38 @@ const TradingPortal = () => {
               if (dematRes.data) {
                 setDematLimit(dematRes.data);
               }
-              
-              // Generate portfolio data for chart
-              const portfolioValue = dematRes.data?.net || 100000;
-              const chartData = generatePortfolioChartData(portfolioValue);
-              setPortfolioData(chartData);
-              
-            } catch (dataErr) {
-              console.error('Error fetching additional data:', dataErr);
-              // Use fallback data
-              setPortfolioData(generatePortfolioChartData(100000));
+            } catch (dataError) {
+              console.error('Error fetching additional broker data:', dataError);
+              // Don't fail the entire request if additional data fails
             }
           } else {
+            // Broker is not connected or not active
+            console.log('Broker not connected or not active, setting userData to null');
             setUserData(null);
             setPortfolioData(null);
+            setPositions([]);
+            setDematLimit(null);
           }
         } else {
+          console.log('No broker profile data, setting userData to null');
           setUserData(null);
           setPortfolioData(null);
+          setPositions([]);
+          setDematLimit(null);
         }
       } catch (err) {
-        setError('Failed to fetch trading data');
+        console.error('Error fetching user data:', err);
+        setError('Failed to load user data. Please try again later.');
         setUserData(null);
         setPortfolioData(null);
+        setPositions([]);
+        setDematLimit(null);
       } finally {
         setLoading(false);
       }
     };
 
     fetchUserData();
-    // Refresh data every minute
-    const interval = setInterval(fetchUserData, 60000);
-    return () => clearInterval(interval);
   }, []);
 
   // Generate portfolio chart data
@@ -155,18 +159,33 @@ const TradingPortal = () => {
       setOrderStatus('Placing order...');
       console.log('Placing order:', orderData);
       
-      // Here you would call your trading API
-      // await placeTradeOrder(orderData);
+      // Call the actual trading API
+      const result = await placeTradeOrder(orderData);
       
-      // For now, just log the order
-      console.log('Order placed successfully:', orderData);
-      setOrderStatus('Order placed successfully!');
+      if (result && result.success) {
+        console.log('Order placed successfully:', result);
+        setOrderStatus('Order placed successfully!');
+        
+        // Refresh user data to show updated positions/orders
+        // await fetchUserData();
+        
+        // Trigger trade history refresh after successful order
+        setTimeout(() => {
+          // Dispatch a custom event to notify TradeList to refresh
+          window.dispatchEvent(new CustomEvent('refreshTradeHistory'));
+          console.log('Trade history refresh triggered');
+        }, 1000);
+        
+      } else {
+        console.error('Order placement failed:', result);
+        setOrderStatus('Failed to place order. Please check your inputs and try again.');
+      }
       
-      // Clear status after 3 seconds
-      setTimeout(() => setOrderStatus(''), 3000);
+      // Clear status after 5 seconds
+      setTimeout(() => setOrderStatus(''), 5000);
     } catch (error) {
       console.error('Error placing order:', error);
-      setOrderStatus('Failed to place order. Please try again.');
+      setOrderStatus(`Failed to place order: ${error.message || 'Unknown error'}`);
       setTimeout(() => setOrderStatus(''), 5000);
     }
   };
@@ -175,13 +194,26 @@ const TradingPortal = () => {
     setClearBrokerLoading(true);
     setClearBrokerStatus('');
     try {
-      await clearBrokerProfile();
-      setClearBrokerStatus('Broker connection cleared successfully');
-      setUserData(null);
-      setPortfolioData(null);
-      setPositions([]);
-      setDematLimit(null);
+      const result = await clearBrokerProfile();
+      console.log('Clear broker result:', result);
+      
+      if (result && result.success) {
+        setClearBrokerStatus('Broker connection cleared successfully');
+        // Force a complete reset of all broker-related data
+        setUserData(null);
+        setPortfolioData(null);
+        setPositions([]);
+        setDematLimit(null);
+        
+        // Force a refresh of the component to show "Broker Not Connected" state
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        setClearBrokerStatus('Failed to clear broker connection');
+      }
     } catch (err) {
+      console.error('Error clearing broker:', err);
       setClearBrokerStatus('Failed to clear broker connection');
     } finally {
       setClearBrokerLoading(false);
@@ -224,53 +256,42 @@ const TradingPortal = () => {
     return (
       <div style={{ 
         textAlign: 'center', 
-        padding: 'clamp(2em, 5vw, 4em)',
-        background: '#ffffff',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center'
+        padding: '2em', 
+        background: '#fff', 
+        borderRadius: '12px', 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
+        border: '1px solid #e0e0e0' 
       }}>
-        <div style={{
-          background: '#f8f9fa',
-          padding: 'clamp(2em, 4vw, 3em)',
-          borderRadius: '12px',
-          border: '2px dashed #dee2e6',
-          maxWidth: '500px',
-          width: '100%'
+        <h2 style={{ 
+          color: '#2c3e50', 
+          marginBottom: '1em', 
+          fontWeight: 600,
+          fontSize: 'clamp(1.2em, 3vw, 1.5em)'
         }}>
-          <h2 style={{ 
-            color: '#2c3e50', 
-            marginBottom: '1em',
-            fontSize: 'clamp(1.5em, 4vw, 2em)',
-            fontWeight: 600
-          }}>
-            Connect Your Broker
-          </h2>
-          <p style={{ 
-            color: '#6c757d', 
-            marginBottom: '2em',
-            fontSize: 'clamp(14px, 2.5vw, 16px)',
-            lineHeight: 1.6
-          }}>
-            To start trading, you need to connect your broker account. This will allow you to view real-time market data and place trades.
-          </p>
-          <Link to="/dashboard/broker-settings" style={{
-            display: 'inline-block',
-            background: '#007bff',
-            color: '#ffffff',
-            padding: 'clamp(0.8em, 2vw, 1em) clamp(1.5em, 3vw, 2em)',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            fontWeight: 600,
-            fontSize: 'clamp(14px, 2.5vw, 16px)',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 2px 4px rgba(0,123,255,0.2)'
-          }}>
-            Connect Broker Account
-          </Link>
-        </div>
+          Broker Not Connected
+        </h2>
+        <p style={{ 
+          color: '#6c757d', 
+          marginBottom: '1.5em',
+          fontSize: 'clamp(12px, 2.5vw, 14px)',
+          lineHeight: '1.5'
+        }}>
+          Please connect your broker account in the Broker Account Settings to access trading functionality.
+        </p>
+        <Link to="/user/broker-settings" style={{
+          display: 'inline-block',
+          background: '#007bff',
+          color: '#ffffff',
+          padding: 'clamp(0.8em, 2vw, 1em) clamp(1.5em, 3vw, 2em)',
+          borderRadius: '8px',
+          textDecoration: 'none',
+          fontWeight: 600,
+          fontSize: 'clamp(14px, 2.5vw, 16px)',
+          transition: 'all 0.3s ease',
+          boxShadow: '0 2px 4px rgba(0,123,255,0.2)'
+        }}>
+          Go to Broker Settings
+        </Link>
       </div>
     );
   }

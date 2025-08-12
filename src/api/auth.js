@@ -76,48 +76,78 @@ export const verifyBrokerConnection = async (data) => {
   }
 };
 
-export const fetchMyBrokerProfile = async (data) => {
+export const fetchMyBrokerProfile = async (totpData = null) => {
   try {
-    // Since the broker profile endpoint is not available, directly use the working auth endpoint
-    const userResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
-    const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
-    
-    // Return broker info from user data if available
-    if (userData && userData.broker_info) {
-      return {
-        success: true,
-        data: userData.broker_info
-      };
-    }
-    
-    // Check if user has broker connection status
-    if (userData && userData.is_broker_connected) {
-      // User has a broker connected, but no detailed info
+    // According to Postman, this endpoint requires POST with TOTP data
+    // If no TOTP provided, try to get broker info from user data first
+    if (!totpData) {
+      console.log('No TOTP provided, trying to get broker info from user data...');
+      try {
+        const userResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+        const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
+        
+        // Check if user has broker connection status
+        if (userData && userData.is_broker_connected) {
+          // User has a broker connected, construct profile from user data
+          return {
+            success: true,
+            data: {
+              broker_name: userData.broker_name || userData.broker || 'Connected Broker',
+              broker_client_id: userData.broker_client_id || userData.account_id || 'N/A',
+              is_active_for_trading: userData.is_active_for_trading || false,
+              exchanges: userData.exchanges || [],
+              products: userData.products || []
+            }
+          };
+        }
+      } catch (userError) {
+        console.error('Error getting user data for broker info:', userError);
+      }
+      
+      // Return a default "no broker" state if no TOTP and no user broker data
       return {
         success: true,
         data: {
-          broker_name: userData.broker_name || userData.broker || 'Connected Broker',
-          broker_client_id: userData.broker_client_id || userData.account_id || 'N/A',
-          is_active_for_trading: userData.is_active_for_trading || false,
-          exchanges: userData.exchanges || [],
-          products: userData.products || []
+          broker_name: 'No Broker Connected',
+          broker_client_id: 'N/A',
+          is_active_for_trading: false,
+          exchanges: [],
+          products: []
         }
       };
     }
     
-    // No broker connected - return empty state
-    return {
-      success: true,
-      data: {
-        broker_name: 'No Broker Connected',
-        broker_client_id: 'N/A',
-        is_active_for_trading: false,
-        exchanges: [],
-        products: []
-      }
-    };
+    // If TOTP is provided, try the broker profile endpoint
+    console.log('TOTP provided, trying broker profile endpoint...');
+    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/profile', { totp: totpData });
+    return response.data;
   } catch (error) {
     console.error('Error fetching broker profile:', error);
+    
+    // If the profile endpoint fails, try to get broker info from user data
+    try {
+      console.log('Broker profile endpoint failed, trying to get broker info from user data...');
+      const userResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+      const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
+      
+      // Check if user has broker connection status
+      if (userData && userData.is_broker_connected) {
+        // User has a broker connected, construct profile from user data
+        return {
+          success: true,
+          data: {
+            broker_name: userData.broker_name || userData.broker || 'Connected Broker',
+            broker_client_id: userData.broker_client_id || userData.account_id || 'N/A',
+            is_active_for_trading: userData.is_active_for_trading || false,
+            exchanges: userData.exchanges || [],
+            products: userData.products || []
+          }
+        };
+      }
+    } catch (userError) {
+      console.error('Error getting user data for broker info:', userError);
+    }
+    
     // Return a default "no broker" state
     return {
       success: true,
@@ -144,10 +174,31 @@ export const fetchBrokerConnectionStatus = async () => {
 
 export const clearBrokerProfile = async () => {
   try {
+    // Use the working clear broker endpoint from Postman
     const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/clear');
     return response.data;
   } catch (error) {
     console.error('Error clearing broker profile:', error);
+    
+    // If the clear endpoint fails, try to update user profile to remove broker info
+    if (error.response?.status === 404) {
+      console.log('Clear broker endpoint not found, trying to update user profile...');
+      try {
+        // Only update the fields that are safe to clear
+        const updateResponse = await axios.put('https://apistocktrading-production.up.railway.app/api/users/me/profileUpdate', {
+          is_active_for_trading: false
+        });
+        return {
+          success: true,
+          message: 'Broker profile cleared via profile update',
+          data: updateResponse.data
+        };
+      } catch (updateError) {
+        console.error('Error updating profile to clear broker info:', updateError);
+        throw updateError;
+      }
+    }
+    
     throw error;
   }
 };

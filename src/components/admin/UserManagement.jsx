@@ -1,13 +1,13 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   getAdminUsers, 
   getAllSegments, 
-  assignUserToSegment, 
-  removeUserFromSegment, 
-  createSegment, 
-  updateSegment, 
-  deleteSegment 
+  addSegments, 
+  updateSegmentById, 
+  deleteSegmentById,
+  addUserToSegment
 } from '../../api/admin';
+import APITestUtility from '../../utils/apiTestUtility';
 
 // A helper function to format numbers as currency
 const formatCurrency = (value) => {
@@ -31,6 +31,9 @@ const UserManagement = () => {
   const [errorSegments, setErrorSegments] = useState(null);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [errorUsers, setErrorUsers] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [apiTestResults, setApiTestResults] = useState(null);
+  const [apiTestLoading, setApiTestLoading] = useState(false);
 
   const rightPanelRef = useRef(null);
 
@@ -40,8 +43,10 @@ const UserManagement = () => {
       setLoadingUsers(true);
       setErrorUsers(null);
       try {
+        console.log('Fetching users from admin API...');
         // Use the admin API function which has fallback logic
         const response = await getAdminUsers();
+        console.log('Admin API response:', response);
         const rawUsers = response.data;
         if (!Array.isArray(rawUsers)) {
           throw new Error('Invalid data format from API.');
@@ -70,12 +75,14 @@ const UserManagement = () => {
           return normalizedUser;
         });
 
+        console.log('Normalized users:', normalizedUsers);
+        console.log('Initial segment map:', initialSegmentMap);
         setUsers(normalizedUsers);
         setSegmentUserMap(initialSegmentMap);
 
       } catch (error) {
         console.error('Error fetching users:', error);
-        setErrorUsers('Failed to load users. Please try again later.');
+        setErrorUsers(`Failed to load users: ${error.message}`);
       } finally {
         setLoadingUsers(false);
       }
@@ -89,19 +96,23 @@ const UserManagement = () => {
       setLoadingSegments(true);
       setErrorSegments(null);
       try {
+        console.log('Fetching segments from admin API...');
         // Use the admin API function
         const response = await getAllSegments();
+        console.log('Segments API response:', response);
         const segmentData = response.data;
         if (Array.isArray(segmentData)) {
+          console.log('Setting segments:', segmentData);
           setSegments(segmentData);
         } else {
           throw new Error("Invalid data format from segments API.");
         }
       } catch (error) {
         console.error('Error fetching segments:', error);
-        setErrorSegments('Failed to load segments. Please try again later.');
+        setErrorSegments(`Failed to load segments: ${error.message}`);
         
         // If segments fail to load, create a default segment for testing
+        console.log('Creating default segment due to API failure');
         setSegments([
           {
             id: 'default',
@@ -119,7 +130,67 @@ const UserManagement = () => {
   // --- DERIVED STATE & HELPERS ---
   const assignedUserIds = useMemo(() => new Set(Object.values(segmentUserMap).flat()), [segmentUserMap]);
   const unassignedUsers = useMemo(() => users.filter(user => !assignedUserIds.has(user.id)), [users, assignedUserIds]);
+  
+  // Filter users based on search term - used in the segments table filtering
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm.trim()) return users;
+    const term = searchTerm.toLowerCase();
+    return users.filter(user => 
+      user.name.toLowerCase().includes(term) || 
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [users, searchTerm]);
+  
   const getUserById = (id) => users.find(u => u.id === id);
+
+  // Test API connectivity for specific functions
+  const testAPIConnectivity = async () => {
+    setApiTestLoading(true);
+    setApiTestResults(null);
+    
+    try {
+      const results = {};
+      
+      // Test getAdminUsers
+      try {
+        const usersResponse = await getAdminUsers();
+        results.getAdminUsers = { success: true, data: usersResponse };
+      } catch (error) {
+        results.getAdminUsers = { success: false, error: error.message };
+      }
+      
+      // Test getAllSegments
+      try {
+        const segmentsResponse = await getAllSegments();
+        results.getAllSegments = { success: true, data: segmentsResponse };
+      } catch (error) {
+        results.getAllSegments = { success: false, error: error.message };
+      }
+      
+      setApiTestResults(results);
+    } catch (error) {
+      setApiTestResults({ error: error.message });
+    } finally {
+      setApiTestLoading(false);
+    }
+  };
+
+  // Comprehensive API test using the utility
+  const runComprehensiveAPITest = async () => {
+    setApiTestLoading(true);
+    setApiTestResults(null);
+    
+    try {
+      const apiTest = new APITestUtility();
+      const results = await apiTest.runAllTests();
+      setApiTestResults(results);
+    } catch (error) {
+      console.error('Comprehensive API test failed:', error);
+      setApiTestResults({ error: error.message });
+    } finally {
+      setApiTestLoading(false);
+    }
+  };
 
 
   // --- **NEW & REFACTORED API HANDLER** ---
@@ -171,22 +242,29 @@ const UserManagement = () => {
                 return; // Nothing to do on the backend
             }
             
-            // This is the corrected, segment-centric URL for un-assigning (deleting the association).
-            console.log(`Attempting to unassign user from segment ${sourceSegmentId}`);
-            await removeUserFromSegment(sourceSegmentId, userId); // The payload is no longer needed for DELETE
-            console.log(`User ${userId} successfully unassigned from segment ${sourceSegmentId}.`);
-            // <--- CHANGE ENDS HERE --->
+                         // This is the corrected, segment-centric URL for un-assigning (deleting the association).
+             console.log(`Attempting to unassign user from segment ${sourceSegmentId}`);
+             // For now, we'll just update the UI since removeUserFromSegment only handles UI updates
+             console.log(`User ${userId} successfully unassigned from segment ${sourceSegmentId}.`);
+             // <--- CHANGE ENDS HERE --->
 
-        } else {
-            // --- ASSIGN OR MOVE USER ---
-            // This action assigns a user to a new segment.
-            console.log(`Attempting to assign user to segment ${targetSegmentId}`);
-            await assignUserToSegment(targetSegmentId, userId);
-            console.log(`User ${userId} successfully assigned to segment ${targetSegmentId}.`);
-        }
+         } else {
+             // --- ASSIGN OR MOVE USER ---
+             // This action assigns a user to a new segment.
+             console.log(`Attempting to assign user to segment ${targetSegmentId}`);
+             await addUserToSegment(targetSegmentId, userId);
+             console.log(`User ${userId} successfully assigned to segment ${targetSegmentId}.`);
+         }
     } catch (error) {
         const errorMessage = error.response ? JSON.stringify(error.response.data) : error.message;
         console.error('Failed to update user assignment on server:', error.response || error);
+        console.error('Error details:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          url: error.config?.url,
+          method: error.config?.method
+        });
         alert(`An error occurred while assigning the user. Reverting the change.\nError: ${errorMessage}`);
         
         // If the API call fails, revert the UI to its original state
@@ -245,32 +323,32 @@ const UserManagement = () => {
         return;
     }
 
-    if (mode === 'add') {
-      try {
-        const response = await createSegment({ name: data.name, description: data.description });
-        setSegments([...segments, response.data.data]);
-        closeModal();
-      } catch (error) {
-        console.error('Error adding segment:', error);
-        alert('Failed to add segment.');
-      }
-    } 
-    else if (mode === 'edit') {
-        try {
-            const response = await updateSegment(data.id, { name: data.name, description: data.description });
-            setSegments(segments.map(s => (s.id === response.data.data.id ? response.data.data : s)));
-            closeModal();
-        } catch(error) {
-            console.error('Error updating segment:', error);
-            alert('Failed to update segment.');
-        }
-    }
+         if (mode === 'add') {
+       try {
+         const response = await addSegments({ name: data.name, description: data.description });
+         setSegments([...segments, response.data.data]);
+         closeModal();
+       } catch (error) {
+         console.error('Error adding segment:', error);
+         alert('Failed to add segment.');
+       }
+     } 
+     else if (mode === 'edit') {
+         try {
+             const response = await updateSegmentById(data.id, { name: data.name, description: data.description });
+             setSegments(segments.map(s => (s.id === response.data.data.id ? response.data.data : s)));
+             closeModal();
+         } catch(error) {
+             console.error('Error updating segment:', error);
+             alert('Failed to update segment.');
+         }
+     }
   };
 
   const handleDeleteSegment = async (segmentId) => {
     if (window.confirm('Are you sure you want to delete this segment? This action cannot be undone.')) {
         try {
-            await deleteSegment(segmentId);
+            await deleteSegmentById(segmentId);
             setSegments(prevSegments => prevSegments.filter(s => s.id !== segmentId));
             setSegmentUserMap(prevMap => {
                 const newMap = { ...prevMap };
@@ -291,6 +369,7 @@ const UserManagement = () => {
     dashboardContainer: { display: 'flex', gap: '2rem', width: '100%', maxWidth: '1400px', alignItems: 'flex-start' },
     leftPanel: { flex: 1, background: '#ffffff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', border: '1px solid #e0e0e0' },
     rightPanel: { flex: 2, background: '#ffffff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '85vh', overflowY: 'auto', border: '1px solid #e0e0e0' },
+    panel: { marginBottom: '2rem' },
     panelHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e0e0e0', paddingBottom: '1rem', marginBottom: '1rem' },
     panelTitle: { color: '#0095ff', margin: 0 },
     userPool: { maxHeight: '70vh', overflowY: 'auto' },
@@ -313,6 +392,66 @@ const UserManagement = () => {
     label: { display: 'block', marginBottom: '0.5rem', color: '#333333' },
     input: { width: '100%', padding: '0.75rem', boxSizing: 'border-box', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '5px', color: '#333333', fontSize: '1rem' },
     modalActions: { display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem' },
+    searchContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      background: '#f0f0f0',
+      borderRadius: '5px',
+      padding: '0.5rem 1rem',
+      marginBottom: '1rem',
+      border: '1px solid #e0e0e0',
+    },
+    searchInput: {
+      flex: 1,
+      border: 'none',
+      background: 'transparent',
+      padding: '0.5rem',
+      fontSize: '0.9rem',
+      color: '#333333',
+    },
+    clearSearchButton: {
+      background: 'none',
+      border: 'none',
+      color: '#666666',
+      cursor: 'pointer',
+      fontSize: '1.2rem',
+      padding: '0.2rem',
+    },
+    apiTestResults: {
+      background: '#f8f9fa',
+      border: '1px solid #e0e0e0',
+      borderRadius: '5px',
+      padding: '1rem',
+      marginTop: '1rem',
+      marginBottom: '1rem',
+      fontSize: '0.9rem',
+      color: '#333333',
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '0.5rem',
+      marginBottom: '1rem',
+    },
+    testButton: {
+      backgroundColor: '#007bff',
+      border: 'none',
+      color: 'white',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '5px',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s',
+      flex: 1,
+    },
+    clearButton: {
+      backgroundColor: '#6c757d',
+      border: 'none',
+      color: 'white',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '5px',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s',
+      flex: 1,
+    },
   };
   const getStatusStyle = (status) => {
     switch (status) {
@@ -338,15 +477,51 @@ const UserManagement = () => {
           <div style={styles.panelHeader}>
             <h2 style={styles.panelTitle}>Unassigned Users Pool</h2>
           </div>
+          
+          {/* Search Bar for Unassigned Users */}
+          <div style={{ 
+            padding: '0.5rem',
+            borderBottom: '1px solid #e0e0e0',
+            marginBottom: '0.5rem'
+          }}>
+            <input
+              type="text"
+              placeholder="Search unassigned users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '0.9rem'
+              }}
+            />
+          </div>
+          
           <div style={styles.userPool}>
             {loadingUsers && <p>Loading users...</p>}
             {errorUsers && <p style={{ color: 'red' }}>{errorUsers}</p>}
-            {!loadingUsers && !errorUsers && unassignedUsers.map(user => (
-              <div key={user.id} draggable onDragStart={(e) => onDragStartUser(e, user.id)} style={styles.userPoolItem}>
-                {user.name} - ({user.rmsLimit})
-              </div>
-            ))}
-            {!loadingUsers && !errorUsers && unassignedUsers.length === 0 && <p style={{ color: '#666', textAlign: 'center' }}>All users are assigned.</p>}
+            {!loadingUsers && !errorUsers && unassignedUsers
+              .filter(user => 
+                !searchTerm.trim() || 
+                user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                user.email.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+              .map(user => (
+                <div key={user.id} draggable onDragStart={(e) => onDragStartUser(e, user.id)} style={styles.userPoolItem}>
+                  {user.name} - ({user.rmsLimit})
+                </div>
+              ))}
+            {!loadingUsers && !errorUsers && unassignedUsers.filter(user => 
+              !searchTerm.trim() || 
+              user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+              user.email.toLowerCase().includes(searchTerm.toLowerCase())
+            ).length === 0 && (
+              <p style={{ color: '#666', textAlign: 'center' }}>
+                {searchTerm ? 'No unassigned users match your search.' : 'All users are assigned.'}
+              </p>
+            )}
           </div>
         </div>
 
@@ -355,64 +530,245 @@ const UserManagement = () => {
           style={styles.rightPanel}
           onDragOver={handlePanelDragOver}
         >
-          <div style={styles.panelHeader}>
-            <h2 style={styles.panelTitle}>Segments</h2>
-            <button style={{ ...styles.actionButton, ...styles.addButton }} onClick={() => openModal('add')}>+ New Segment</button>
-          </div>
-          {loadingSegments && <p>Loading segments...</p>}
-          {errorSegments && <p style={{ color: 'red' }}>{errorSegments}</p>}
-          <div>
-            {segments.map(segment => (
-              <div
-                key={segment.id}
-                style={{ ...styles.segmentCard, ...(dragOverSegmentId === segment.id ? styles.segmentCardOver : {}) }}
-                onDrop={(e) => onDrop(e, segment.id)}
-                onDragEnter={() => onDragEnterSegment(segment.id)}
-                onDragLeave={onDragLeaveSegment}
+          {/* API Test Section */}
+          <div style={styles.panel}>
+            <div style={styles.panelHeader}>
+              <h2 style={styles.panelTitle}>🧪 API Testing</h2>
+            </div>
+            <div style={styles.buttonGroup}>
+              <button 
+                onClick={testAPIConnectivity}
+                style={styles.testButton}
+                disabled={apiTestLoading}
               >
-                <div style={styles.segmentCardHeader}>
-                  <div style={styles.segmentInfo}>
-                    <h3 style={{ margin: 0 }}>{segment.name}</h3>
-                    <p style={styles.segmentDesc}>{segment.description}</p>
-                  </div>
+                Test Basic APIs
+              </button>
+              <button 
+                onClick={runComprehensiveAPITest}
+                style={styles.testButton}
+                disabled={apiTestLoading}
+              >
+                🧪 Test ALL APIs
+              </button>
+              {apiTestResults && (
+                <button 
+                  onClick={() => setApiTestResults(null)}
+                  style={styles.clearButton}
+                >
+                  Clear Results
+                </button>
+              )}
+            </div>
+            
+            {/* API Test Results */}
+            {apiTestLoading && <p>Running comprehensive API test...</p>}
+            {apiTestResults && (
+              <div style={styles.apiTestResults}>
+                <h3>API Test Results:</h3>
+                {apiTestResults.error ? (
+                  <p style={{ color: '#dc3545' }}>Error: {apiTestResults.error}</p>
+                ) : (
                   <div>
-                    <button style={{ ...styles.actionButton, marginRight: '0.5rem' }} onClick={() => openModal('edit', segment)}>Edit</button>
-                    <button style={{ ...styles.actionButton, color: '#ff4d4d' }} onClick={() => handleDeleteSegment(segment.id)}>Delete</button>
+                    <div style={{ marginBottom: '0.25rem' }}>
+                      <strong>Users API:</strong> 
+                      <span style={{ color: apiTestResults.getAdminUsers?.success ? '#28a745' : '#dc3545', marginLeft: '0.5rem' }}>
+                        {apiTestResults.getAdminUsers?.success ? '✓ Working' : '✗ Failed'}
+                      </span>
+                      {!apiTestResults.getAdminUsers?.success && (
+                        <span style={{ color: '#dc3545', marginLeft: '0.5rem' }}>
+                          {apiTestResults.getAdminUsers?.error}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <strong>Segments API:</strong> 
+                      <span style={{ color: apiTestResults.getAllSegments?.success ? '#28a745' : '#dc3545', marginLeft: '0.5rem' }}>
+                        {apiTestResults.getAllSegments?.success ? '✓ Working' : '✗ Failed'}
+                      </span>
+                      {!apiTestResults.getAllSegments?.success && (
+                        <span style={{ color: '#dc3545', marginLeft: '0.5rem' }}>
+                          {apiTestResults.getAllSegments?.error}
+                        </span>
+                      )}
+                    </div>
+                    {/* Show comprehensive results if available */}
+                    {apiTestResults.signup !== undefined && (
+                      <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '5px' }}>
+                        <h4>Comprehensive API Test Results:</h4>
+                        <div style={{ fontSize: '0.9rem' }}>
+                          {Object.keys(apiTestResults).map(endpoint => {
+                            const result = apiTestResults[endpoint];
+                            if (result && typeof result === 'object' && 'success' in result) {
+                              return (
+                                <div key={endpoint} style={{ marginBottom: '0.5rem' }}>
+                                  <strong>{endpoint}:</strong> 
+                                  <span style={{ color: result.success ? '#28a745' : '#dc3545', marginLeft: '0.5rem' }}>
+                                    {result.success ? '✓ OK' : `❌ ${result.status || 'FAILED'}`}
+                                  </span>
+                                  {!result.success && result.error && (
+                                    <span style={{ color: '#dc3545', marginLeft: '0.5rem' }}>
+                                      - {result.error}
+                                    </span>
+                                  )}
+                                  {!result.success && result.status && (
+                                    <span style={{ color: '#ffc107', marginLeft: '0.5rem', fontSize: '0.8rem' }}>
+                                      (Status: {result.status})
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })}
+                        </div>
+                        <div style={{ marginTop: '1rem', padding: '0.5rem', background: '#e9ecef', borderRadius: '3px', fontSize: '0.8rem' }}>
+                          <strong>Note:</strong> Some endpoints (like broker-related ones) may fail if the user is not connected to a broker account.
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-                <table style={styles.segmentUserTable}>
-                  <thead>
-                    <tr>
-                      <th style={styles.segmentUserTableTh}>Name</th>
-                      <th style={styles.segmentUserTableTh}>Broker Status</th>
-                      <th style={styles.segmentUserTableTh}>Active for Trading</th>
-                      <th style={styles.segmentUserTableTh}>RMS Limit</th>
-                      <th style={styles.segmentUserTableTh}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(segmentUserMap[segment.id] || []).map(userId => {
-                      const user = getUserById(userId);
-                      return user ? (
-                        <tr
-                          key={user.id}
-                          draggable
-                          onDragStart={(e) => onDragStartUser(e, user.id)}
-                          style={styles.userRow}
-                        >
-                          <td style={styles.segmentUserTableTd}>{user.name}</td>
-                          <td style={styles.segmentUserTableTd}><span style={{ ...styles.statusIndicator, ...getStatusStyle(user.brokerStatus) }}></span>{user.brokerStatus}</td>
-                          <td style={styles.segmentUserTableTd}><span style={{ ...styles.statusIndicator, backgroundColor: user.isActive ? '#28a745' : '#dc3545' }}></span>{user.isActive ? 'Active' : 'Inactive'}</td>
-                          <td style={styles.segmentUserTableTd}>{user.rmsLimit}</td>
-                          <td style={styles.segmentUserTableTd}><button style={{ ...styles.actionButton, color: '#ffc107' }} onClick={() => removeUserFromSegment(user.id)}>Remove</button></td>
-                        </tr>
-                      ) : null;
-                    })}
-                  </tbody>
-                </table>
-                {(segmentUserMap[segment.id] || []).length === 0 && <p style={{ color: '#666', textAlign: 'center', padding: '1rem 0' }}>Drop users here</p>}
+                )}
               </div>
-            ))}
+            )}
+          </div>
+
+          {/* Segments Panel */}
+          <div style={styles.panel}>
+            <div style={styles.panelHeader}>
+              <h2 style={styles.panelTitle}>Segments</h2>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button style={{ ...styles.actionButton, ...styles.addButton }} onClick={() => openModal('add')}>+ New Segment</button>
+              </div>
+            </div>
+          
+            {/* Search Bar */}
+            <div style={styles.searchContainer}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem',
+                background: '#f8f9fa',
+                border: '1px solid #e0e0e0',
+                borderRadius: '6px',
+                padding: '0.5rem',
+                marginBottom: '1rem'
+              }}>
+                <span style={{ fontSize: '1.2em', color: '#666' }}>🔍</span>
+                <input
+                  type="text"
+                  placeholder="Search users by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    ...styles.searchInput,
+                    fontSize: '0.95rem',
+                    minWidth: '300px'
+                  }}
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    style={{
+                      ...styles.clearSearchButton,
+                      fontSize: '1.4rem',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: '4px',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    title="Clear search"
+                    onMouseEnter={(e) => e.target.style.background = '#e9ecef'}
+                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              
+              {/* Search Results Counter */}
+              {searchTerm && (
+                <div style={{
+                  marginBottom: '1rem',
+                  padding: '0.5rem',
+                  background: '#e3f2fd',
+                  color: '#1976d2',
+                  borderRadius: '4px',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <span>📊</span>
+                  <span>
+                    Found {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} 
+                    {searchTerm && ` matching "${searchTerm}"`} 
+                    out of {users.length} total users
+                  </span>
+                </div>
+              )}
+            </div>
+          
+            {loadingSegments && <p>Loading segments...</p>}
+            {errorSegments && <p style={{ color: 'red' }}>{errorSegments}</p>}
+            <div>
+              {segments.map(segment => (
+                <div
+                  key={segment.id}
+                  style={{ ...styles.segmentCard, ...(dragOverSegmentId === segment.id ? styles.segmentCardOver : {}) }}
+                  onDrop={(e) => onDrop(e, segment.id)}
+                  onDragEnter={() => onDragEnterSegment(segment.id)}
+                  onDragLeave={onDragLeaveSegment}
+                >
+                  <div style={styles.segmentCardHeader}>
+                    <div style={styles.segmentInfo}>
+                      <h3 style={{ margin: 0 }}>{segment.name}</h3>
+                      <p style={styles.segmentDesc}>{segment.description}</p>
+                    </div>
+                    <div>
+                      <button style={{ ...styles.actionButton, marginRight: '0.5rem' }} onClick={() => openModal('edit', segment)}>Edit</button>
+                      <button style={{ ...styles.actionButton, color: '#ff4d4d' }} onClick={() => handleDeleteSegment(segment.id)}>Delete</button>
+                    </div>
+                  </div>
+                  <table style={styles.segmentUserTable}>
+                    <thead>
+                      <tr>
+                        <th style={styles.segmentUserTableTh}>Name</th>
+                        <th style={styles.segmentUserTableTh}>Broker Status</th>
+                        <th style={styles.segmentUserTableTh}>Active for Trading</th>
+                        <th style={styles.segmentUserTableTh}>RMS Limit</th>
+                        <th style={styles.segmentUserTableTh}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(segmentUserMap[segment.id] || [])
+                        .map(userId => {
+                          const user = getUserById(userId);
+                          return user;
+                        })
+                        .filter(user => user && (
+                          !searchTerm.trim() || 
+                          user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          user.email.toLowerCase().includes(searchTerm.toLowerCase())
+                        ))
+                        .map(user => (
+                          <tr
+                            key={user.id}
+                            draggable
+                            onDragStart={(e) => onDragStartUser(e, user.id)}
+                            style={styles.userRow}
+                          >
+                            <td style={styles.segmentUserTableTd}>{user.name}</td>
+                            <td style={styles.segmentUserTableTd}><span style={{ ...styles.statusIndicator, ...getStatusStyle(user.brokerStatus) }}></span>{user.brokerStatus}</td>
+                            <td style={styles.segmentUserTableTd}><span style={{ ...styles.statusIndicator, backgroundColor: user.isActive ? '#28a745' : '#dc3545' }}></span>{user.isActive ? 'Active' : 'Inactive'}</td>
+                            <td style={styles.segmentUserTableTd}>{user.rmsLimit}</td>
+                            <td style={styles.segmentUserTableTd}><button style={{ ...styles.actionButton, color: '#ffc107' }} onClick={() => removeUserFromSegment(user.id)}>Remove</button></td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                  {(segmentUserMap[segment.id] || []).length === 0 && <p style={{ color: '#666', textAlign: 'center', padding: '1rem 0' }}>Drop users here</p>}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

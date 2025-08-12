@@ -1,57 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { updateProfile, getUserProfile } from '../../api/auth';
 import { 
   addBrokerAccount, 
   fetchMyBrokerProfile, 
   clearBrokerProfile 
 } from '../../api/auth';
-import { verifyBrokerTOTP, verifyBrokerMPIN } from '../../api/broker';
+import { verifyBrokerTOTP } from '../../api/broker';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { 
-  Settings, 
-  User, 
-  Mail, 
-  Phone, 
-  Building2, 
-  CreditCard, 
-  CheckCircle, 
   X, 
   Plus,
-  Shield,
-  AlertCircle,
-  RefreshCw,
   Trash2
 } from 'lucide-react';
 
 const UserProfileSettings = () => {
-  const { user, role } = useAuth();
+  const { role } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
+    fullName: '',
     email: '',
-    phone: '',
-    dateOfBirth: '',
-    gender: '',
-    address: '',
-    city: '',
-    state: '',
-    pincode: '',
-    panNumber: '',
-    aadharNumber: '',
-    bankName: '',
-    accountNumber: '',
-    ifscCode: '',
-    nomineeName: '',
-    nomineeRelation: '',
-    nomineePhone: ''
+    phone: ''
   });
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-    const [validationErrors, setValidationErrors] = useState({});
+  const [validationErrors, setValidationErrors] = useState({});
   
   // Broker connection states
   const [brokerData, setBrokerData] = useState({
@@ -69,7 +45,7 @@ const UserProfileSettings = () => {
   const [brokerProfile, setBrokerProfile] = useState(null);
   const [showBrokerForm, setShowBrokerForm] = useState(false);
   const [brokerStep, setBrokerStep] = useState(1);
-  const [brokerSessionId, setBrokerSessionId] = useState(null);
+
   const [brokerLoading, setBrokerLoading] = useState(false);
 
   useEffect(() => {
@@ -105,8 +81,6 @@ const UserProfileSettings = () => {
       }
     } catch (error) {
       console.error('Error fetching broker profile:', error);
-      setError('Failed to load broker profile data. Please try again later.');
-      // Set broker profile to "No Broker Connected" state on error
       setBrokerProfile({
         brokerName: 'No Broker Connected',
         accountId: 'N/A',
@@ -129,99 +103,75 @@ const UserProfileSettings = () => {
     e.preventDefault();
     setBrokerLoading(true);
     setError('');
-    setSuccess('');
-    
+
     try {
-      let response;
-      
       if (brokerStep === 1) {
-        // Step 1: Send API credentials and get session ID for TOTP verification
-        response = await addBrokerAccount({
-          broker: brokerData.broker,
+        // Step 1: Add broker account with MPIN
+        const brokerPayload = {
           broker_name: brokerData.broker_name,
           broker_client_id: brokerData.broker_client_id,
           broker_api_key: brokerData.broker_api_key,
           broker_api_secret: brokerData.broker_api_secret,
+          angelone_mpin: brokerData.mpin,
           angelone_token: brokerData.angelone_token
-        });
+        };
+
+        const response = await addBrokerAccount(brokerPayload);
         
         if (response && response.success) {
-          // Store session ID for next step
-          setBrokerSessionId(response.data?.sessionId || response.sessionId);
           setBrokerStep(2);
-          setSuccess('Please enter your TOTP to continue');
+          setSuccess('Broker account added successfully! Please enter TOTP to complete verification.');
+        } else {
+          setError(response?.message || 'Failed to add broker account');
         }
       } else if (brokerStep === 2) {
-        // Step 2: Send TOTP
-        response = await verifyBrokerTOTP({
-          sessionId: brokerSessionId,
+        // Step 2: Verify TOTP
+        const totpPayload = {
           totp: brokerData.totp
-        });
+        };
+
+        const response = await verifyBrokerTOTP(totpPayload);
         
         if (response && response.success) {
-          setBrokerStep(3);
-          setSuccess('Please enter your MPIN to complete the connection');
-        }
-      } else if (brokerStep === 3) {
-        // Step 3: Send MPIN and complete connection
-        response = await verifyBrokerMPIN({
-          sessionId: brokerSessionId,
-          mpin: brokerData.mpin
-        });
-        
-        if (response && response.success) {
-          setSuccess('Broker account connected successfully!');
+          setSuccess('Broker account verified successfully!');
           setShowBrokerForm(false);
           setBrokerStep(1);
-          setBrokerSessionId(null);
-          setBrokerData({
-            broker: 'Angel One',
-            broker_name: 'angelone',
-            broker_client_id: '',
-            broker_api_key: '',
-            broker_api_secret: '',
-            angelone_token: '',
-            password: '',
-            mpin: '',
-            totp: ''
-          });
-          await fetchBrokerProfile();
+          resetBrokerForm();
+          fetchBrokerProfile(); // Refresh broker profile
+        } else {
+          setError(response?.message || 'TOTP verification failed');
         }
       }
-    } catch (err) {
-      console.error('Error in broker connection step:', err);
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.error || 
-                          'Failed to connect broker account';
-      setError(errorMessage);
-      
-      // Reset to step 1 if there's a critical error
-      if (err.response?.status === 400 || err.response?.status === 401) {
-        setBrokerStep(1);
-        setBrokerSessionId(null);
-      }
+    } catch (error) {
+      console.error('Error in broker setup:', error);
+      setError(error.message || 'An error occurred during broker setup');
     } finally {
       setBrokerLoading(false);
     }
   };
 
   const handleClearBroker = async () => {
-    if (window.confirm('Are you sure you want to disconnect your broker account?')) {
-      try {
-        await clearBrokerProfile();
-        setBrokerProfile(null);
-        setSuccess('Broker account disconnected successfully!');
-      } catch (err) {
-        console.error('Error clearing broker profile:', err);
-        setError('Failed to disconnect broker account');
+    try {
+      const result = await clearBrokerProfile();
+      if (result && result.success) {
+        setSuccess('Broker connection cleared successfully');
+        setBrokerProfile({
+          brokerName: 'No Broker Connected',
+          accountId: 'N/A',
+          status: 'Inactive',
+          exchanges: [],
+          products: []
+        });
+      } else {
+        setError('Failed to clear broker connection');
       }
+    } catch (err) {
+      console.error('Error clearing broker profile:', err);
+      setError('Failed to clear broker connection');
     }
   };
 
   const resetBrokerForm = () => {
-    setBrokerStep(1);
-    setBrokerSessionId(null);
-    setShowBrokerForm(false);
     setBrokerData({
       broker: 'Angel One',
       broker_name: 'angelone',
@@ -233,51 +183,24 @@ const UserProfileSettings = () => {
       mpin: '',
       totp: ''
     });
+    setBrokerStep(1);
     setError('');
-    setSuccess('');
   };
 
   const fetchUserProfile = async () => {
-    setLoading(true);
-    setError('');
     try {
       const response = await getUserProfile();
-      console.log('User profile response:', response);
-      
-      let profileData;
       if (response && response.success && response.data) {
-        profileData = response.data;
-      } else if (response && response.user) {
-        profileData = response.user;
-      } else {
-        profileData = response;
-      }
-      
-      if (profileData) {
         setFormData({
-          name: profileData.name || '',
-          email: profileData.email || '',
-          phone: profileData.phone || '',
-          dateOfBirth: profileData.dateOfBirth || profileData.dob || '',
-          gender: profileData.gender || '',
-          address: profileData.address || '',
-          city: profileData.city || '',
-          state: profileData.state || '',
-          pincode: profileData.pincode || '',
-          panNumber: profileData.panNumber || profileData.pan || '',
-          aadharNumber: profileData.aadharNumber || profileData.aadhar || '',
-          bankName: profileData.bankName || '',
-          accountNumber: profileData.accountNumber || '',
-          ifscCode: profileData.ifscCode || '',
-          nomineeName: profileData.nomineeName || '',
-          nomineeRelation: profileData.nomineeRelation || '',
-          nomineePhone: profileData.nomineePhone || ''
+          name: response.data.name || '',
+          fullName: response.data.fullName || response.data.name || '',
+          email: response.data.email || '',
+          phone: response.data.phone || ''
         });
       }
-    } catch (err) {
-      console.error('Error fetching user profile:', err);
-      setError('Failed to load profile data. Please try again later.');
-      throw err; // Re-throw the error instead of setting fallback data
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      setError('Failed to fetch user profile');
     } finally {
       setLoading(false);
     }
@@ -286,39 +209,24 @@ const UserProfileSettings = () => {
   const validateForm = () => {
     const errors = {};
     
-    // Required fields validation
-    if (!formData.name.trim()) errors.name = 'Name is required';
-    if (!formData.email.trim()) errors.email = 'Email is required';
-    if (!formData.phone.trim()) errors.phone = 'Phone number is required';
-    
-    // Email validation
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = 'Please enter a valid email address';
+    if (!formData.name.trim()) {
+      errors.name = 'Name is required';
     }
     
-    // Phone validation
-    if (formData.phone && !/^[0-9+\-\s()]{10,}$/.test(formData.phone)) {
-      errors.phone = 'Please enter a valid phone number';
+    if (!formData.fullName.trim()) {
+      errors.fullName = 'Full name is required';
     }
     
-    // PAN validation
-    if (formData.panNumber && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.panNumber)) {
-      errors.panNumber = 'Please enter a valid PAN number (e.g., ABCDE1234F)';
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = 'Email is invalid';
     }
     
-    // Aadhar validation
-    if (formData.aadharNumber && !/^[0-9]{12}$/.test(formData.aadharNumber)) {
-      errors.aadharNumber = 'Please enter a valid 12-digit Aadhar number';
-    }
-    
-    // Pincode validation
-    if (formData.pincode && !/^[0-9]{6}$/.test(formData.pincode)) {
-      errors.pincode = 'Please enter a valid 6-digit pincode';
-    }
-    
-    // IFSC validation
-    if (formData.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscCode)) {
-      errors.ifscCode = 'Please enter a valid IFSC code';
+    if (!formData.phone.trim()) {
+      errors.phone = 'Phone number is required';
+    } else if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
+      errors.phone = 'Phone number must be 10 digits';
     }
     
     setValidationErrors(errors);
@@ -345,26 +253,27 @@ const UserProfileSettings = () => {
     e.preventDefault();
     
     if (!validateForm()) {
-      setError('Please fix the validation errors below.');
       return;
     }
     
     setSaving(true);
     setError('');
     setSuccess('');
+    
     try {
-      await updateProfile(formData);
-      setSuccess('Profile updated successfully!');
-      setValidationErrors({});
-    } catch (err) {
-      console.error('Error updating profile:', err);
-      setError(err.response?.data?.message || 'Failed to update profile');
+      const response = await updateProfile(formData);
+      if (response && response.success) {
+        setSuccess('Profile updated successfully!');
+      } else {
+        setError(response?.message || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setError('Failed to update profile');
     } finally {
       setSaving(false);
     }
   };
-
-
 
   const InputField = ({ label, name, type = 'text', required = false, placeholder, validation }) => (
     <div style={{ marginBottom: '1.5em' }}>
@@ -383,7 +292,6 @@ const UserProfileSettings = () => {
         value={formData[name]}
         onChange={handleChange}
         placeholder={placeholder}
-        required={required}
         style={{ 
           width: '100%', 
           padding: '0.8em', 
@@ -563,24 +471,6 @@ const UserProfileSettings = () => {
               Password Management
             </h3>
             <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap' }}>
-              <Link to="/forgot-password" style={{
-                padding: '0.5em 1em',
-                background: '#007bff',
-                color: '#fff',
-                textDecoration: 'none',
-                borderRadius: '4px',
-                fontSize: 12,
-                fontWeight: 500,
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = '#0056b3';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = '#007bff';
-              }}>
-                Forgot Password
-              </Link>
               <Link to="/reset-password" style={{
                 padding: '0.5em 1em',
                 background: '#28a745',
@@ -604,8 +494,15 @@ const UserProfileSettings = () => {
 
           <form onSubmit={handleSubmit}>
             <InputField
-              label="Full Name"
+              label="Name"
               name="name"
+              required
+              placeholder="Enter your name"
+            />
+            
+            <InputField
+              label="Full Name"
+              name="fullName"
               required
               placeholder="Enter your full name"
             />
@@ -623,68 +520,6 @@ const UserProfileSettings = () => {
               name="phone"
               required
               placeholder="Enter your phone number"
-            />
-            
-            <InputField
-              label="Date of Birth"
-              name="dateOfBirth"
-              type="date"
-              placeholder="Select your date of birth"
-            />
-            
-            <div style={{ marginBottom: '1.5em' }}>
-              <label style={{ 
-                color: '#495057', 
-                fontWeight: 500, 
-                display: 'block', 
-                marginBottom: '0.5em', 
-                fontSize: 14 
-              }}>
-                Gender
-              </label>
-              <select
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                style={{ 
-                  width: '100%', 
-                  padding: '0.8em', 
-                  border: '1px solid #e0e0e0', 
-                  borderRadius: '6px', 
-                  fontSize: 14, 
-                  background: '#fff' 
-                }}
-              >
-                <option value="">Select gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            
-            <InputField
-              label="Address"
-              name="address"
-              placeholder="Enter your address"
-            />
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1em' }}>
-              <InputField
-                label="City"
-                name="city"
-                placeholder="Enter city"
-              />
-              <InputField
-                label="State"
-                name="state"
-                placeholder="Enter state"
-              />
-            </div>
-            
-            <InputField
-              label="Pincode"
-              name="pincode"
-              placeholder="Enter 6-digit pincode"
             />
             
             <button
@@ -709,76 +544,6 @@ const UserProfileSettings = () => {
           </form>
         </div>
 
-        {/* KYC & Banking Information */}
-        <div style={{ 
-          padding: '2em', 
-          background: '#fff', 
-          borderRadius: '12px', 
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-          border: '1px solid #e0e0e0' 
-        }}>
-          <h2 style={{ 
-            color: '#2c3e50', 
-            marginBottom: '1.5em', 
-            fontWeight: 600, 
-            fontSize: '1.4em',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5em'
-          }}>
-            <span>🏦</span>
-            KYC & Banking Details
-          </h2>
-          
-          <InputField
-            label="PAN Number"
-            name="panNumber"
-            placeholder="Enter PAN number (e.g., ABCDE1234F)"
-          />
-          
-          <InputField
-            label="Aadhar Number"
-            name="aadharNumber"
-            placeholder="Enter 12-digit Aadhar number"
-          />
-          
-          <InputField
-            label="Bank Name"
-            name="bankName"
-            placeholder="Enter bank name"
-          />
-          
-          <InputField
-            label="Account Number"
-            name="accountNumber"
-            placeholder="Enter account number"
-          />
-          
-          <InputField
-            label="IFSC Code"
-            name="ifscCode"
-            placeholder="Enter IFSC code"
-          />
-          
-          <InputField
-            label="Nominee Name"
-            name="nomineeName"
-            placeholder="Enter nominee name"
-          />
-          
-          <InputField
-            label="Nominee Relation"
-            name="nomineeRelation"
-            placeholder="Enter relation with nominee"
-          />
-          
-          <InputField
-            label="Nominee Phone"
-            name="nomineePhone"
-            placeholder="Enter nominee phone number"
-          />
-        </div>
-
         {/* Broker Account Section */}
         <div style={{ 
           padding: '2em', 
@@ -800,568 +565,341 @@ const UserProfileSettings = () => {
             Broker Account
           </h2>
 
-          {brokerProfile && brokerProfile.brokerName !== 'No Broker Connected' ? (
-            <div style={{
-              background: '#e8f5e8',
-              padding: '1.5em',
-              borderRadius: '8px',
-              border: '1px solid #c8e6c9',
+          {brokerProfile && (
+            <div style={{ 
+              padding: '1.5em', 
+              background: '#f8f9fa', 
+              borderRadius: '8px', 
+              border: '1px solid #e9ecef',
               marginBottom: '1.5em'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1em', gap: '0.5em' }}>
-                <span style={{ color: '#2e7d32', fontSize: '1.2em' }}>✅</span>
-                <span style={{ 
-                  fontWeight: 600, 
-                  fontSize: '1.1em',
-                  color: '#2e7d32'
-                }}>
-                  Connected to {brokerProfile.brokerName || 'Angel One'}
-                </span>
-              </div>
-              
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '1em',
-                marginBottom: '1.5em'
-              }}>
-
-
-                {brokerProfile.exchanges && brokerProfile.exchanges.length > 0 && (
-                  <div style={{ 
-                    background: 'white', 
-                    padding: '1em', 
-                    borderRadius: '6px',
-                    border: '1px solid #e0e0e0'
-                  }}>
-                    <div style={{ 
-                      color: '#666', 
-                      fontSize: '0.875rem',
-                      marginBottom: '0.25em'
-                    }}>
-                      Exchanges
-                    </div>
-                    <div style={{ 
-                      color: '#2c3e50', 
-                      fontWeight: '600',
-                      fontSize: '0.95rem'
-                    }}>
-                      {brokerProfile.exchanges.join(', ')}
-                    </div>
-                  </div>
-                )}
-
-                {brokerProfile.products && brokerProfile.products.length > 0 && (
-                  <div style={{ 
-                    background: 'white', 
-                    padding: '1em', 
-                    borderRadius: '6px',
-                    border: '1px solid #e0e0e0'
-                  }}>
-                    <div style={{ 
-                      color: '#666', 
-                      fontSize: '0.875rem',
-                      marginBottom: '0.25em'
-                    }}>
-                      Products
-                    </div>
-                    <div style={{ 
-                      color: '#2c3e50', 
-                      fontWeight: '600',
-                      fontSize: '0.95rem'
-                    }}>
-                      {brokerProfile.products.join(', ')}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap' }}>
-                <button
-                  onClick={handleClearBroker}
-                  style={{
-                    background: '#f44336',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.75em 1.5em',
-                    borderRadius: '6px',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = '#d32f2f';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = '#f44336';
-                  }}
-                >
-                  Disconnect Broker
-                </button>
+              <div style={{ display: 'grid', gap: '1em' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#495057', fontWeight: 500 }}>Broker:</span>
+                  <span style={{ color: '#2c3e50', fontWeight: 600 }}>{brokerProfile.brokerName}</span>
+                </div>
                 
-                <button
-                  onClick={() => setShowBrokerForm(true)}
-                  style={{
-                    background: '#2196f3',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.75em 1.5em',
-                    borderRadius: '6px',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.background = '#1976d2';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.background = '#2196f3';
-                  }}
-                >
-                  Change Broker
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#495057', fontWeight: 500 }}>Account ID:</span>
+                  <span style={{ color: '#2c3e50', fontWeight: 600 }}>{brokerProfile.accountId}</span>
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#495057', fontWeight: 500 }}>Status:</span>
+                  <span style={{ 
+                    color: brokerProfile.status === 'Active' ? '#28a745' : '#dc3545', 
+                    fontWeight: 600,
+                    background: brokerProfile.status === 'Active' ? '#d4edda' : '#f8d7da',
+                    padding: '0.2em 0.6em',
+                    borderRadius: '12px',
+                    fontSize: '0.85em'
+                  }}>
+                    {brokerProfile.status}
+                  </span>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div style={{
-              background: '#fff3cd',
-              padding: '1.5em',
-              borderRadius: '8px',
-              border: '1px solid #ffeaa7',
-              marginBottom: '1.5em'
-            }}>
+              
               <div style={{ 
                 display: 'flex', 
-                alignItems: 'center', 
-                marginBottom: '1em', 
-                gap: '0.5em' 
+                gap: '1em', 
+                marginTop: '1.5em',
+                flexWrap: 'wrap'
               }}>
-                <span style={{ color: '#856404', fontSize: '1.2em' }}>⚠️</span>
-                <span style={{ 
-                  color: '#856404', 
-                  fontWeight: '600',
-                  fontSize: '1.1em'
-                }}>
-                  {brokerProfile && brokerProfile.brokerName === 'No Broker Connected' ? 'Broker Connection Lost' : 'No Broker Connected'}
-                </span>
-              </div>
-              
-              <p style={{ 
-                color: '#856404', 
-                marginBottom: '1.5em',
-                fontSize: '0.95rem',
-                lineHeight: '1.5'
-              }}>
-                {brokerProfile && brokerProfile.brokerName === 'No Broker Connected' 
-                  ? 'Your broker connection has been lost. Please reconnect your broker account to restore trading functionality.'
-                  : 'Connect your broker account to enable trading functionality and access advanced features.'
-                }
-              </p>
-              
-              {!showBrokerForm ? (
-                <motion.button
+                <button
                   onClick={() => setShowBrokerForm(true)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   style={{
-                    background: 'var(--primary-color)',
-                    color: 'white',
+                    padding: '0.6em 1.2em',
+                    background: '#007bff',
+                    color: '#fff',
                     border: 'none',
-                    padding: '0.8em 1.5em',
-                    borderRadius: '8px',
-                    fontSize: 'clamp(12px, 2.5vw, 14px)',
-                    fontWeight: 600,
+                    borderRadius: '6px',
+                    fontSize: 14,
+                    fontWeight: 500,
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
+                    transition: 'all 0.3s ease',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5em',
-                    boxShadow: 'var(--shadow-sm)'
+                    gap: '0.5em'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#0056b3';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#007bff';
                   }}
                 >
                   <Plus size={16} />
-                  {brokerProfile && brokerProfile.brokerName === 'No Broker Connected' ? 'Reconnect Broker Account' : 'Connect Broker Account'}
-                </motion.button>
-              ) : (
-                <motion.form
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  onSubmit={handleAddBroker}
-                  style={{ marginTop: '1em' }}
+                  {brokerProfile.brokerName === 'No Broker Connected' ? 'Connect Broker' : 'Change Broker'}
+                </button>
+                
+                {brokerProfile.brokerName !== 'No Broker Connected' && (
+                  <button
+                    onClick={handleClearBroker}
+                    style={{
+                      padding: '0.6em 1.2em',
+                      background: '#dc3545',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: 14,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5em'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = '#c82333';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = '#dc3545';
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    Disconnect
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Broker Connection Form */}
+          {showBrokerForm && (
+            <div style={{ 
+              padding: '1.5em', 
+              background: '#f8f9fa', 
+              borderRadius: '8px', 
+              border: '1px solid #e9ecef'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: '1.5em'
+              }}>
+                <h3 style={{ 
+                  color: '#2c3e50', 
+                  margin: 0, 
+                  fontWeight: 600, 
+                  fontSize: '1.2em'
+                }}>
+                  {brokerStep === 1 ? 'Step 1: Enter Broker Details' : 'Step 2: Enter TOTP'}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowBrokerForm(false);
+                    resetBrokerForm();
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '1.5em',
+                    cursor: 'pointer',
+                    color: '#6c757d',
+                    padding: '0.2em'
+                  }}
                 >
-                  {/* Progress Indicator */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: '2rem',
-                    position: 'relative'
-                  }}>
-                    {[1, 2, 3].map((step) => (
-                      <div key={step} style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        flex: 1
+                  <X />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddBroker}>
+                {brokerStep === 1 ? (
+                  <>
+                    <div style={{ marginBottom: '1em' }}>
+                      <label style={{ 
+                        color: '#495057', 
+                        fontWeight: 500, 
+                        display: 'block', 
+                        marginBottom: '0.5em', 
+                        fontSize: 14 
                       }}>
-                        <div style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '50%',
-                          background: brokerStep >= step ? '#007bff' : '#e0e0e0',
-                          color: brokerStep >= step ? 'white' : '#666',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: '600',
-                          fontSize: '0.875rem',
-                          marginBottom: '0.5rem'
-                        }}>
-                          {brokerStep > step ? '✓' : step}
-                        </div>
-                        <span style={{
-                          fontSize: '0.75rem',
-                          color: brokerStep >= step ? '#2c3e50' : '#666',
-                          fontWeight: '500',
-                          textAlign: 'center'
-                        }}>
-                          {step === 1 ? 'API Credentials' : step === 2 ? 'TOTP Verification' : 'MPIN Verification'}
-                        </span>
-                      </div>
-                    ))}
-                    {/* Progress Line */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '20px',
-                      left: '20px',
-                      right: '20px',
-                      height: '2px',
-                      background: '#e0e0e0',
-                      zIndex: -1
-                    }}>
-                      <div style={{
-                        width: `${((brokerStep - 1) / 2) * 100}%`,
-                        height: '100%',
-                        background: '#007bff',
-                        transition: 'width 0.3s ease'
-                      }} />
+                        Broker Client ID
+                      </label>
+                      <input
+                        type="text"
+                        name="broker_client_id"
+                        value={brokerData.broker_client_id}
+                        onChange={handleBrokerChange}
+                        placeholder="Enter your broker client ID"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.8em', 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: '6px', 
+                          fontSize: 14, 
+                          background: '#fff' 
+                        }}
+                        required
+                      />
                     </div>
-                  </div>
-
-                  {/* Step 1: API Credentials */}
-                  {brokerStep === 1 && (
-                    <>
-                      <div style={{ marginBottom: '1.5em' }}>
-                        <label style={{ 
-                          color: '#2c3e50', 
-                          fontWeight: 600, 
-                          display: 'block', 
-                          marginBottom: '0.5em', 
-                          fontSize: '0.9rem' 
-                        }}>
-                          Select Broker *
-                        </label>
-                        <select
-                          name="broker"
-                          value={brokerData.broker}
-                          onChange={handleBrokerChange}
-                          required
-                          style={{ 
-                            width: '100%', 
-                            padding: '0.75em', 
-                            border: '1px solid #e0e0e0', 
-                            borderRadius: '6px', 
-                            fontSize: '0.9rem', 
-                            background: 'white',
-                            color: '#2c3e50'
-                          }}
-                        >
-                          <option value="Angel One">Angel One</option>
-                          <option value="Zerodha">Zerodha</option>
-                          <option value="Upstox">Upstox</option>
-                          <option value="ICICI Direct">ICICI Direct</option>
-                        </select>
-                      </div>
-
-                      <div style={{ marginBottom: '1.5em' }}>
-                        <label style={{ 
-                          color: '#2c3e50', 
-                          fontWeight: 600, 
-                          display: 'block', 
-                          marginBottom: '0.5em', 
-                          fontSize: '0.9rem' 
-                        }}>
-                          Broker Client ID *
-                        </label>
-                        <input
-                          type="text"
-                          name="broker_client_id"
-                          value={brokerData.broker_client_id}
-                          onChange={handleBrokerChange}
-                          placeholder="Enter your Broker Client ID (e.g., Y69925)"
-                          required
-                          style={{ 
-                            width: '100%', 
-                            padding: '0.75em', 
-                            border: '1px solid #e0e0e0', 
-                            borderRadius: '6px', 
-                            fontSize: '0.9rem', 
-                            background: 'white',
-                            color: '#2c3e50'
-                          }}
-                        />
-                      </div>
-
-                      <div style={{ marginBottom: '1.5em' }}>
-                        <label style={{ 
-                          color: '#2c3e50', 
-                          fontWeight: 600, 
-                          display: 'block', 
-                          marginBottom: '0.5em', 
-                          fontSize: '0.9rem' 
-                        }}>
-                          Broker API Key *
-                        </label>
-                        <input
-                          type="text"
-                          name="broker_api_key"
-                          value={brokerData.broker_api_key}
-                          onChange={handleBrokerChange}
-                          placeholder="Enter your Broker API Key (e.g., lY8ntMyP)"
-                          required
-                          style={{ 
-                            width: '100%', 
-                            padding: '0.75em', 
-                            border: '1px solid #e0e0e0', 
-                            borderRadius: '6px', 
-                            fontSize: '0.9rem', 
-                            background: 'white',
-                            color: '#2c3e50'
-                          }}
-                        />
-                      </div>
-
-                      <div style={{ marginBottom: '1.5em' }}>
-                        <label style={{ 
-                          color: '#2c3e50', 
-                          fontWeight: 600, 
-                          display: 'block', 
-                          marginBottom: '0.5em', 
-                          fontSize: '0.9rem' 
-                        }}>
-                          Broker API Secret *
-                        </label>
-                        <input
-                          type="password"
-                          name="broker_api_secret"
-                          value={brokerData.broker_api_secret}
-                          onChange={handleBrokerChange}
-                          placeholder="Enter your Broker API Secret (e.g., Smarttest@123)"
-                          required
-                          style={{ 
-                            width: '100%', 
-                            padding: '0.75em', 
-                            border: '1px solid #e0e0e0', 
-                            borderRadius: '6px', 
-                            fontSize: '0.9rem', 
-                            background: 'white',
-                            color: '#2c3e50'
-                          }}
-                        />
-                      </div>
-
-                      <div style={{ marginBottom: '2em' }}>
-                        <label style={{ 
-                          color: '#2c3e50', 
-                          fontWeight: 600, 
-                          display: 'block', 
-                          marginBottom: '0.5em', 
-                          fontSize: '0.9rem' 
-                        }}>
-                          Angel One Token *
-                        </label>
-                        <input
-                          type="text"
-                          name="angelone_token"
-                          value={brokerData.angelone_token}
-                          onChange={handleBrokerChange}
-                          placeholder="Enter your Angel One Token (e.g., VXJB7SPIYYNI6CRUNCUZYWJFTA)"
-                          required
-                          style={{ 
-                            width: '100%', 
-                            padding: '0.75em', 
-                            border: '1px solid #e0e0e0', 
-                            borderRadius: '6px', 
-                            fontSize: '0.9rem', 
-                            background: 'white',
-                            color: '#2c3e50'
-                          }}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Step 2: TOTP Verification */}
-                  {brokerStep === 2 && (
-                    <>
-                      <div style={{ marginBottom: '2em' }}>
-                        <label style={{ 
-                          color: '#2c3e50', 
-                          fontWeight: 600, 
-                          display: 'block', 
-                          marginBottom: '0.5em', 
-                          fontSize: '0.9rem' 
-                        }}>
-                          TOTP Code *
-                        </label>
-                        <input
-                          type="text"
-                          name="totp"
-                          value={brokerData.totp}
-                          onChange={handleBrokerChange}
-                          placeholder="Enter 6-digit TOTP from your authenticator app"
-                          maxLength="6"
-                          pattern="[0-9]{6}"
-                          required
-                          style={{ 
-                            width: '100%', 
-                            padding: '0.75em', 
-                            border: '1px solid #e0e0e0', 
-                            borderRadius: '6px', 
-                            fontSize: '0.9rem', 
-                            background: 'white',
-                            color: '#2c3e50',
-                            textAlign: 'center',
-                            letterSpacing: '0.5em'
-                          }}
-                        />
-                        <p style={{
-                          color: '#666',
-                          fontSize: '0.8rem',
-                          marginTop: '0.5rem',
-                          textAlign: 'center'
-                        }}>
-                          Enter the 6-digit code from your authenticator app
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Step 3: MPIN Verification */}
-                  {brokerStep === 3 && (
-                    <>
-                      <div style={{ marginBottom: '2em' }}>
-                        <label style={{ 
-                          color: '#2c3e50', 
-                          fontWeight: 600, 
-                          display: 'block', 
-                          marginBottom: '0.5em', 
-                          fontSize: '0.9rem' 
-                        }}>
-                          MPIN *
-                        </label>
-                        <input
-                          type="password"
-                          name="mpin"
-                          value={brokerData.mpin}
-                          onChange={handleBrokerChange}
-                          placeholder="Enter your 4-digit MPIN"
-                          maxLength="4"
-                          pattern="[0-9]{4}"
-                          required
-                          style={{ 
-                            width: '100%', 
-                            padding: '0.75em', 
-                            border: '1px solid #e0e0e0', 
-                            borderRadius: '6px', 
-                            fontSize: '0.9rem', 
-                            background: 'white',
-                            color: '#2c3e50',
-                            textAlign: 'center',
-                            letterSpacing: '0.5em'
-                          }}
-                        />
-                        <p style={{
-                          color: '#666',
-                          fontSize: '0.8rem',
-                          marginTop: '0.5rem',
-                          textAlign: 'center'
-                        }}>
-                          Enter your 4-digit MPIN for broker authentication
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  <div style={{ display: 'flex', gap: '1em', marginTop: '1.5em' }}>
-                    <motion.button
-                      type="submit"
-                      disabled={brokerLoading}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      style={{
-                        flex: 1,
-                        background: 'var(--primary-color)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.75em 1em',
-                        borderRadius: '8px',
-                        fontSize: 'clamp(12px, 2.5vw, 14px)',
-                        fontWeight: 600,
-                        cursor: brokerLoading ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5em',
-                        boxShadow: 'var(--shadow-sm)',
-                        opacity: brokerLoading ? 0.7 : 1
+                    
+                    <div style={{ marginBottom: '1em' }}>
+                      <label style={{ 
+                        color: '#495057', 
+                        fontWeight: 500, 
+                        display: 'block', 
+                        marginBottom: '0.5em', 
+                        fontSize: 14 
+                      }}>
+                        API Key
+                      </label>
+                      <input
+                        type="text"
+                        name="broker_api_key"
+                        value={brokerData.broker_api_key}
+                        onChange={handleBrokerChange}
+                        placeholder="Enter your API key"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.8em', 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: '6px', 
+                          fontSize: 14, 
+                          background: '#fff' 
+                        }}
+                        required
+                      />
+                    </div>
+                    
+                    <div style={{ marginBottom: '1em' }}>
+                      <label style={{ 
+                        color: '#495057', 
+                        fontWeight: 500, 
+                        display: 'block', 
+                        marginBottom: '0.5em', 
+                        fontSize: 14 
+                      }}>
+                        API Secret
+                      </label>
+                      <input
+                        type="text"
+                        name="broker_api_secret"
+                        value={brokerData.broker_api_secret}
+                        onChange={handleBrokerChange}
+                        placeholder="Enter your API secret"
+                        style={{ 
+                          width: '100%', 
+                          padding: '1em', 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: '6px', 
+                          fontSize: 14, 
+                          background: '#fff' 
+                        }}
+                        required
+                      />
+                    </div>
+                    
+                    <div style={{ marginBottom: '1em' }}>
+                      <label style={{ 
+                        color: '#495057', 
+                        fontWeight: 500, 
+                        display: 'block', 
+                        marginBottom: '0.5em', 
+                        fontSize: 14 
+                      }}>
+                        Angel One Token
+                      </label>
+                      <input
+                        type="text"
+                        name="angelone_token"
+                        value={brokerData.angelone_token}
+                        onChange={handleBrokerChange}
+                        placeholder="Enter your Angel One token"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.8em', 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: '6px', 
+                          fontSize: 14, 
+                          background: '#fff' 
+                        }}
+                        required
+                      />
+                    </div>
+                    
+                    <div style={{ marginBottom: '1.5em' }}>
+                      <label style={{ 
+                        color: '#495057', 
+                        fontWeight: 500, 
+                        display: 'block', 
+                        marginBottom: '0.5em', 
+                        fontSize: 14 
+                      }}>
+                        MPIN
+                      </label>
+                      <input
+                        type="password"
+                        name="mpin"
+                        value={brokerData.mpin}
+                        onChange={handleBrokerChange}
+                        placeholder="Enter your MPIN"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.8em', 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: '6px', 
+                          fontSize: 14, 
+                          background: '#fff' 
+                        }}
+                        required
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ marginBottom: '1.5em' }}>
+                    <label style={{ 
+                      color: '#495057', 
+                      fontWeight: 500, 
+                      display: 'block', 
+                      marginBottom: '0.5em', 
+                      fontSize: 14 
+                    }}>
+                      TOTP Code
+                    </label>
+                    <input
+                      type="text"
+                      name="totp"
+                      value={brokerData.totp}
+                      onChange={handleBrokerChange}
+                      placeholder="Enter TOTP from your authenticator app"
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.8em', 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: '6px', 
+                        fontSize: 14, 
+                        background: '#fff' 
                       }}
-                    >
-                      {brokerLoading ? (
-                        <>
-                          <RefreshCw size={16} className="spin" />
-                          {brokerStep === 1 ? 'Verifying...' : brokerStep === 2 ? 'Verifying TOTP...' : 'Verifying MPIN...'}
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle size={16} />
-                          {brokerStep === 1 ? 'Continue' : brokerStep === 2 ? 'Verify TOTP' : 'Complete Connection'}
-                        </>
-                      )}
-                    </motion.button>
-                    <motion.button
-                      type="button"
-                      onClick={brokerStep === 1 ? () => setShowBrokerForm(false) : () => setBrokerStep(brokerStep - 1)}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      style={{
-                        flex: 1,
-                        background: 'white',
-                        color: 'var(--text-primary)',
-                        border: '2px solid var(--border-color)',
-                        padding: '0.75em 1em',
-                        borderRadius: '8px',
-                        fontSize: 'clamp(12px, 2.5vw, 14px)',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      {brokerStep === 1 ? 'Cancel' : 'Back'}
-                    </motion.button>
+                      required
+                    />
                   </div>
-                </motion.form>
-              )}
+                )}
+                
+                <button
+                  type="submit"
+                  disabled={brokerLoading}
+                  style={{
+                    width: '100%',
+                    padding: '1em',
+                    background: brokerLoading ? '#6c757d' : '#28a745',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    cursor: brokerLoading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {brokerLoading ? 'Processing...' : (brokerStep === 1 ? 'Add Broker Account' : 'Verify TOTP')}
+                </button>
+              </form>
             </div>
           )}
         </div>
-
       </div>
-
-
     </div>
   );
 };

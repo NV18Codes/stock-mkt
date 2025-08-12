@@ -51,9 +51,9 @@ export class APIStatusChecker {
   // Check market data endpoints (Admin)
   async checkMarketEndpoints() {
     const endpoints = [
-      '/admin/market-data/option-expiries/NIFTY',
-      '/admin/market-data/option-chain-structure/NIFTY/10JUL2025',
-      '/admin/market-data/options_underlying'
+      '/market-data/option-expiries/NIFTY',
+      '/market-data/option-chain?underlying=NIFTY&expiry=10JUL2025',
+      '/market-data/option-underlyings'
     ];
 
     for (const endpoint of endpoints) {
@@ -86,7 +86,7 @@ export class APIStatusChecker {
       '/trading/order-history',
       '/admin/trades/initiate',
       '/users/me/broker/trades',
-      '/users/me/broker/orderbook',
+      '/users/me/broker/order-book',
       '/users/me/broker/orders'
     ];
 
@@ -116,23 +116,22 @@ export class APIStatusChecker {
   // Check admin endpoints
   async checkAdminEndpoints() {
     const endpoints = [
-      '/admin/users',
+      '/users',
       '/admin/segments',
       '/admin/trades',
       '/admin/stats',
-      '/admin/market-data/option-expiries/NIFTY',
-      '/admin/market-data/option-chain-structure/NIFTY/10JUL2025',
-      '/admin/market-data/options_underlying',
+      '/market-data/option-expiries/NIFTY',
+      '/market-data/option-chain?underlying=NIFTY&expiry=10JUL2025',
+      '/market-data/option-underlyings',
       '/admin/trades/initiate',
-      '/admin/trades/history',
-      '/admin/trades/detail',
-      '/admin/segments/all',
-      '/admin/segments/add',
-      '/admin/segments/single',
-      '/admin/segments/update',
-      '/admin/segments/delete',
-      '/admin/segments/users/add',
-      '/admin/segments/users/list'
+      '/admin/trades',
+      '/admin/segments',
+      '/admin/segments',
+      '/admin/segments',
+      '/admin/segments',
+      '/admin/segments',
+      '/admin/segments/users',
+      '/admin/segments/users'
     ];
 
     for (const endpoint of endpoints) {
@@ -168,8 +167,8 @@ export class APIStatusChecker {
       '/users/me/broker/clear',
       '/users/me/profileUpdate',
       '/users/me',
-      '/users/single',
-      '/users/list'
+      '/users',
+      '/users'
     ];
 
     for (const endpoint of endpoints) {
@@ -204,7 +203,7 @@ export class APIStatusChecker {
       '/users/me/broker/rmsLimit',
       '/users/me/broker/clear',
       '/users/me/broker/trades',
-      '/users/me/broker/orderbook',
+      '/users/me/broker/order-book',
       '/users/me/broker/orders'
     ];
 

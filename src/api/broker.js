@@ -623,7 +623,7 @@ export const addBrokerAccount = async (credentials) => {
 // Step 2: Verify TOTP
 export const verifyBrokerTOTP = async (totpData) => {
   try {
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/verify-totp', totpData);
+    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/verify', totpData);
     console.log('TOTP verification response:', response.data);
     return response.data;
   } catch (error) {
@@ -635,7 +635,7 @@ export const verifyBrokerTOTP = async (totpData) => {
 // Step 3: Verify MPIN
 export const verifyBrokerMPIN = async (mpinData) => {
   try {
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/verify-mpin', mpinData);
+    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/verify', mpinData);
     console.log('MPIN verification response:', response.data);
     return response.data;
   } catch (error) {

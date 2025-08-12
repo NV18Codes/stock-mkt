@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-
-// Use relative API URLs with proxy configuration
+import { getOptionExpiries, getOptionChainStructure, getOptionsUnderlying } from '../../api/admin';
 
 const OrderForm = ({ onOrderSubmit }) => {
   const [formData, setFormData] = useState({
@@ -30,21 +28,49 @@ const OrderForm = ({ onOrderSubmit }) => {
   const [selectedUnderlying, setSelectedUnderlying] = useState('');
   const [selectedExpiry, setSelectedExpiry] = useState('');
 
-  // Set static underlyings data
+  // Fetch real underlyings data from API
   useEffect(() => {
-    const staticUnderlyings = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'];
-    setUnderlyings(staticUnderlyings);
-    setSelectedUnderlying(staticUnderlyings[0]);
-    setLoading(prev => ({ ...prev, underlyings: false }));
+    const fetchUnderlyings = async () => {
+      try {
+        setLoading(prev => ({ ...prev, underlyings: true }));
+        const response = await getOptionsUnderlying();
+        
+        if (response && response.success && Array.isArray(response.data)) {
+          setUnderlyings(response.data);
+          setSelectedUnderlying(response.data[0]);
+        } else if (response && Array.isArray(response)) {
+          setUnderlyings(response);
+          setSelectedUnderlying(response[0]);
+        } else {
+          // Fallback to static underlyings if API fails
+          const staticUnderlyings = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'];
+          setUnderlyings(staticUnderlyings);
+          setSelectedUnderlying(staticUnderlyings[0]);
+        }
+      } catch (err) {
+        console.error('Error fetching underlyings:', err);
+        // Fallback to static underlyings
+        const staticUnderlyings = ['NIFTY', 'BANKNIFTY', 'FINNIFTY', 'MIDCPNIFTY', 'SENSEX', 'BANKEX'];
+        setUnderlyings(staticUnderlyings);
+        setSelectedUnderlying(staticUnderlyings[0]);
+      } finally {
+        setLoading(prev => ({ ...prev, underlyings: false }));
+      }
+    };
+    
+    fetchUnderlyings();
   }, []);
 
   // Fetch segments on mount
   useEffect(() => {
     const fetchSegments = async () => {
       try {
-        const response = await axios.get('/api/admin/segments');
-        if (response.data && response.data.data && Array.isArray(response.data.data)) {
-          setSegments(response.data.data);
+        const response = await fetch('/api/admin/segments');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.data && Array.isArray(data.data)) {
+            setSegments(data.data);
+          }
         }
       } catch (err) {
         console.error('Error fetching segments:', err);
@@ -55,24 +81,83 @@ const OrderForm = ({ onOrderSubmit }) => {
     fetchSegments();
   }, []);
 
-  // Set static expiries when underlying changes
+  // Fetch real expiries when underlying changes
   useEffect(() => {
     if (!selectedUnderlying) return;
-    setLoading(prev => ({ ...prev, expiries: true }));
     
-    const staticExpiries = ['10JUL2025', '17JUL2025', '24JUL2025', '31JUL2025', '07AUG2025', '14AUG2025', '21AUG2025'];
-    setExpiries(staticExpiries);
-    setSelectedExpiry(staticExpiries[0]);
+    const fetchExpiries = async () => {
+      try {
+        setLoading(prev => ({ ...prev, expiries: true }));
+        const response = await getOptionExpiries(selectedUnderlying);
+        
+        if (response && response.success && Array.isArray(response.data)) {
+          setExpiries(response.data);
+          setSelectedExpiry(response.data[0]);
+        } else if (response && Array.isArray(response)) {
+          setExpiries(response);
+          setSelectedExpiry(response[0]);
+        } else {
+          // Fallback to static expiries if API fails
+          const staticExpiries = ['10AUG2025', '17AUG2025', '24AUG2025', '31AUG2025', '07SEP2025', '14SEP2025', '21SEP2025'];
+          setExpiries(staticExpiries);
+          setSelectedExpiry(staticExpiries[0]);
+        }
+      } catch (err) {
+        console.error('Error fetching expiries:', err);
+        // Fallback to current month expiries
+        const currentDate = new Date();
+        const currentMonth = currentDate.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+        const currentYear = currentDate.getFullYear();
+        const staticExpiries = [
+          `10${currentMonth}${currentYear}`, 
+          `17${currentMonth}${currentYear}`, 
+          `24${currentMonth}${currentYear}`, 
+          `31${currentMonth}${currentYear}`,
+          `07${currentMonth === 'DEC' ? 'JAN' : currentMonth === 'NOV' ? 'DEC' : currentMonth === 'OCT' ? 'NOV' : currentMonth === 'SEP' ? 'OCT' : currentMonth === 'AUG' ? 'SEP' : 'AUG'}${currentMonth === 'DEC' ? currentYear + 1 : currentYear}`,
+          `14${currentMonth === 'DEC' ? 'JAN' : currentMonth === 'NOV' ? 'DEC' : currentMonth === 'OCT' ? 'NOV' : currentMonth === 'SEP' ? 'OCT' : currentMonth === 'AUG' ? 'SEP' : 'AUG'}${currentMonth === 'DEC' ? currentYear + 1 : currentYear}`,
+          `21${currentMonth === 'DEC' ? 'JAN' : currentMonth === 'NOV' ? 'DEC' : currentMonth === 'OCT' ? 'NOV' : currentMonth === 'SEP' ? 'OCT' : currentMonth === 'AUG' ? 'SEP' : 'AUG'}${currentMonth === 'DEC' ? currentYear + 1 : currentYear}`
+        ];
+        setExpiries(staticExpiries);
+        setSelectedExpiry(staticExpiries[0]);
+      } finally {
+        setLoading(prev => ({ ...prev, expiries: false }));
+      }
+    };
     
-    setLoading(prev => ({ ...prev, expiries: false }));
+    fetchExpiries();
   }, [selectedUnderlying]);
 
-  // Generate static option chain when underlying or expiry changes
+  // Fetch real option chain when underlying or expiry changes
   useEffect(() => {
     if (!selectedUnderlying || !selectedExpiry) return;
-    setLoading(prev => ({ ...prev, options: true }));
     
-    // Generate static option chain data
+    const fetchOptionChain = async () => {
+      try {
+        setLoading(prev => ({ ...prev, options: true }));
+        const response = await getOptionChainStructure(selectedUnderlying, selectedExpiry);
+        
+        if (response && response.success && response.data) {
+          setOptionChain(response.data);
+        } else if (response && Array.isArray(response)) {
+          setOptionChain(response);
+        } else {
+          // Fallback to generated option chain if API fails
+          generateFallbackOptionChain();
+        }
+      } catch (err) {
+        console.error('Error fetching option chain:', err);
+        // Fallback to generated option chain
+        generateFallbackOptionChain();
+      } finally {
+        setLoading(prev => ({ ...prev, options: false }));
+      }
+    };
+    
+    fetchOptionChain();
+  }, [selectedUnderlying, selectedExpiry]);
+
+  // Fallback option chain generation
+  const generateFallbackOptionChain = () => {
     const basePrice = selectedUnderlying === 'NIFTY' ? 22000 : selectedUnderlying === 'BANKNIFTY' ? 48000 : 20000;
     const staticOptions = [];
     
@@ -94,8 +179,7 @@ const OrderForm = ({ onOrderSubmit }) => {
     }
     
     setOptionChain(staticOptions);
-    setLoading(prev => ({ ...prev, options: false }));
-  }, [selectedUnderlying, selectedExpiry]);
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;

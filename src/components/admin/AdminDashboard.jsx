@@ -235,29 +235,41 @@ const AdminDashboard = () => {
           gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
           gap: 'clamp(1em, 2.5vw, 1.5em)' 
         }}>
-          <motion.div
-            whileHover={{ scale: 1.05, y: -5 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ duration: 0.2 }}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            style={{ 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              padding: 'clamp(1.5em, 4vw, 2em)', 
+              borderRadius: '12px', 
+              boxShadow: 'var(--shadow-md)', 
+              border: '1px solid var(--border-color)',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            whileHover={{ 
+              scale: 1.02, 
+              boxShadow: 'var(--shadow-lg)' 
+            }}
           >
             <Link to="/admin-panel/user-management" style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: '#ffffff',
+              color: 'var(--text-inverse)',
+              textDecoration: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1em',
               padding: 'clamp(1em, 2.5vw, 1.2em)',
               borderRadius: '12px',
-              textDecoration: 'none',
               textAlign: 'center',
               fontWeight: 600,
               fontSize: 'clamp(13px, 2.8vw, 15px)',
               transition: 'all 0.3s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5em',
               boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
             }}>
               <Users size={20} />
-              Manage Users
+              User Management
               <ArrowRight size={16} />
             </Link>
           </motion.div>
@@ -289,32 +301,6 @@ const AdminDashboard = () => {
             </Link>
           </motion.div>
           
-          <motion.div
-            whileHover={{ scale: 1.05, y: -5 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Link to="/admin-panel/logs" style={{
-              background: 'linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)',
-              color: '#ffffff',
-              padding: 'clamp(1em, 2.5vw, 1.2em)',
-              borderRadius: '12px',
-              textDecoration: 'none',
-              textAlign: 'center',
-              fontWeight: 600,
-              fontSize: 'clamp(13px, 2.8vw, 15px)',
-              transition: 'all 0.3s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5em',
-              boxShadow: '0 4px 15px rgba(253, 203, 110, 0.3)'
-            }}>
-              <Activity size={20} />
-              System Logs
-              <ArrowRight size={16} />
-            </Link>
-          </motion.div>
         </div>
       </motion.div>
 

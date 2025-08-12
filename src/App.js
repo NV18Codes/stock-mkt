@@ -348,7 +348,6 @@ function AppRoutes() {
           <Route path="user-management" element={<UserManagement />} />
           <Route path="admin-trading-portal" element={<AdminTradingPortal />} />
           <Route path="trades" element={<TradeHistory />} />
-          <Route path="logs" element={<TradeLog />} />
         </Route>
 
         {/* Fallback */}

@@ -124,27 +124,6 @@ const AdminLayout = () => {
             <span style={{ fontSize: '1.2em' }}>📋</span>
             Trade History
           </NavLink>
-          <NavLink
-            to="/admin-panel/logs"
-            style={({ isActive }) => ({
-              padding: '0.8em 1em',
-              borderRadius: '8px',
-              color: isActive ? 'var(--text-inverse)' : 'var(--text-secondary)',
-              background: isActive ? 'var(--gradient-primary)' : 'transparent',
-              textDecoration: 'none',
-              transition: 'all 0.3s ease',
-              fontWeight: isActive ? 600 : 500,
-              border: isActive ? 'none' : '1px solid transparent',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.8em',
-              fontSize: '0.95em',
-              boxShadow: isActive ? '0 2px 8px rgba(0, 212, 170, 0.3)' : 'none'
-            })}
-          >
-            <span style={{ fontSize: '1.2em' }}>📝</span>
-            System Logs
-          </NavLink>
 
           <NavLink
             to="/admin-panel/admin-settings"

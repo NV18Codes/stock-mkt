@@ -608,7 +608,7 @@ const BrokerAccountSettings = () => {
                       name="broker_client_id"
                       value={brokerData.broker_client_id}
                       onChange={handleBrokerChange}
-                      placeholder="Enter your Broker Client ID (e.g., Y69925)"
+                      placeholder="Enter your Broker Client ID (e.g., ABC12345)"
                       required
                       style={{ 
                         width: '100%', 
@@ -638,7 +638,7 @@ const BrokerAccountSettings = () => {
                       name="broker_api_key"
                       value={brokerData.broker_api_key}
                       onChange={handleBrokerChange}
-                      placeholder="Enter your Broker API Key (e.g., lY8ntMyP)"
+                      placeholder="Enter your Broker API Key (e.g., API123456)"
                       required
                       style={{ 
                         width: '100%', 
@@ -664,11 +664,11 @@ const BrokerAccountSettings = () => {
                       Broker API Secret *
                     </label>
                     <input
-                      type="password"
+                      type="text"
                       name="broker_api_secret"
                       value={brokerData.broker_api_secret}
                       onChange={handleBrokerChange}
-                      placeholder="Enter your Broker API Secret (e.g., Smarttest@123)"
+                      placeholder="Enter your Broker API Secret (e.g., Secret123)"
                       required
                       style={{ 
                         width: '100%', 
@@ -698,7 +698,7 @@ const BrokerAccountSettings = () => {
                       name="angelone_token"
                       value={brokerData.angelone_token}
                       onChange={handleBrokerChange}
-                      placeholder="Enter your Angel One Token (e.g., VXJB7SPIYYNI6CRUNCUZYWJFTA)"
+                      placeholder="Enter your Angel One Token (e.g., TOKEN123456789)"
                       required
                       style={{ 
                         width: '100%', 

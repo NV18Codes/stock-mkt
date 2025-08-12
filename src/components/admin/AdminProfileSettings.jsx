@@ -1,19 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
-  Settings, 
-  User, 
-  Mail, 
-  Phone, 
-  Building2, 
-  CreditCard, 
-  CheckCircle, 
   X, 
   Plus,
-  Shield,
-  AlertCircle,
-  RefreshCw,
   Trash2
 } from 'lucide-react';
 import { updateProfile, getUserProfile } from '../../api/auth';
@@ -22,30 +11,16 @@ import {
   fetchMyBrokerProfile, 
   clearBrokerProfile 
 } from '../../api/auth';
-import { verifyBrokerTOTP, verifyBrokerMPIN } from '../../api/broker';
+import { verifyBrokerTOTP } from '../../api/broker';
 import { useAuth } from '../../context/AuthContext';
-import axios from 'axios'; // Added axios import
 
 const AdminProfileSettings = () => {
   const { role } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
+    fullName: '',
     email: '',
-    phone: '',
-    employeeId: '',
-    designation: '',
-    address: '',
-    city: '',
-    state: '',
-    pincode: '',
-    panNumber: '',
-    aadharNumber: '',
-    bankName: '',
-    accountNumber: '',
-    ifscCode: '',
-    nomineeName: '',
-    nomineeRelation: '',
-    nomineePhone: ''
+    phone: ''
   });
   
   // Broker connection states
@@ -64,7 +39,7 @@ const AdminProfileSettings = () => {
   const [brokerProfile, setBrokerProfile] = useState(null);
   const [showBrokerForm, setShowBrokerForm] = useState(false);
   const [brokerStep, setBrokerStep] = useState(1);
-  const [brokerSessionId, setBrokerSessionId] = useState(null);
+
   const [brokerLoading, setBrokerLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -110,99 +85,75 @@ const AdminProfileSettings = () => {
     e.preventDefault();
     setBrokerLoading(true);
     setError('');
-    setSuccess('');
-    
+
     try {
-      let response;
-      
-             if (brokerStep === 1) {
-         // Step 1: Send API credentials and get session ID for TOTP verification
-         response = await addBrokerAccount({
-           broker: brokerData.broker,
-           broker_name: brokerData.broker_name,
-           broker_client_id: brokerData.broker_client_id,
-           broker_api_key: brokerData.broker_api_key,
-           broker_api_secret: brokerData.broker_api_secret,
-           angelone_token: brokerData.angelone_token
-         });
+      if (brokerStep === 1) {
+        // Step 1: Add broker account with MPIN
+        const brokerPayload = {
+          broker_name: brokerData.broker_name,
+          broker_client_id: brokerData.broker_client_id,
+          broker_api_key: brokerData.broker_api_key,
+          broker_api_secret: brokerData.broker_api_secret,
+          angelone_mpin: brokerData.mpin,
+          angelone_token: brokerData.angelone_token
+        };
+
+        const response = await addBrokerAccount(brokerPayload);
         
         if (response && response.success) {
-          // Store session ID for next step
-          setBrokerSessionId(response.data?.sessionId || response.sessionId);
           setBrokerStep(2);
-          setSuccess('Please enter your TOTP to continue');
+          setSuccess('Broker account added successfully! Please enter TOTP to complete verification.');
+        } else {
+          setError(response?.message || 'Failed to add broker account');
         }
       } else if (brokerStep === 2) {
-        // Step 2: Send TOTP
-        response = await verifyBrokerTOTP({
-          sessionId: brokerSessionId,
+        // Step 2: Verify TOTP
+        const totpPayload = {
           totp: brokerData.totp
-        });
+        };
+
+        const response = await verifyBrokerTOTP(totpPayload);
         
         if (response && response.success) {
-          setBrokerStep(3);
-          setSuccess('Please enter your MPIN to complete the connection');
-        }
-      } else if (brokerStep === 3) {
-        // Step 3: Send MPIN and complete connection
-        response = await verifyBrokerMPIN({
-          sessionId: brokerSessionId,
-          mpin: brokerData.mpin
-        });
-        
-        if (response && response.success) {
-          setSuccess('Broker account connected successfully!');
+          setSuccess('Broker account verified successfully!');
           setShowBrokerForm(false);
           setBrokerStep(1);
-          setBrokerSessionId(null);
-                     setBrokerData({
-             broker: 'Angel One',
-             broker_name: 'angelone',
-             broker_client_id: '',
-             broker_api_key: '',
-             broker_api_secret: '',
-             angelone_token: '',
-             password: '',
-             mpin: '',
-             totp: ''
-           });
-          await fetchBrokerProfile();
+          resetBrokerForm();
+          fetchBrokerProfile(); // Refresh broker profile
+        } else {
+          setError(response?.message || 'TOTP verification failed');
         }
       }
-    } catch (err) {
-      console.error('Error in broker connection step:', err);
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.error || 
-                          'Failed to connect broker account';
-      setError(errorMessage);
-      
-      // Reset to step 1 if there's a critical error
-      if (err.response?.status === 400 || err.response?.status === 401) {
-        setBrokerStep(1);
-        setBrokerSessionId(null);
-      }
+    } catch (error) {
+      console.error('Error in broker setup:', error);
+      setError(error.message || 'An error occurred during broker setup');
     } finally {
       setBrokerLoading(false);
     }
   };
 
   const handleClearBroker = async () => {
-    if (window.confirm('Are you sure you want to disconnect your broker account?')) {
-      try {
-        await clearBrokerProfile();
-        setBrokerProfile(null);
-        setSuccess('Broker account disconnected successfully!');
-      } catch (err) {
-        console.error('Error clearing broker profile:', err);
-        setError('Failed to disconnect broker account');
+    try {
+      const result = await clearBrokerProfile();
+      if (result && result.success) {
+        setSuccess('Broker connection cleared successfully');
+        setBrokerProfile({
+          brokerName: 'No Broker Connected',
+          accountId: 'N/A',
+          status: 'Inactive',
+          exchanges: [],
+          products: []
+        });
+      } else {
+        setError('Failed to clear broker connection');
       }
+    } catch (err) {
+      console.error('Error clearing broker profile:', err);
+      setError('Failed to clear broker connection');
     }
   };
 
   const resetBrokerForm = () => {
-    setBrokerStep(1);
-    setBrokerSessionId(null);
-    setShowBrokerForm(false);
     setBrokerData({
       broker: 'Angel One',
       broker_name: 'angelone',
@@ -214,32 +165,24 @@ const AdminProfileSettings = () => {
       mpin: '',
       totp: ''
     });
+    setBrokerStep(1);
     setError('');
-    setSuccess('');
   };
 
   const fetchAdminProfile = async () => {
     try {
-      setLoading(true);
-      setError('');
-      
-      // Fetch from API - getUserProfile now handles fallbacks internally
       const response = await getUserProfile();
-      const userData = response.data;
-      
-      // Update form data with fetched user data
-      setFormData({
-        name: userData.name || userData.full_name || userData.first_name || '',
-        email: userData.email || userData.email_address || '',
-        phone: userData.phone || userData.phone_number || '',
-        role: userData.role || userData.user_role || 'admin',
-        employeeId: userData.employee_id || userData.employeeId || ''
-      });
-      
-    } catch (err) {
-      console.error('Error in fetchAdminProfile:', err);
-      setError('Failed to fetch profile data');
-      throw err; // Re-throw the error instead of setting fallback data
+      if (response && response.success && response.data) {
+        setFormData({
+          name: response.data.name || '',
+          fullName: response.data.fullName || response.data.name || '',
+          email: response.data.email || '',
+          phone: response.data.phone || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching admin profile:', error);
+      setError('Failed to fetch admin profile');
     } finally {
       setLoading(false);
     }
@@ -255,151 +198,192 @@ const AdminProfileSettings = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     setSaving(true);
     setError('');
     setSuccess('');
     
     try {
-      console.log('Submitting profile data:', formData);
       const response = await updateProfile(formData);
-      console.log('Profile update response:', response);
-      
-      // Handle different response formats
-      if (response && (response.success || response.message)) {
-        setSuccess(response.message || 'Profile updated successfully!');
-        
-
-      } else {
+      if (response && response.success) {
         setSuccess('Profile updated successfully!');
+      } else {
+        setError(response?.message || 'Failed to update profile');
       }
-      
-      // Clear success message after 5 seconds
-      setTimeout(() => setSuccess(''), 5000);
-      
-    } catch (err) {
-      console.error('Error updating profile:', err);
-      
-      // Handle different error formats
-      let errorMessage = 'Failed to update profile';
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.message) {
-        errorMessage = err.message;
-      } else if (err.response?.status === 403) {
-        errorMessage = 'Access denied. Please check your permissions.';
-      } else if (err.response?.status === 404) {
-        errorMessage = 'Profile update endpoint not found.';
-      } else if (err.response?.status === 500) {
-        errorMessage = 'Server error. Please try again later.';
-      }
-      
-      setError(errorMessage);
-      
-      // Clear error message after 5 seconds
-      setTimeout(() => setError(''), 5000);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setError('Failed to update profile');
     } finally {
       setSaving(false);
     }
   };
 
+  const InputField = ({ label, name, type = 'text', required = false, placeholder }) => (
+    <div style={{ marginBottom: '1.5em' }}>
+      <label style={{ 
+        color: '#495057', 
+        fontWeight: 500, 
+        display: 'block', 
+        marginBottom: '0.5em', 
+        fontSize: 14 
+      }}>
+        {label} {required && <span style={{ color: '#dc3545' }}>*</span>}
+      </label>
+      <input
+        type={type}
+        name={name}
+        value={formData[name]}
+        onChange={handleChange}
+        placeholder={placeholder}
+        style={{ 
+          width: '100%', 
+          padding: '0.8em', 
+          border: '1px solid #e0e0e0', 
+          borderRadius: '6px', 
+          fontSize: 14, 
+          background: '#fff',
+          transition: 'border-color 0.3s ease'
+        }}
+      />
+    </div>
+  );
+
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '1.5em' }}>
-        <div className="loading-spinner" />
-        <p style={{ color: '#333', marginTop: '0.5em', fontSize: 14 }}>Loading admin profile data...</p>
+      <div style={{ 
+        textAlign: 'center', 
+        padding: '3em',
+        background: '#ffffff',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}>
+        <div className="loading-spinner" style={{
+          width: '50px',
+          height: '50px',
+          border: '4px solid #e3e3e3',
+          borderTop: '4px solid #007bff',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '1em'
+        }} />
+        <p style={{ 
+          color: '#2c3e50', 
+          fontSize: 'clamp(14px, 2.5vw, 16px)',
+          fontWeight: 500
+        }}>
+          Loading your profile data...
+        </p>
       </div>
     );
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      style={{ 
-        maxWidth: 1200, 
-        margin: '0 auto', 
-        padding: 'clamp(1em, 3vw, 1.5em)', 
-        background: 'var(--background-color)',
-        minHeight: '100vh'
-      }}
-    >
-      <motion.h1 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-        style={{ 
-          color: 'var(--text-primary)', 
-          marginBottom: '2em', 
-          textAlign: 'center', 
-          fontWeight: 700, 
-          fontSize: 'clamp(1.8em, 4vw, 2.5em)',
-          letterSpacing: '-0.025em'
-        }}
-      >
-        <Settings size={32} style={{ marginRight: '0.5em', verticalAlign: 'middle' }} />
+    <div style={{ 
+      maxWidth: 1200, 
+      margin: '0 auto', 
+      padding: 'clamp(1.5em, 3vw, 2em)', 
+      background: '#f8f9fa', 
+      minHeight: '100vh' 
+    }}>
+      <h1 style={{ 
+        color: '#2c3e50', 
+        marginBottom: '1.5em', 
+        textAlign: 'center', 
+        fontWeight: 600, 
+        fontSize: 'clamp(1.8em, 4vw, 2.2em)'
+      }}>
         Admin Profile Settings
-      </motion.h1>
+      </h1>
       
-      <AnimatePresence>
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            style={{ 
-              background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)', 
-              color: '#ffffff', 
-              padding: '1em', 
-              borderRadius: '12px', 
-              marginBottom: '1.5em', 
-              border: 'none', 
-              fontSize: 'clamp(12px, 2.5vw, 14px)',
-              boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5em'
-            }}
-          >
-            <AlertCircle size={20} />
-            {error}
-          </motion.div>
-        )}
-        
-        {success && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            style={{ 
-              background: 'linear-gradient(135deg, #00b894, #00a085)', 
-              color: '#ffffff', 
-              padding: '1em', 
-              borderRadius: '12px', 
-              marginBottom: '1.5em', 
-              border: 'none', 
-              fontSize: 'clamp(12px, 2.5vw, 14px)',
-              boxShadow: '0 4px 12px rgba(0, 184, 148, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5em'
-            }}
-          >
-            <CheckCircle size={20} />
-            {success}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {error && (
+        <div style={{ 
+          background: '#f8d7da', 
+          color: '#721c24', 
+          padding: '1em', 
+          borderRadius: '8px', 
+          marginBottom: '1.5em', 
+          border: '1px solid #f5c6cb', 
+          fontSize: 14,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5em'
+        }}>
+          <span>⚠️</span>
+          <span>{error}</span>
+        </div>
+      )}
+      
+      {success && (
+        <div style={{ 
+          background: '#d4edda', 
+          color: '#155724', 
+          padding: '1em', 
+          borderRadius: '8px', 
+          marginBottom: '1.5em', 
+          border: '1px solid #c3e6cb', 
+          fontSize: 14,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5em'
+        }}>
+          <span>✅</span>
+          <span>{success}</span>
+        </div>
+      )}
 
       <div style={{ 
         display: 'grid', 
-        gap: 'clamp(1em, 3vw, 1.5em)', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))' 
+        gap: '2em', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' 
       }}>
         {/* Personal Information */}
-        <div style={{ padding: '1.5em', background: '#fff', borderRadius: '8px', boxShadow: '0 1px 6px rgba(0,0,0,0.1)', border: '1px solid #e0e0e0' }}>
-          <h2 style={{ color: '#2c3e50', marginBottom: '1em', fontWeight: 600, fontSize: '1.3em' }}>Personal Information</h2>
-          
+        <div style={{ 
+          padding: '2em', 
+          background: '#fff', 
+          borderRadius: '12px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
+          border: '1px solid #e0e0e0' 
+        }}>
+          <h2 style={{ 
+            color: '#2c3e50', 
+            marginBottom: '1.5em', 
+            fontWeight: 600, 
+            fontSize: '1.4em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5em'
+          }}>
+            <span>👤</span>
+            Personal Information
+          </h2>
+
+          {/* Role Display Section */}
+          <div style={{ 
+            padding: '1em', 
+            background: '#e3f2fd', 
+            borderRadius: '6px', 
+            border: '1px solid #bbdefb',
+            marginBottom: '1.5em'
+          }}>
+            <div style={{ marginBottom: '0.5em' }}>
+              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Role: </span>
+              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12, textTransform: 'capitalize' }}>{role || 'Admin'}</span>
+            </div>
+            
+            <div style={{ marginBottom: '0.5em' }}>
+              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Account Type: </span>
+              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>Administrator Account</span>
+            </div>
+            
+            <div>
+              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Access Level: </span>
+              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>Full System Access</span>
+            </div>
+          </div>
+
           {/* Password Management Section */}
           <div style={{ 
             padding: '1em', 
@@ -421,24 +405,6 @@ const AdminProfileSettings = () => {
               Password Management
             </h3>
             <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap' }}>
-              <Link to="/forgot-password" style={{
-                padding: '0.5em 1em',
-                background: '#007bff',
-                color: '#fff',
-                textDecoration: 'none',
-                borderRadius: '4px',
-                fontSize: 12,
-                fontWeight: 500,
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = '#0056b3';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = '#007bff';
-              }}>
-                Forgot Password
-              </Link>
               <Link to="/reset-password" style={{
                 padding: '0.5em 1em',
                 background: '#28a745',
@@ -461,704 +427,414 @@ const AdminProfileSettings = () => {
           </div>
 
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '1em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Full Name *</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Enter your full name"
-                required
-                style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14, background: '#fff' }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '1em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Email *</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Enter your email"
-                required
-                style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14, background: '#fff' }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '1em' }}>
-              <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Phone Number *</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="Enter your phone number"
-                required
-                style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14, background: '#fff' }}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8em', marginBottom: '1em' }}>
-              <div>
-                <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Role</label>
-                <input
-                  type="text"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  placeholder="Admin"
-                  readOnly
-                  style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14, background: '#f8f9fa', color: '#6c757d' }}
-                />
-              </div>
-              <div>
-                <label style={{ color: '#495057', fontWeight: 500, display: 'block', marginBottom: '0.3em', fontSize: 13 }}>Employee ID</label>
-                <input
-                  type="text"
-                  name="employeeId"
-                  value={formData.employeeId}
-                  onChange={handleChange}
-                  placeholder="Enter employee ID"
-                  style={{ width: '100%', padding: '0.6em', border: '1px solid #e0e0e0', borderRadius: '4px', fontSize: 14, background: '#fff' }}
-                />
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
+            <InputField
+              label="Name"
+              name="name"
+              required
+              placeholder="Enter your name"
+            />
+            
+            <InputField
+              label="Full Name"
+              name="fullName"
+              required
+              placeholder="Enter your full name"
+            />
+            
+            <InputField
+              label="Email Address"
+              name="email"
+              type="email"
+              required
+              placeholder="Enter your email address"
+            />
+            
+            <InputField
+              label="Phone Number"
+              name="phone"
+              required
+              placeholder="Enter your phone number"
+            />
+            
+            <button
+              type="submit"
               disabled={saving}
-              style={{ 
-                width: '100%', 
-                padding: '0.8em',
-                background: '#007bff',
+              style={{
+                width: '100%',
+                padding: '1em',
+                background: saving ? '#6c757d' : '#007bff',
                 color: '#fff',
                 border: 'none',
-                borderRadius: '6px',
-                fontSize: 14,
+                borderRadius: '8px',
+                fontSize: 16,
                 fontWeight: 600,
-                cursor: 'pointer',
-                marginBottom: '1em'
+                cursor: saving ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s ease',
+                marginTop: '1em'
               }}
             >
-              {saving ? 'Saving Changes...' : 'Save Changes'}
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </form>
-
-
         </div>
 
         {/* Broker Account Section */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          style={{ 
-            padding: 'clamp(1em, 3vw, 1.5em)', 
-            background: 'white', 
-            borderRadius: '12px', 
-            boxShadow: 'var(--shadow-md)', 
-            border: '1px solid var(--border-color)',
-            color: 'var(--text-primary)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5em', gap: '0.5em' }}>
-            <CreditCard size={24} />
-            <h2             style={{ 
-              color: 'var(--text-primary)', 
-              margin: 0, 
-              fontWeight: 600, 
-              fontSize: 'clamp(1.2em, 3vw, 1.4em)' 
+        <div style={{ 
+          padding: '2em', 
+          background: '#fff', 
+          borderRadius: '12px', 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
+          border: '1px solid #e0e0e0' 
+        }}>
+          <h2 style={{ 
+            color: '#2c3e50', 
+            marginBottom: '1.5em', 
+            fontWeight: 600, 
+            fontSize: '1.4em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5em'
+          }}>
+            <span>🏦</span>
+            Broker Account
+          </h2>
+
+          {brokerProfile && (
+            <div style={{ 
+              padding: '1.5em', 
+              background: '#f8f9fa', 
+              borderRadius: '8px', 
+              border: '1px solid #e9ecef',
+              marginBottom: '1.5em'
             }}>
-              Broker Account
-            </h2>
-          </div>
-
-          {brokerProfile ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-              style={{
-                background: 'var(--background-color)',
-                padding: '1.5em',
-                borderRadius: '12px',
-                border: '1px solid var(--border-color)',
-                boxShadow: 'var(--shadow-sm)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5em', gap: '0.5em' }}>
-                <CheckCircle size={20} color="var(--success-color)" />
-                <span style={{ 
-                  fontWeight: 600, 
-                  fontSize: 'clamp(14px, 2.5vw, 16px)',
-                  color: 'var(--text-primary)'
-                }}>
-                  Connected to {brokerProfile.brokerName}
-                </span>
-              </div>
-              
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '1em',
-                marginBottom: '2em'
-              }}>
-
+              <div style={{ display: 'grid', gap: '1em' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#495057', fontWeight: 500 }}>Broker:</span>
+                  <span style={{ color: '#2c3e50', fontWeight: 600 }}>{brokerProfile.brokerName}</span>
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#495057', fontWeight: 500 }}>Account ID:</span>
+                  <span style={{ color: '#2c3e50', fontWeight: 600 }}>{brokerProfile.accountId}</span>
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#495057', fontWeight: 500 }}>Status:</span>
+                  <span style={{ 
+                    color: brokerProfile.status === 'Active' ? '#28a745' : '#dc3545', 
+                    fontWeight: 600,
+                    background: brokerProfile.status === 'Active' ? '#d4edda' : '#f8d7da',
+                    padding: '0.2em 0.6em',
+                    borderRadius: '12px',
+                    fontSize: '0.85em'
+                  }}>
+                    {brokerProfile.status}
+                  </span>
+                </div>
               </div>
               
               <div style={{ 
                 display: 'flex', 
-                gap: '1em',
+                gap: '1em', 
+                marginTop: '1.5em',
                 flexWrap: 'wrap'
               }}>
-                <motion.button
-                  onClick={handleClearBroker}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  style={{
-                    background: 'var(--danger-color)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.75em 1.5em',
-                    borderRadius: '8px',
-                    fontSize: 'clamp(12px, 2.5vw, 14px)',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5em',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}
-                >
-                  <Trash2 size={16} />
-                  Disconnect Broker
-                </motion.button>
-                
-                <motion.button
+                <button
                   onClick={() => setShowBrokerForm(true)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   style={{
-                    background: 'var(--primary-color)',
-                    color: 'white',
+                    padding: '0.6em 1.2em',
+                    background: '#007bff',
+                    color: '#fff',
                     border: 'none',
-                    padding: '0.75em 1.5em',
-                    borderRadius: '8px',
-                    fontSize: 'clamp(12px, 2.5vw, 14px)',
-                    fontWeight: '600',
+                    borderRadius: '6px',
+                    fontSize: 14,
+                    fontWeight: 500,
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
+                    transition: 'all 0.3s ease',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5em',
-                    boxShadow: 'var(--shadow-sm)'
+                    gap: '0.5em'
                   }}
-                >
-                  <RefreshCw size={16} />
-                  Change Broker
-                </motion.button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-              style={{
-                background: 'var(--background-color)',
-                padding: '1.5em',
-                borderRadius: '12px',
-                border: '1px solid var(--border-color)',
-                boxShadow: 'var(--shadow-sm)'
-              }}
-            >
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                marginBottom: '1em', 
-                gap: '0.5em' 
-              }}>
-                <CreditCard size={20} color="var(--text-secondary)" />
-                <span style={{ 
-                  color: 'var(--text-primary)', 
-                  fontWeight: '600',
-                  fontSize: 'clamp(14px, 2.5vw, 16px)'
-                }}>
-                  No Broker Connected
-                </span>
-              </div>
-              
-              <p style={{ 
-                color: 'var(--text-secondary)', 
-                marginBottom: '1.5em',
-                fontSize: 'clamp(12px, 2.5vw, 14px)',
-                lineHeight: '1.5'
-              }}>
-                Connect your broker account to enable trading functionality and access advanced features.
-              </p>
-              
-              {!showBrokerForm ? (
-                <motion.button
-                  onClick={() => setShowBrokerForm(true)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  style={{
-                    background: 'var(--primary-color)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.8em 1.5em',
-                    borderRadius: '8px',
-                    fontSize: 'clamp(12px, 2.5vw, 14px)',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5em',
-                    boxShadow: 'var(--shadow-sm)'
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#0056b3';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#007bff';
                   }}
                 >
                   <Plus size={16} />
-                  Connect Broker Account
-                </motion.button>
-              ) : (
-                <motion.form
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  onSubmit={handleAddBroker}
-                  style={{ marginTop: '1em' }}
-                >
-                  {/* Progress Indicator */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: '2rem',
-                    position: 'relative'
-                  }}>
-                    {[1, 2, 3].map((step) => (
-                      <div key={step} style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        flex: 1
-                      }}>
-                        <div style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '50%',
-                          background: brokerStep >= step ? 'var(--primary-color)' : 'var(--border-color)',
-                          color: brokerStep >= step ? 'white' : 'var(--text-secondary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: '600',
-                          fontSize: '0.875rem',
-                          marginBottom: '0.5rem'
-                        }}>
-                          {brokerStep > step ? '✓' : step}
-                        </div>
-                        <span style={{
-                          fontSize: '0.75rem',
-                          color: brokerStep >= step ? 'var(--text-primary)' : 'var(--text-secondary)',
-                          fontWeight: '500',
-                          textAlign: 'center'
-                        }}>
-                          {step === 1 ? 'API Credentials' : step === 2 ? 'TOTP Verification' : 'MPIN Verification'}
-                        </span>
-                      </div>
-                    ))}
-                    {/* Progress Line */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '20px',
-                      left: '20px',
-                      right: '20px',
-                      height: '2px',
-                      background: 'var(--border-color)',
-                      zIndex: -1
-                    }}>
-                      <div style={{
-                        width: `${((brokerStep - 1) / 2) * 100}%`,
-                        height: '100%',
-                        background: 'var(--primary-color)',
-                        transition: 'width 0.3s ease'
-                      }} />
-                    </div>
-                  </div>
-
-                  {/* Step 1: API Credentials */}
-                  {brokerStep === 1 && (
-                     <>
-                       <div style={{ marginBottom: '1.5em' }}>
-                         <label style={{ 
-                           color: 'var(--text-primary)', 
-                           fontWeight: 600, 
-                           display: 'block', 
-                           marginBottom: '0.5em', 
-                           fontSize: 'clamp(12px, 2.5vw, 14px)' 
-                         }}>
-                           Select Broker *
-                         </label>
-                         <select
-                           name="broker"
-                           value={brokerData.broker}
-                           onChange={handleBrokerChange}
-                           required
-                           style={{ 
-                             width: '100%', 
-                             padding: '0.75em', 
-                             border: '1px solid var(--border-color)', 
-                             borderRadius: '8px', 
-                             fontSize: 'clamp(12px, 2.5vw, 14px)', 
-                             background: 'white',
-                             color: 'var(--text-primary)',
-                             transition: 'all 0.2s ease'
-                           }}
-                     >
-                       <option value="Angel One">Angel One</option>
-                       <option value="Zerodha">Zerodha</option>
-                       <option value="Upstox">Upstox</option>
-                       <option value="ICICI Direct">ICICI Direct</option>
-                     </select>
-                   </div>
-
-                   <div style={{ marginBottom: '1.5em' }}>
-                     <label style={{ 
-                       color: 'var(--text-primary)', 
-                       fontWeight: 600, 
-                       display: 'block', 
-                       marginBottom: '0.5em', 
-                       fontSize: 'clamp(12px, 2.5vw, 14px)' 
-                     }}>
-                       Broker Client ID *
-                     </label>
-                     <input
-                       type="text"
-                       name="broker_client_id"
-                       value={brokerData.broker_client_id}
-                       onChange={handleBrokerChange}
-                       placeholder="Enter your Broker Client ID (e.g., Y69925)"
-                       required
-                       style={{ 
-                         width: '100%', 
-                         padding: '0.75em', 
-                         border: '1px solid var(--border-color)', 
-                         borderRadius: '8px', 
-                         fontSize: 'clamp(12px, 2.5vw, 14px)', 
-                         background: 'white',
-                         color: 'var(--text-primary)',
-                         transition: 'all 0.2s ease'
-                       }}
-                     />
-                   </div>
-
-                   <div style={{ marginBottom: '1.5em' }}>
-                     <label style={{ 
-                       color: 'var(--text-primary)', 
-                       fontWeight: 600, 
-                       display: 'block', 
-                       marginBottom: '0.5em', 
-                       fontSize: 'clamp(12px, 2.5vw, 14px)' 
-                     }}>
-                       Broker API Key *
-                     </label>
-                     <input
-                       type="text"
-                       name="broker_api_key"
-                       value={brokerData.broker_api_key}
-                       onChange={handleBrokerChange}
-                       placeholder="Enter your Broker API Key (e.g., lY8ntMyP)"
-                       required
-                       style={{ 
-                         width: '100%', 
-                         padding: '0.75em', 
-                         border: '1px solid var(--border-color)', 
-                         borderRadius: '8px', 
-                         fontSize: 'clamp(12px, 2.5vw, 14px)', 
-                         background: 'white',
-                         color: 'var(--text-primary)',
-                         transition: 'all 0.2s ease'
-                       }}
-                     />
-                   </div>
-
-                   <div style={{ marginBottom: '1.5em' }}>
-                     <label style={{ 
-                       color: 'var(--text-primary)', 
-                       fontWeight: 600, 
-                       display: 'block', 
-                       marginBottom: '0.5em', 
-                       fontSize: 'clamp(12px, 2.5vw, 14px)' 
-                     }}>
-                       Broker API Secret *
-                     </label>
-                     <input
-                       type="password"
-                       name="broker_api_secret"
-                       value={brokerData.broker_api_secret}
-                       onChange={handleBrokerChange}
-                       placeholder="Enter your Broker API Secret (e.g., Smarttest@123)"
-                       required
-                       style={{ 
-                         width: '100%', 
-                         padding: '0.75em', 
-                         border: '1px solid var(--border-color)', 
-                         borderRadius: '8px', 
-                         fontSize: 'clamp(12px, 2.5vw, 14px)', 
-                         background: 'white',
-                         color: 'var(--text-primary)',
-                         transition: 'all 0.2s ease'
-                       }}
-                     />
-                   </div>
-
-                   <div style={{ marginBottom: '1.5em' }}>
-                     <label style={{ 
-                       color: 'var(--text-primary)', 
-                       fontWeight: 600, 
-                       display: 'block', 
-                       marginBottom: '0.5em', 
-                       fontSize: 'clamp(12px, 2.5vw, 14px)' 
-                     }}>
-                       Angel One Token *
-                     </label>
-                     <input
-                       type="text"
-                       name="angelone_token"
-                       value={brokerData.angelone_token}
-                       onChange={handleBrokerChange}
-                       placeholder="Enter your Angel One Token (e.g., VXJB7SPIYYNI6CRUNCUZYWJFTA)"
-                       required
-                       style={{ 
-                         width: '100%', 
-                         padding: '0.75em', 
-                         border: '1px solid var(--border-color)', 
-                         borderRadius: '8px', 
-                         fontSize: 'clamp(12px, 2.5vw, 14px)', 
-                         background: 'white',
-                         color: 'var(--text-primary)',
-                         transition: 'all 0.2s ease'
-                       }}
-                     />
-                   </div>
-                     </>
-                   )}
-
-                  {/* Step 2: TOTP Verification */}
-                  {brokerStep === 2 && (
-                    <>
-                      <div style={{ marginBottom: '2em' }}>
-                        <label style={{ 
-                          color: 'var(--text-primary)', 
-                          fontWeight: 600, 
-                          display: 'block', 
-                          marginBottom: '0.5em', 
-                          fontSize: 'clamp(12px, 2.5vw, 14px)' 
-                        }}>
-                          TOTP Code *
-                        </label>
-                        <input
-                          type="text"
-                          name="totp"
-                          value={brokerData.totp}
-                          onChange={handleBrokerChange}
-                          placeholder="Enter 6-digit TOTP from your authenticator app"
-                          maxLength="6"
-                          pattern="[0-9]{6}"
-                          required
-                          style={{ 
-                            width: '100%', 
-                            padding: '0.75em', 
-                            border: '1px solid var(--border-color)', 
-                            borderRadius: '8px', 
-                            fontSize: 'clamp(12px, 2.5vw, 14px)', 
-                            background: 'white',
-                            color: 'var(--text-primary)',
-                            transition: 'all 0.2s ease',
-                            textAlign: 'center',
-                            letterSpacing: '0.5em'
-                          }}
-                        />
-                        <p style={{
-                          color: 'var(--text-secondary)',
-                          fontSize: '0.75rem',
-                          marginTop: '0.5rem',
-                          textAlign: 'center'
-                        }}>
-                          Enter the 6-digit code from your authenticator app
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Step 3: MPIN Verification */}
-                  {brokerStep === 3 && (
-                    <>
-                      <div style={{ marginBottom: '2em' }}>
-                        <label style={{ 
-                          color: 'var(--text-primary)', 
-                          fontWeight: 600, 
-                          display: 'block', 
-                          marginBottom: '0.5em', 
-                          fontSize: 'clamp(12px, 2.5vw, 14px)' 
-                        }}>
-                          MPIN *
-                        </label>
-                        <input
-                          type="password"
-                          name="mpin"
-                          value={brokerData.mpin}
-                          onChange={handleBrokerChange}
-                          placeholder="Enter your 4-digit MPIN"
-                          maxLength="4"
-                          pattern="[0-9]{4}"
-                          required
-                          style={{ 
-                            width: '100%', 
-                            padding: '0.75em', 
-                            border: '1px solid var(--border-color)', 
-                            borderRadius: '8px', 
-                            fontSize: 'clamp(12px, 2.5vw, 14px)', 
-                            background: 'white',
-                            color: 'var(--text-primary)',
-                            transition: 'all 0.2s ease',
-                            textAlign: 'center',
-                            letterSpacing: '0.5em'
-                          }}
-                        />
-                        <p style={{
-                          color: 'var(--text-secondary)',
-                          fontSize: '0.75rem',
-                          marginTop: '0.5rem',
-                          textAlign: 'center'
-                        }}>
-                          Enter your 4-digit MPIN for broker authentication
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  <div style={{ display: 'flex', gap: '1em', marginTop: '1.5em' }}>
-                    <motion.button
-                      type="submit"
-                      disabled={brokerLoading}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      style={{
-                        flex: 1,
-                        background: 'var(--primary-color)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.75em 1em',
-                        borderRadius: '8px',
-                        fontSize: 'clamp(12px, 2.5vw, 14px)',
-                        fontWeight: 600,
-                        cursor: brokerLoading ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5em',
-                        boxShadow: 'var(--shadow-sm)',
-                        opacity: brokerLoading ? 0.7 : 1
-                      }}
-                    >
-                      {brokerLoading ? (
-                        <>
-                          <RefreshCw size={16} className="spin" />
-                          {brokerStep === 1 ? 'Verifying...' : brokerStep === 2 ? 'Verifying TOTP...' : 'Verifying MPIN...'}
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle size={16} />
-                          {brokerStep === 1 ? 'Continue' : brokerStep === 2 ? 'Verify TOTP' : 'Complete Connection'}
-                        </>
-                      )}
-                    </motion.button>
-                    <motion.button
-                      type="button"
-                      onClick={brokerStep === 1 ? () => setShowBrokerForm(false) : () => setBrokerStep(brokerStep - 1)}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      style={{
-                        flex: 1,
-                        background: 'white',
-                        color: 'var(--text-primary)',
-                        border: '2px solid var(--border-color)',
-                        padding: '0.75em 1em',
-                        borderRadius: '8px',
-                        fontSize: 'clamp(12px, 2.5vw, 14px)',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      {brokerStep === 1 ? 'Cancel' : 'Back'}
-                    </motion.button>
-                  </div>
-                </motion.form>
-              )}
-            </motion.div>
+                  {brokerProfile.brokerName === 'No Broker Connected' ? 'Connect Broker' : 'Change Broker'}
+                </button>
+                
+                {brokerProfile.brokerName !== 'No Broker Connected' && (
+                  <button
+                    onClick={handleClearBroker}
+                    style={{
+                      padding: '0.6em 1.2em',
+                      background: '#dc3545',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: 14,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5em'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = '#c82333';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = '#dc3545';
+                    }}
+                  >
+                    <Trash2 size={16} />
+                    Disconnect
+                  </button>
+                )}
+              </div>
+            </div>
           )}
-        </motion.div>
 
-        {/* Admin Information Section */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          style={{ 
-            marginTop: '2em',
-            padding: 'clamp(1em, 3vw, 1.5em)', 
-            background: 'white', 
-            borderRadius: '12px', 
-            boxShadow: 'var(--shadow-md)', 
-            border: '1px solid var(--border-color)',
-            color: 'var(--text-primary)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5em', gap: '0.5em' }}>
-            <User size={24} />
-            <h2 style={{ 
-              color: 'var(--text-primary)', 
-              margin: 0, 
-              fontWeight: 600, 
-              fontSize: 'clamp(1.2em, 3vw, 1.4em)' 
+          {/* Broker Connection Form */}
+          {showBrokerForm && (
+            <div style={{ 
+              padding: '1.5em', 
+              background: '#f8f9fa', 
+              borderRadius: '8px', 
+              border: '1px solid #e9ecef'
             }}>
-              Admin Information
-            </h2>
-          </div>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: '1.5em'
+              }}>
+                <h3 style={{ 
+                  color: '#2c3e50', 
+                  margin: 0, 
+                  fontWeight: 600, 
+                  fontSize: '1.2em'
+                }}>
+                  {brokerStep === 1 ? 'Step 1: Enter Broker Details' : 'Step 2: Enter TOTP'}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowBrokerForm(false);
+                    resetBrokerForm();
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '1.5em',
+                    cursor: 'pointer',
+                    color: '#6c757d',
+                    padding: '0.2em'
+                  }}
+                >
+                  <X />
+                </button>
+              </div>
 
-          <div style={{ 
-            padding: '1em', 
-            background: '#e3f2fd', 
-            borderRadius: '6px', 
-            border: '1px solid #bbdefb' 
-          }}>
-            <div style={{ marginBottom: '0.5em' }}>
-              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Role: </span>
-              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12, textTransform: 'capitalize' }}>{role || formData.role}</span>
+              <form onSubmit={handleAddBroker}>
+                {brokerStep === 1 ? (
+                  <>
+                    <div style={{ marginBottom: '1em' }}>
+                      <label style={{ 
+                        color: '#495057', 
+                        fontWeight: 500, 
+                        display: 'block', 
+                        marginBottom: '0.5em', 
+                        fontSize: 14 
+                      }}>
+                        Broker Client ID
+                      </label>
+                      <input
+                        type="text"
+                        name="broker_client_id"
+                        value={brokerData.broker_client_id}
+                        onChange={handleBrokerChange}
+                        placeholder="Enter your broker client ID"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.8em', 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: '6px', 
+                          fontSize: 14, 
+                          background: '#fff' 
+                        }}
+                        required
+                      />
+                    </div>
+                    
+                    <div style={{ marginBottom: '1em' }}>
+                      <label style={{ 
+                        color: '#495057', 
+                        fontWeight: 500, 
+                        display: 'block', 
+                        marginBottom: '0.5em', 
+                        fontSize: 14 
+                      }}>
+                        API Key
+                      </label>
+                      <input
+                        type="text"
+                        name="broker_api_key"
+                        value={brokerData.broker_api_key}
+                        onChange={handleBrokerChange}
+                        placeholder="Enter your API key"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.8em', 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: '6px', 
+                          fontSize: 14, 
+                          background: '#fff' 
+                        }}
+                        required
+                      />
+                    </div>
+                    
+                    <div style={{ marginBottom: '1em' }}>
+                      <label style={{ 
+                        color: '#495057', 
+                        fontWeight: 500, 
+                        display: 'block', 
+                        marginBottom: '0.5em', 
+                        fontSize: 14 
+                      }}>
+                        API Secret
+                      </label>
+                      <input
+                        type="text"
+                        name="broker_api_secret"
+                        value={brokerData.broker_api_secret}
+                        onChange={handleBrokerChange}
+                        placeholder="Enter your API secret"
+                        style={{ 
+                          width: '100%', 
+                          padding: '1em', 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: '6px', 
+                          fontSize: 14, 
+                          background: '#fff' 
+                        }}
+                        required
+                      />
+                    </div>
+                    
+                    <div style={{ marginBottom: '1em' }}>
+                      <label style={{ 
+                        color: '#495057', 
+                        fontWeight: 500, 
+                        display: 'block', 
+                        marginBottom: '0.5em', 
+                        fontSize: 14 
+                      }}>
+                        Angel One Token
+                      </label>
+                      <input
+                        type="text"
+                        name="angelone_token"
+                        value={brokerData.angelone_token}
+                        onChange={handleBrokerChange}
+                        placeholder="Enter your Angel One token"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.8em', 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: '6px', 
+                          fontSize: 14, 
+                          background: '#fff' 
+                        }}
+                        required
+                      />
+                    </div>
+                    
+                    <div style={{ marginBottom: '1.5em' }}>
+                      <label style={{ 
+                        color: '#495057', 
+                        fontWeight: 500, 
+                        display: 'block', 
+                        marginBottom: '0.5em', 
+                        fontSize: 14 
+                      }}>
+                        MPIN
+                      </label>
+                      <input
+                        type="password"
+                        name="mpin"
+                        value={brokerData.mpin}
+                        onChange={handleBrokerChange}
+                        placeholder="Enter your MPIN"
+                        style={{ 
+                          width: '100%', 
+                          padding: '0.8em', 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: '6px', 
+                          fontSize: 14, 
+                          background: '#fff' 
+                        }}
+                        required
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ marginBottom: '1.5em' }}>
+                    <label style={{ 
+                      color: '#495057', 
+                      fontWeight: 500, 
+                      display: 'block', 
+                      marginBottom: '0.5em', 
+                      fontSize: 14 
+                    }}>
+                      TOTP Code
+                    </label>
+                    <input
+                      type="text"
+                      name="totp"
+                      value={brokerData.totp}
+                      onChange={handleBrokerChange}
+                      placeholder="Enter TOTP from your authenticator app"
+                      style={{ 
+                        width: '100%', 
+                        padding: '0.8em', 
+                        border: '1px solid #e0e0e0', 
+                        borderRadius: '6px', 
+                        fontSize: 14, 
+                        background: '#fff' 
+                      }}
+                      required
+                    />
+                  </div>
+                )}
+                
+                <button
+                  type="submit"
+                  disabled={brokerLoading}
+                  style={{
+                    width: '100%',
+                    padding: '1em',
+                    background: brokerLoading ? '#6c757d' : '#28a745',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    cursor: brokerLoading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {brokerLoading ? 'Processing...' : (brokerStep === 1 ? 'Add Broker Account' : 'Verify TOTP')}
+                </button>
+              </form>
             </div>
-            
-            <div style={{ marginBottom: '0.5em' }}>
-              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Employee ID: </span>
-              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>{formData.employeeId || 'Not set'}</span>
-            </div>
-            
-            <div>
-              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Access Level: </span>
-              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>Full Administrative Access</span>
-            </div>
-          </div>
-        </motion.div>
+          )}
+        </div>
       </div>
-
-
-    </motion.div>
+    </div>
   );
 };
 

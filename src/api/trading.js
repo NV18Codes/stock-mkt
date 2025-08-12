@@ -79,7 +79,7 @@ export const getOrderHistory = async () => {
     }
 };
 
-// NEW TRADING ENDPOINTS
+// NEW TRADING ENDPOINTS - Updated with working URLs
 
 // Get user broker trades
 export const getUserBrokerTrades = async () => {
