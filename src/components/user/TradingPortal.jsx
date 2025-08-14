@@ -7,21 +7,10 @@ import { useNavigate } from 'react-router-dom';
 import OrderList from './OrderList';
 import TradeList from './TradeList';
 import {
-  fetchMyBrokerProfile,
-  clearBrokerConnection,
-  getDematLimit
+  clearBrokerConnection
 } from '../../api/auth';
 
-const TradingViewWidget = ({ symbol }) => (
-  <div style={{ width: '100%', height: 320, borderRadius: 8, overflow: 'hidden', margin: '0 auto' }}>
-    <iframe
-      title="TradingView Chart"
-      src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_12345&symbol=NSE%3A${symbol}&interval=5&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Asia%2FKolkata&withdateranges=1&hidevolume=1&hideideas=1&studies_overrides={}`}
-      style={{ width: '100%', height: 320, border: 'none' }}
-      allowFullScreen
-    />
-  </div>
-);
+
 
 const TradingPortal = () => {
   const navigate = useNavigate();
@@ -31,9 +20,6 @@ const TradingPortal = () => {
 
   const [clearBrokerStatus, setClearBrokerStatus] = useState('');
   const [clearBrokerLoading, setClearBrokerLoading] = useState(false);
-  const [portfolioData, setPortfolioData] = useState(null);
-
-  const [dematLimit, setDematLimit] = useState(null);
   const [orderStatus, setOrderStatus] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -42,57 +28,52 @@ const TradingPortal = () => {
       setLoading(true);
       setError('');
       try {
-        // Fetch broker profile directly (same approach as UserProfileSettings)
-        const profileRes = await fetchMyBrokerProfile();
+        // Fetch broker profile using the new API endpoint
+        const profileRes = await fetch('https://apistocktrading-production.up.railway.app/api/users/me/broker/profile', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
         
-        if (profileRes && profileRes.success && profileRes.data) {
-          // Check if broker is connected and active
-          const isBrokerConnected = profileRes.data.broker_name && 
-                                  profileRes.data.broker_name !== 'No Broker Connected';
-          const isActiveForTrading = profileRes.data.is_active_for_trading;
-          
-          console.log('Broker profile data:', profileRes.data);
-          console.log('Is broker connected:', isBrokerConnected);
-          console.log('Is active for trading:', isActiveForTrading);
-          
-          if (isBrokerConnected && isActiveForTrading) {
-            setUserData({ 
-              broker: {
-                ...profileRes.data,
-                status: 'ACTIVE' // Add the status field that the component expects
-              }
-            });
+        if (profileRes.ok) {
+          const data = await profileRes.json();
+          if (data) {
+            // Check if broker is connected and active
+            const isBrokerConnected = data.broker_name && 
+                                    data.broker_name !== 'No Broker Connected';
+            const isActiveForTrading = data.is_active_for_trading;
             
-            // Fetch additional data for connected users
-            try {
-              const dematRes = await getDematLimit();
+            console.log('Broker profile data:', data);
+            console.log('Is broker connected:', isBrokerConnected);
+            console.log('Is active for trading:', isActiveForTrading);
+            
+            if (isBrokerConnected && isActiveForTrading) {
+              setUserData({ 
+                broker: {
+                  ...data,
+                  status: 'ACTIVE' // Add the status field that the component expects
+                }
+              });
               
-              if (dematRes.data) {
-                setDematLimit(dematRes.data);
-              }
-            } catch (dataError) {
-              console.error('Error fetching additional broker data:', dataError);
-              // Don't fail the entire request if additional data fails
+
+            } else {
+              // Broker is not connected or not active
+              console.log('Broker not connected or not active, setting userData to null');
+              setUserData(null);
             }
           } else {
-            // Broker is not connected or not active
-            console.log('Broker not connected or not active, setting userData to null');
+            console.log('No broker profile data, setting userData to null');
             setUserData(null);
-            setPortfolioData(null);
-            setDematLimit(null);
           }
         } else {
           console.log('No broker profile data, setting userData to null');
           setUserData(null);
-          setPortfolioData(null);
-          setDematLimit(null);
         }
       } catch (err) {
         console.error('Error fetching user data:', err);
         setError('Failed to load user data. Please try again later.');
         setUserData(null);
-        setPortfolioData(null);
-        setDematLimit(null);
       } finally {
         setLoading(false);
       }
@@ -113,8 +94,8 @@ const TradingPortal = () => {
       
       if (result && result.success) {
         console.log('Order placed successfully:', result);
-        setOrderStatus('Order placed successfully!');
-        
+      setOrderStatus('Order placed successfully!');
+      
         // Refresh user data to show updated positions/orders
         // await fetchUserData();
         
@@ -147,11 +128,9 @@ const TradingPortal = () => {
       console.log('Clear broker result:', result);
       
       if (result && result.success) {
-        setClearBrokerStatus('Broker connection cleared successfully');
+      setClearBrokerStatus('Broker connection cleared successfully');
         // Force a complete reset of all broker-related data
-        setUserData(null);
-        setPortfolioData(null);
-        setDematLimit(null);
+      setUserData(null);
         
         // Force a refresh of the component to show "Broker Not Connected" state
         setTimeout(() => {
@@ -224,7 +203,7 @@ const TradingPortal = () => {
           border: '1px solid rgba(255,255,255,0.2)'
         }}>
           <h2 style={{ 
-            marginBottom: '1em', 
+            marginBottom: '1em',
             fontWeight: 700,
             fontSize: 'clamp(1.5em, 4vw, 2em)',
             textShadow: '0 2px 4px rgba(0,0,0,0.3)'
@@ -242,15 +221,15 @@ const TradingPortal = () => {
           <button 
             onClick={handleConnectBroker}
             style={{
-              display: 'inline-block',
+            display: 'inline-block',
               background: 'linear-gradient(45deg, #00d4aa, #0099cc)',
-              color: '#ffffff',
-              padding: 'clamp(0.8em, 2vw, 1em) clamp(1.5em, 3vw, 2em)',
+            color: '#ffffff',
+            padding: 'clamp(0.8em, 2vw, 1em) clamp(1.5em, 3vw, 2em)',
               borderRadius: '12px',
-              textDecoration: 'none',
-              fontWeight: 600,
-              fontSize: 'clamp(14px, 2.5vw, 16px)',
-              transition: 'all 0.3s ease',
+            textDecoration: 'none',
+            fontWeight: 600,
+            fontSize: 'clamp(14px, 2.5vw, 16px)',
+            transition: 'all 0.3s ease',
               boxShadow: '0 4px 15px rgba(0,212,170,0.3)',
               border: 'none',
               cursor: 'pointer'
@@ -380,86 +359,19 @@ const TradingPortal = () => {
 
       {/* Tab Content */}
       {activeTab === 'overview' && (
-        <>
-          {/* Header Section */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-            gap: 'clamp(1em, 2vw, 1.5em)', 
-            marginBottom: '2em' 
-          }}>
-            {/* Portfolio Overview */}
-            {portfolioData && (
-              <div style={{ 
-                background: 'linear-gradient(135deg, #667eea, #764ba2)', 
-                color: '#ffffff', 
-                padding: 'clamp(1.2em, 2.5vw, 1.5em)', 
-                borderRadius: '16px', 
-                boxShadow: '0 8px 25px rgba(102,126,234,0.3)',
-                border: '1px solid rgba(255,255,255,0.2)'
-              }}>
-                <h3 style={{ margin: '0 0 0.5em 0', fontSize: 'clamp(14px, 2.5vw, 16px)', opacity: 0.9 }}>Portfolio Value</h3>
-                <div style={{ fontSize: 'clamp(1.5em, 3vw, 2em)', fontWeight: 700, marginBottom: '0.5em' }}>
-                  ₹{portfolioData.totalValue?.toLocaleString() || '0'}
-                </div>
-                <div style={{ fontSize: 'clamp(12px, 2.5vw, 14px)', opacity: 0.8 }}>
-                  {portfolioData.change >= 0 ? '+' : ''}{portfolioData.change}% today
-                </div>
-              </div>
-            )}
-
-            {/* Broker Status */}
-            <div style={{ 
-              background: 'linear-gradient(135deg, #00d4aa, #00b894)', 
-              color: '#ffffff', 
-              padding: 'clamp(1.2em, 2.5vw, 1.5em)', 
-              borderRadius: '16px', 
-              boxShadow: '0 8px 25px rgba(0,212,170,0.3)',
-              border: '1px solid rgba(255,255,255,0.2)'
-            }}>
-              <h3 style={{ margin: '0 0 0.5em 0', fontSize: 'clamp(14px, 2.5vw, 16px)', opacity: 0.9 }}>Broker Status</h3>
-              <div style={{ fontSize: 'clamp(1.2em, 2.5vw, 1.5em)', fontWeight: 700, marginBottom: '0.5em' }}>
-                {userData.broker.broker_name || 'Connected'}
-              </div>
-              <div style={{ fontSize: 'clamp(12px, 2.5vw, 14px)', opacity: 0.8 }}>
-                Active for Trading
-              </div>
-            </div>
-
-            {/* RMS Limit */}
-            {dematLimit && (
-              <div style={{ 
-                background: 'linear-gradient(135deg, #ffa726, #ff9800)', 
-                color: '#ffffff', 
-                padding: 'clamp(1.2em, 2.5vw, 1.5em)', 
-                borderRadius: '16px', 
-                boxShadow: '0 8px 25px rgba(255,167,38,0.3)',
-                border: '1px solid rgba(255,255,255,0.2)'
-              }}>
-                <h3 style={{ margin: '0 0 0.5em 0', fontSize: 'clamp(14px, 2.5vw, 16px)', opacity: 0.9 }}>RMS Limit</h3>
-                <div style={{ fontSize: 'clamp(1.2em, 2.5vw, 1.5em)', fontWeight: 700, marginBottom: '0.5em' }}>
-                  ₹{dematLimit.net?.toLocaleString() || '0'}
-                </div>
-                <div style={{ fontSize: 'clamp(12px, 2.5vw, 14px)', opacity: 0.8 }}>
-                  Available for Trading
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Chart Section */}
-          <div style={{ 
-            background: 'rgba(255,255,255,0.9)', 
-            borderRadius: '16px', 
-            padding: 'clamp(1.5em, 3vw, 2em)', 
-            marginBottom: '2em',
-            boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
-            border: '1px solid rgba(255,255,255,0.3)'
-          }}>
-            <h3 style={{ margin: '0 0 1em 0', color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Portfolio Performance</h3>
-            <TradingViewWidget symbol="NIFTY" />
-          </div>
-        </>
+        <div style={{ 
+          background: 'rgba(255,255,255,0.9)', 
+          borderRadius: '16px', 
+          padding: 'clamp(1.5em, 3vw, 2em)', 
+          marginBottom: '2em',
+          boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+          border: '1px solid rgba(255,255,255,0.3)'
+        }}>
+          <h3 style={{ margin: '0 0 1em 0', color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Welcome to Your Trading Portal</h3>
+          <p style={{ color: '#2c3e50', fontSize: 'clamp(14px, 2.5vw, 16px)', lineHeight: 1.6 }}>
+            Use the tabs above to navigate between different trading features. Place orders, view trade history, and manage your portfolio all from one place.
+          </p>
+        </div>
       )}
 
       {activeTab === 'trading' && (
@@ -473,11 +385,11 @@ const TradingPortal = () => {
         }}>
           <h3 style={{ margin: '0 0 1em 0', color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Place Orders</h3>
           <OrderForm onSubmit={handleOrderSubmit} />
-        </div>
+            </div>
       )}
 
       {activeTab === 'history' && (
-        <div style={{ 
+            <div style={{ 
           background: 'rgba(255,255,255,0.9)', 
           borderRadius: '16px', 
           padding: 'clamp(1.5em, 3vw, 2em)', 
@@ -487,11 +399,11 @@ const TradingPortal = () => {
         }}>
           <h3 style={{ margin: '0 0 1em 0', color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Trade History</h3>
           <TradeList />
-        </div>
+            </div>
       )}
 
       {activeTab === 'portfolio' && (
-        <div style={{ 
+            <div style={{ 
           background: 'rgba(255,255,255,0.9)', 
           borderRadius: '16px', 
           padding: 'clamp(1.5em, 3vw, 2em)', 
@@ -514,7 +426,7 @@ const TradingPortal = () => {
       )}
 
       {/* Broker Management Section */}
-      <div style={{ 
+        <div style={{ 
         background: 'rgba(255,255,255,0.9)', 
         borderRadius: '16px', 
         padding: 'clamp(1.5em, 3vw, 2em)', 
@@ -578,43 +490,11 @@ const TradingPortal = () => {
             >
               {clearBrokerLoading ? '🔄 Processing...' : '❌ Disconnect Broker'}
             </button>
-          </div>
-        </div>
-        
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-          gap: '1em' 
-        }}>
-          <div style={{ 
-            background: 'rgba(102,126,234,0.1)', 
-            padding: '1em', 
-            borderRadius: '8px', 
-            border: '1px solid rgba(102,126,234,0.2)' 
-          }}>
-            <div style={{ fontWeight: 600, color: '#2c3e50', marginBottom: '0.5em' }}>Broker Name</div>
-            <div style={{ color: '#667eea' }}>{userData.broker.broker_name || 'N/A'}</div>
-          </div>
-          <div style={{ 
-            background: 'rgba(0,212,170,0.1)', 
-            padding: '1em', 
-            borderRadius: '8px', 
-            border: '1px solid rgba(0,212,170,0.2)' 
-          }}>
-            <div style={{ fontWeight: 600, color: '#2c3e50', marginBottom: '0.5em' }}>Status</div>
-            <div style={{ color: '#00d4aa' }}>Active</div>
-          </div>
-          <div style={{ 
-            background: 'rgba(255,167,38,0.1)', 
-            padding: '1em', 
-            borderRadius: '8px', 
-            border: '1px solid rgba(255,167,38,0.2)' 
-          }}>
-            <div style={{ fontWeight: 600, color: '#2c3e50', marginBottom: '0.5em' }}>Trading Enabled</div>
-            <div style={{ color: '#ffa726' }}>Yes</div>
-          </div>
         </div>
       </div>
+
+
+        </div>
     </div>
   );
 };

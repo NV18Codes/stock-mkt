@@ -89,10 +89,24 @@ export const adminTradeHistory = async (params = {}) => {
 
 export const singleTradeDetail = async (tradeId) => {
   try {
+    console.log(`Fetching trade details for ID: ${tradeId}`);
+    console.log(`API URL: https://apistocktrading-production.up.railway.app/api/admin/trades/${tradeId}`);
+    
     const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/trades/${tradeId}`);
+    
+    console.log('API Response Status:', response.status);
+    console.log('API Response Headers:', response.headers);
+    console.log('API Response Data:', response.data);
+    console.log('API Response Data Type:', typeof response.data);
+    console.log('API Response Data Keys:', response.data ? Object.keys(response.data) : 'No data');
+    
     return response.data;
   } catch (error) {
     console.error('Error fetching single trade detail:', error);
+    console.error('Error Response Status:', error.response?.status);
+    console.error('Error Response Data:', error.response?.data);
+    console.error('Error Response Headers:', error.response?.headers);
+    console.error('Error Config:', error.config);
     throw error;
   }
 };
@@ -267,15 +281,27 @@ export const getAdminUsers = async () => {
     const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users');
     console.log('Users endpoint response:', response.data);
     
+    let usersData;
     if (response.data && response.data.data && Array.isArray(response.data.data)) {
-      return { data: response.data.data };
+      usersData = response.data.data;
     } else if (response.data && Array.isArray(response.data)) {
-      return { data: response.data };
+      usersData = response.data;
     } else if (response.data && response.data.users && Array.isArray(response.data.users)) {
-      return { data: response.data.users };
+      usersData = response.data.users;
     } else {
       throw new Error('Invalid users data format');
     }
+
+    // Normalize the user data to ensure consistent field names
+    const normalizedUsers = usersData.map(user => ({
+      ...user,
+      name: user.name || user.fullname || user.full_name || user.first_name || user.email?.split('@')[0] || 'Unknown User',
+      email: user.email || user.email_address || '',
+      is_broker_connected: user.is_broker_connected || user.broker_connected || false,
+      is_active_for_trading: user.is_active_for_trading || user.trading_active || false
+    }));
+
+    return { data: normalizedUsers };
   } catch (error) {
     console.error('Error fetching users:', error);
     console.error('Error details:', {

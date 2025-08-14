@@ -3,26 +3,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-  /* Primary Brand Colors - Vibrant & Modern */
-  --primary-color: #00d4aa;
-  --primary-hover: #00b894;
-  --primary-light: #00f5d4;
-  --primary-dark: #008f7a;
+  /* Primary Brand Colors - Professional Blue */
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #3b82f6;
+  --primary-dark: #1e40af;
   
-  /* Secondary Colors - Rich Gold */
-  --secondary-color: #ffd700;
-  --secondary-hover: #ffed4e;
-  --secondary-light: #fff4b3;
-  --secondary-dark: #e6c200;
+  /* Secondary Colors - Light Blue Accents */
+  --secondary-color: #60a5fa;
+  --secondary-hover: #3b82f6;
+  --secondary-light: #93c5fd;
+  --secondary-dark: #2563eb;
   
-  /* Background Colors - Clean & Modern */
+  /* Background Colors - Clean White */
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
   --bg-tertiary: #f1f5f9;
   --bg-surface: #ffffff;
   --bg-card: #ffffff;
   
-  /* Text Colors - High Contrast */
+  /* Text Colors - Professional Dark */
   --text-primary: #0f172a;
   --text-secondary: #1e293b;
   --text-muted: #475569;
@@ -31,34 +31,34 @@
   /* Border Colors */
   --border-primary: #e2e8f0;
   --border-secondary: #cbd5e1;
-  --border-accent: #00d4aa;
+  --border-accent: #2563eb;
   
   /* Status Colors */
-  --success-color: #10b981;
-  --success-hover: #059669;
-  --warning-color: #f59e0b;
-  --warning-hover: #d97706;
-  --danger-color: #ef4444;
-  --danger-hover: #dc2626;
-  --info-color: #00d4aa;
-  --info-hover: #00b894;
+  --success-color: #059669;
+  --success-hover: #047857;
+  --warning-color: #d97706;
+  --warning-hover: #b45309;
+  --danger-color: #dc2626;
+  --danger-hover: #b91c1c;
+  --info-color: #2563eb;
+  --info-hover: #1d4ed8;
   
-  /* Shadows - Modern & Subtle */
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  /* Shadows - Subtle & Professional */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
   
-  /* Gradients - Beautiful & Modern */
-  --gradient-primary: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
-  --gradient-secondary: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-  --gradient-bg: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  /* Gradients - Clean Blue */
+  --gradient-primary: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --gradient-secondary: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  --gradient-bg: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  --gradient-hero: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-accent: linear-gradient(135deg, #00d4aa 0%, #ffd700 100%);
+  --gradient-hero: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  --gradient-accent: linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
   --gradient-dark: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
   
   /* Typography */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -238,7 +238,7 @@ code {
 .form-control:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 4px rgba(0, 212, 170, 0.1);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
   background: var(--bg-surface);
 }
 
@@ -294,7 +294,7 @@ h1, h2, h3, h4, h5, h6 {
 h1 {
   font-size: clamp(1.8rem, 4vw, 2.5rem);
   font-weight: var(--font-weight-black);
-  background: var(--gradient-accent);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -463,10 +463,10 @@ a:hover {
 
 @keyframes glow {
   0%, 100% {
-    box-shadow: 0 0 5px rgba(0, 212, 170, 0.3);
+    box-shadow: 0 0 5px rgba(37, 99, 235, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(0, 212, 170, 0.6);
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.6);
   }
 }
 
@@ -531,7 +531,21 @@ a:hover {
 }
 
 /* Responsive Design */
+@media (max-width: 1200px) {
+  .container {
+    padding: var(--spacing-lg);
+  }
+  
+  .card {
+    margin-bottom: var(--spacing-lg);
+  }
+}
+
 @media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-md);
+  }
+  
   .card {
     border-radius: var(--radius-lg);
     margin: var(--spacing-sm);
@@ -552,19 +566,28 @@ a:hover {
   }
   
   h1 {
-    font-size: 1.8rem;
+    font-size: clamp(1.5rem, 5vw, 1.8rem);
   }
   
   h2 {
-    font-size: 1.5rem;
+    font-size: clamp(1.3rem, 4vw, 1.5rem);
   }
   
   h3 {
-    font-size: 1.2rem;
+    font-size: clamp(1.1rem, 3vw, 1.2rem);
+  }
+  
+  .form-control {
+    padding: var(--spacing-sm);
+    font-size: 0.9rem;
   }
 }
 
 @media (max-width: 480px) {
+  .container {
+    padding: var(--spacing-sm);
+  }
+  
   .card {
     border-radius: var(--radius-lg);
     margin: var(--spacing-sm);
@@ -573,6 +596,7 @@ a:hover {
   .btn {
     padding: var(--spacing-sm) var(--spacing-md);
     font-size: 0.85rem;
+    width: 100%;
   }
   
   .table {
@@ -585,15 +609,20 @@ a:hover {
   }
   
   h1 {
-    font-size: 1.5rem;
+    font-size: clamp(1.3rem, 6vw, 1.5rem);
   }
   
   h2 {
-    font-size: 1.25rem;
+    font-size: clamp(1.1rem, 5vw, 1.25rem);
   }
   
   h3 {
-    font-size: 1.1rem;
+    font-size: clamp(1rem, 4vw, 1.1rem);
+  }
+  
+  .form-control {
+    padding: var(--spacing-sm);
+    font-size: 0.85rem;
   }
 }
 
@@ -627,6 +656,36 @@ a:hover {
 .d-grid { display: grid; }
 .d-block { display: block; }
 .d-none { display: none; }
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .d-md-none { display: none; }
+  .d-md-block { display: block; }
+  .d-md-flex { display: flex; }
+  .d-md-grid { display: grid; }
+}
+
+@media (max-width: 480px) {
+  .d-sm-none { display: none; }
+  .d-sm-block { display: block; }
+  .d-sm-flex { display: flex; }
+  .d-sm-grid { display: grid; }
+}
+
+/* Grid utilities */
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+@media (max-width: 768px) {
+  .md\:grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 480px) {
+  .sm\:grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+}
 
 .align-center { align-items: center; }
 .justify-center { justify-content: center; }

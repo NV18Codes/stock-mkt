@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   addBrokerAccount,
-  fetchMyBrokerProfile,
   clearBrokerConnection,
   getDematLimit
 } from '../../api/auth';
@@ -37,33 +36,47 @@ const BrokerAccountSettings = () => {
 
   // Utility function to hash sensitive data
   const hashSensitiveData = (value) => {
-    if (!value) return '';
-    return '*'.repeat(Math.min(value.length, 8)) + value.slice(-4);
+    if (!value || value.trim() === '') return '';
+    const length = value.length;
+    if (length <= 4) return '*'.repeat(length);
+    return '*'.repeat(length - 4) + value.slice(-4);
   };
 
   const fetchBrokerInfo = async () => {
     setLoading(true);
     setError('');
     try {
-      // Fetch broker profile directly (same approach as UserProfileSettings)
-      const profileRes = await fetchMyBrokerProfile();
+      // Fetch broker profile using the new API endpoint
+      const profileRes = await fetch('https://apistocktrading-production.up.railway.app/api/users/me/broker/profile', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
-      if (profileRes && profileRes.success && profileRes.data) {
-        // Check if broker is connected and active
-        const isBrokerConnected = profileRes.data.broker_name && 
-                                profileRes.data.broker_name !== 'No Broker Connected';
-        const isActiveForTrading = profileRes.data.is_active_for_trading;
-        
-        if (isBrokerConnected && isActiveForTrading) {
-          setStatus('ACTIVE');
-          setBrokerProfile(profileRes.data);
+      if (profileRes.ok) {
+        const data = await profileRes.json();
+        if (data) {
+          // Check if broker is connected and active
+          const isBrokerConnected = data.broker_name && 
+                                  data.broker_name !== 'No Broker Connected';
+          const isActiveForTrading = data.is_active_for_trading;
           
-          // Fetch demat limit
-          try {
-            const dematRes = await getDematLimit();
-            setDematLimit(dematRes.data);
-          } catch (dematErr) {
-            console.error('Error fetching demat limit:', dematErr);
+          if (isBrokerConnected && isActiveForTrading) {
+            setStatus('ACTIVE');
+            setBrokerProfile(data);
+            
+            // Fetch demat limit
+            try {
+              const dematRes = await getDematLimit();
+              setDematLimit(dematRes.data);
+            } catch (dematErr) {
+              console.error('Error fetching demat limit:', dematErr);
+              setDematLimit(null);
+            }
+          } else {
+            setStatus('NOT_CONNECTED');
+            setBrokerProfile(null);
             setDematLimit(null);
           }
         } else {

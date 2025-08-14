@@ -608,18 +608,6 @@ export const modifyOrder = async (orderId, orderData) => {
 
 // BROKER AUTHENTICATION ENDPOINTS - Updated with exact URLs from the provided APIs
 
-// Step 1: Initial broker connection with credentials
-export const addBrokerAccount = async (credentials) => {
-  try {
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/connect', credentials);
-    console.log('Broker connection response:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('Error connecting broker account:', error);
-    throw error;
-  }
-};
-
 // Step 2: Verify TOTP
 export const verifyBrokerTOTP = async (totpData) => {
   try {

@@ -8,11 +8,14 @@ const formatINR = (value) => {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(num);
 };
 
+
+
 const AdminTradingPortal = () => {
   const [users, setUsers] = useState([]);
   const [segments, setSegments] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [selectedSegment, setSelectedSegment] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [loading, setLoading] = useState({
     users: true,
@@ -132,8 +135,27 @@ const AdminTradingPortal = () => {
     }
   };
 
-  // Filter out admin users for trading
-  const filteredUsers = users.filter(user => (user.role || user.user_role || 'user') !== 'admin');
+  // Filter out admin users and apply segment filtering
+  const filteredUsers = users.filter(user => {
+    // Exclude admin users
+    if ((user.role || user.user_role || 'user') === 'admin') return false;
+    
+    // Apply segment filtering
+    if (selectedSegment !== 'all') {
+      if (user.segment_id !== selectedSegment) return false;
+    }
+    
+    // Apply search filtering
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      if (!user.name?.toLowerCase().includes(searchLower) && 
+          !user.email?.toLowerCase().includes(searchLower)) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
 
   if (loading.users || loading.segments) {
     return (
@@ -184,12 +206,12 @@ const AdminTradingPortal = () => {
       {/* User Filtering Controls */}
       <div style={{ 
         marginBottom: 'clamp(0.8em, 2vw, 1.2em)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '1em'
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: 'clamp(1em, 2.5vw, 1.5em)',
+        alignItems: 'end'
       }}>
-        <div style={{ flex: 1 }}>
+        <div>
           <label style={{ fontWeight: 500, fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Filter by Segment:</label>
           <select 
             value={selectedSegment} 
@@ -221,6 +243,25 @@ const AdminTradingPortal = () => {
           )}
         </div>
         
+        <div>
+          <label style={{ fontWeight: 500, fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Search Users:</label>
+          <input 
+            type="text" 
+            placeholder="Search by name or email..." 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ 
+              width: '100%',
+              padding: 'clamp(0.3em, 1.5vw, 0.5em) clamp(0.5em, 2vw, 1em)', 
+              borderRadius: 4, 
+              border: '1px solid #007bff', 
+              fontWeight: 500,
+              fontSize: 'clamp(12px, 2.5vw, 14px)',
+              marginTop: '0.3em'
+            }}
+          />
+        </div>
+        
         <button 
           onClick={() => window.location.reload()} 
           style={{ 
@@ -234,13 +275,13 @@ const AdminTradingPortal = () => {
             fontSize: 'clamp(12px, 2.5vw, 14px)',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5em',
-            marginTop: '1.8em'
+            gap: '0.5em'
           }}
         >
           🔄 Refresh Users
         </button>
       </div>
+
 
 
       {/* User Selection Table */}

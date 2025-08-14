@@ -3,34 +3,36 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
   Users, 
-  TrendingUp, 
-  Activity, 
-  DollarSign, 
   BarChart3, 
-  Settings,
-  Eye,
-  Plus,
-  RefreshCw,
   CheckCircle,
   AlertCircle,
-  ArrowRight,
-  Search
+  Search,
+  User,
+  Mail,
+  Phone,
+  Building
 } from 'lucide-react';
 import { getAdminDashboardStats, getAdminUsers } from '../../api/admin';
 import { useAuth } from '../../context/AuthContext';
+import { getDematLimit, fetchMyBrokerProfile } from '../../api/auth';
 
 const AdminDashboard = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [adminProfile, setAdminProfile] = useState(null);
+  const [brokerProfile, setBrokerProfile] = useState(null);
+  const [dematLimit, setDematLimit] = useState(null);
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
     totalTrades: 0,
     totalVolume: 0,
-    totalProfitLoss: 0
+    totalProfitLoss: 0,
+
   });
 
   // Filter users based on search term
@@ -39,12 +41,174 @@ const AdminDashboard = () => {
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Function to refresh broker profile data
+  const refreshBrokerProfile = async () => {
+    try {
+      const brokerData = await fetchMyBrokerProfile();
+      console.log('Refreshed broker profile response:', brokerData);
+      
+      if (brokerData && brokerData.success && brokerData.data) {
+        // Check if broker is actually connected by looking for broker credentials
+        if (brokerData.data && (
+          brokerData.data.broker_name || 
+          brokerData.data.brokerName || 
+          brokerData.data.broker_client_id || 
+          brokerData.data.account_id ||
+          brokerData.data.broker
+        )) {
+          console.log('Setting broker profile as connected:', brokerData.data);
+          setBrokerProfile(brokerData.data);
+          
+          // Fetch RMS limit if broker is connected
+          try {
+            const dematRes = await getDematLimit();
+            console.log('Demat limit response:', dematRes);
+            if (dematRes && dematRes.data) {
+              setDematLimit(dematRes.data);
+            } else if (dematRes && dematRes.rms_limit) {
+              setDematLimit(dematRes);
+            }
+          } catch (dematError) {
+            console.error('Error fetching RMS limit:', dematError);
+            setDematLimit({ rms_limit: 'N/A' });
+          }
+        } else {
+          console.log('Broker profile not found or invalid response structure');
+          setBrokerProfile(null);
+          setDematLimit(null);
+        }
+      } else {
+        console.log('Broker profile API returned error or no data');
+        setBrokerProfile(null);
+        setDematLimit(null);
+      }
+    } catch (brokerError) {
+      console.log('Error refreshing broker profile:', brokerError);
+      setBrokerProfile(null);
+      setDematLimit(null);
+    }
+  };
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
       setError('');
       try {
         console.log('Fetching dashboard data...');
+        
+        // Set admin profile from current user
+        if (currentUser) {
+          setAdminProfile({
+            name: currentUser.name || 'Admin User',
+            fullName: currentUser.fullName || currentUser.name || 'Admin User',
+            email: currentUser.email || 'admin@example.com',
+            phone: currentUser.phone || 'N/A'
+          });
+        }
+        
+        // Fetch P&L data
+        
+        try {
+          const pnlRes = await fetch('https://apistocktrading-production.up.railway.app/api/admin/trades/pnl/all-trades', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (pnlRes.ok) {
+            const pnlData = await pnlRes.json();
+            console.log('P&L data response:', pnlData);
+            
+            if (pnlData && Array.isArray(pnlData)) {
+              // Calculate total P&L
+              const totalPnL = pnlData.reduce((sum, trade) => {
+                const profitLoss = parseFloat(trade.profit_loss) || 0;
+                return sum + profitLoss;
+              }, 0);
+              
+              // Calculate total volume
+              const totalVolume = pnlData.reduce((sum, trade) => {
+                const volume = parseFloat(trade.volume) || parseFloat(trade.quantity) || 0;
+                return sum + volume;
+              }, 0);
+              
+              // Update stats with P&L data
+                                      setStats(prev => ({
+                          ...prev,
+                          totalTrades: pnlData.length,
+                          totalVolume: totalVolume,
+                          totalProfitLoss: totalPnL
+                        }));
+            }
+          } else {
+            console.log('Failed to fetch P&L data:', pnlRes.status);
+          }
+        } catch (pnlError) {
+          console.error('Error fetching P&L data:', pnlError);
+        }
+        
+        // Fetch broker profile if available
+        try {
+          // Use the proper API function instead of direct fetch
+          const brokerData = await fetchMyBrokerProfile();
+          console.log('Broker profile response:', brokerData);
+          
+          if (brokerData && brokerData.success && brokerData.data) {
+            // Check if broker is actually connected by looking for broker credentials
+            // Only consider it connected if the data indicates an active connection
+            if (brokerData.data && (
+              brokerData.data.broker_name || 
+              brokerData.data.brokerName || 
+              brokerData.data.broker_client_id || 
+              brokerData.data.account_id ||
+              brokerData.data.broker
+            ) && brokerData.data.is_broker_connected !== false) {
+              console.log('Setting broker profile as connected:', brokerData.data);
+              setBrokerProfile(brokerData.data);
+              
+              // Fetch RMS limit if broker is connected
+              try {
+                const dematRes = await getDematLimit();
+                console.log('Demat limit response:', dematRes);
+                if (dematRes && dematRes.data) {
+                  setDematLimit(dematRes.data);
+                } else if (dematRes && dematRes.rms_limit) {
+                  setDematLimit(dematRes);
+                }
+              } catch (dematError) {
+                console.error('Error fetching RMS limit:', dematError);
+                // Set a default RMS limit if API fails
+                setDematLimit({ rms_limit: 'N/A' });
+              }
+            } else {
+              console.log('Broker profile not found or invalid response structure');
+              setBrokerProfile(null);
+            }
+          } else {
+            console.log('Broker profile API returned error or no data');
+            setBrokerProfile(null);
+          }
+        } catch (brokerError) {
+          console.log('No broker profile found for admin:', brokerError);
+          setBrokerProfile(null);
+        }
+        
+        // Fallback: Check if currentUser has broker connection info
+        // Only consider it connected if is_broker_connected is explicitly true
+        if (!brokerProfile && currentUser && currentUser.is_broker_connected === true && (
+          currentUser.broker_name || 
+          currentUser.broker || 
+          currentUser.broker_client_id || 
+          currentUser.account_id
+        )) {
+          console.log('Setting broker profile from currentUser data:', currentUser);
+          setBrokerProfile({
+            broker_name: currentUser.broker_name || currentUser.broker || 'Angel One',
+            broker_client_id: currentUser.broker_client_id || currentUser.account_id || 'N/A',
+            is_active_for_trading: currentUser.is_active_for_trading || false
+          });
+        }
         
         // Fetch dashboard statistics
         const statsResponse = await getAdminDashboardStats();
@@ -109,7 +273,7 @@ const AdminDashboard = () => {
         style={{ 
           textAlign: 'center', 
           padding: 'clamp(2em, 5vw, 4em)',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+           background: 'var(--gradient-primary)',
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
@@ -149,7 +313,6 @@ const AdminDashboard = () => {
   // Calculate derived statistics
   // const activeUsers = users.filter(user => user.is_active_for_trading).length;
   // const connectedUsers = users.filter(user => user.is_broker_connected).length;
-  const totalUsers = users.length;
 
   return (
     <motion.div 
@@ -158,9 +321,9 @@ const AdminDashboard = () => {
       transition={{ duration: 0.5 }}
       style={{ 
         padding: 'clamp(1em, 3vw, 2em)', 
-        background: 'var(--background-color)', 
+          background: 'var(--bg-primary)', 
         minHeight: '100vh',
-        maxWidth: 1200,
+          maxWidth: '1200px',
         margin: '0 auto'
       }}
     >
@@ -177,8 +340,8 @@ const AdminDashboard = () => {
           letterSpacing: '-0.025em'
         }}
       >
-        <BarChart3 size={40} style={{ marginRight: '0.5em', verticalAlign: 'middle' }} />
-        Admin Dashboard
+          <BarChart3 size={40} style={{ marginRight: '0.5em', verticalAlign: 'middle', color: 'var(--primary-color)' }} />
+          {adminProfile?.fullName ? `${adminProfile.fullName}'s Dashboard` : 'Admin Dashboard'}
       </motion.h1>
 
       <AnimatePresence>
@@ -188,14 +351,14 @@ const AdminDashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             style={{ 
-              background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)', 
+              background: 'var(--danger-color)', 
               color: '#ffffff', 
               padding: '1em', 
               borderRadius: '12px', 
               marginBottom: '2em',
               border: 'none',
               fontSize: 'clamp(12px, 2.5vw, 14px)',
-              boxShadow: '0 4px 12px rgba(255, 107, 107, 0.3)',
+              boxShadow: 'var(--shadow-md)',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5em'
@@ -207,19 +370,36 @@ const AdminDashboard = () => {
         )}
       </AnimatePresence>
 
-      {/* Quick Actions */}
+        {/* Admin Profile and Broker Profile Section - Side by Side */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
         style={{ 
-          background: 'white', 
-          padding: 'clamp(1.5em, 4vw, 2em)', 
-          borderRadius: '12px', 
-          boxShadow: 'var(--shadow-md)', 
-          border: '1px solid var(--border-color)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+            gap: 'clamp(1.5em, 4vw, 2em)',
           marginBottom: '2em'
         }}
+        >
+          {/* Admin Profile Section */}
+          <div style={{
+            background: 'var(--bg-card)',
+            padding: 'clamp(1.2em, 3vw, 1.5em)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-md)',
+            border: '1px solid var(--border-primary)',
+            transition: 'all 0.3s ease',
+            cursor: 'pointer'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-4px)';
+            e.target.style.boxShadow = 'var(--shadow-lg)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = 'var(--shadow-md)';
+          }}
       >
         <motion.h3 
           initial={{ opacity: 0, x: -20 }}
@@ -228,87 +408,420 @@ const AdminDashboard = () => {
           style={{ 
             color: 'var(--text-primary)', 
             marginBottom: '1.5em', 
-            fontSize: 'clamp(1.3em, 3.5vw, 1.6em)',
+                fontSize: 'clamp(1.1em, 3vw, 1.3em)',
             fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
             gap: '0.5em'
           }}
         >
-          <Settings size={24} />
-          Quick Actions
+              <User size={20} />
+              Admin Profile
         </motion.h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(1em, 2.5vw, 1.5em)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8em' }}>
+                <Mail size={20} color="var(--text-muted)" />
+                <span style={{ color: 'var(--text-muted)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Email:</span>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: 'clamp(12px, 2.5vw, 14px)' }}>
+                  {adminProfile?.email || 'N/A'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8em' }}>
+                <Phone size={20} color="var(--text-muted)" />
+                <span style={{ color: 'var(--text-muted)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Phone:</span>
+                <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontSize: 'clamp(12px, 2.5vw, 14px)' }}>
+                  {adminProfile?.phone || 'N/A'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Broker Profile Section */}
         <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-          gap: 'clamp(1em, 2.5vw, 1.5em)' 
-        }}>
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            style={{ 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              padding: 'clamp(1.5em, 4vw, 2em)', 
-              borderRadius: '12px', 
-              boxShadow: 'var(--shadow-md)', 
-              border: '1px solid var(--border-color)',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
-            }}
-            whileHover={{ 
-              scale: 1.02, 
-              boxShadow: 'var(--shadow-lg)' 
-            }}
+            background: 'var(--bg-card)',
+            padding: 'clamp(1.2em, 3vw, 1.5em)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-md)',
+            border: '1px solid var(--border-primary)',
+            transition: 'all 0.3s ease',
+            cursor: 'pointer'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-4px)';
+            e.target.style.boxShadow = 'var(--shadow-lg)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = 'var(--shadow-md)';
+          }}
           >
-            <Link to="/admin-panel/user-management" style={{
-              color: 'var(--text-inverse)',
-              textDecoration: 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '1em',
-              padding: 'clamp(1em, 2.5vw, 1.2em)',
-              borderRadius: '12px',
-              textAlign: 'center',
-              fontWeight: 600,
-              fontSize: 'clamp(13px, 2.8vw, 15px)',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
-            }}>
-              <Users size={20} />
-              User Management
-              <ArrowRight size={16} />
-            </Link>
+            <motion.h3
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              style={{
+                color: 'var(--text-primary)',
+                marginBottom: '1.5em',
+                fontSize: 'clamp(1.1em, 3vw, 1.3em)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5em',
+                justifyContent: 'space-between'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5em' }}>
+                <Building size={20} />
+                Broker Profile
+              </div>
+              <button
+                onClick={refreshBrokerProfile}
+                style={{
+                  background: 'var(--primary-color)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '0.5em 1em',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--primary-dark)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'var(--primary-color)';
+                }}
+              >
+                🔄 Refresh
+              </button>
+            </motion.h3>
+            
+            {brokerProfile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(1em, 2.5vw, 1.5em)' }}>
+                <div style={{
+                  background: 'rgba(37, 99, 235, 0.1)',
+                  padding: 'clamp(0.8em, 2vw, 1em)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(37, 99, 235, 0.2)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.8em' }}>
+                    <Building size={20} color="var(--primary-color)" />
+                    <span style={{ color: 'var(--text-muted)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Broker:</span>
+                    <div style={{ color: 'var(--primary-color)' }}>{brokerProfile.broker_name || brokerProfile.brokerName || 'N/A'}</div>
+                  </div>
+                </div>
+                <div style={{
+                  background: 'rgba(37, 99, 235, 0.1)',
+                  padding: 'clamp(0.8em, 2vw, 1em)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(37, 99, 235, 0.2)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.8em' }}>
+                    <CheckCircle size={20} color="var(--primary-color)" />
+                    <span style={{ color: 'var(--text-muted)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Status:</span>
+                    <div style={{ color: 'var(--primary-color)' }}>Connected</div>
+                  </div>
+                </div>
+                
+                                 <div style={{
+                   background: 'rgba(37, 99, 235, 0.1)',
+                   padding: 'clamp(0.8em, 2vw, 1em)',
+                   borderRadius: '8px',
+                   border: '1px solid rgba(37, 99, 235, 0.2)'
+                 }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.8em' }}>
+                     <CheckCircle size={20} color={brokerProfile.is_active_for_trading ? "var(--success-color)" : "var(--warning-color)"} />
+                     <span style={{ color: 'var(--text-muted)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Trading:</span>
+                     <div style={{ color: brokerProfile.is_active_for_trading ? "var(--success-color)" : "var(--warning-color)" }}>
+                       {brokerProfile.is_active_for_trading ? 'Active' : 'Inactive'}
+                     </div>
+                   </div>
+                 </div>
+                                 {dematLimit && (
+                   <div style={{
+                     background: 'rgba(37, 99, 235, 0.1)',
+                     padding: 'clamp(0.8em, 2vw, 1em)',
+                     borderRadius: '8px',
+                     border: '1px solid rgba(37, 99, 235, 0.2)'
+                   }}>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.8em' }}>
+                       <BarChart3 size={20} color="var(--primary-color)" />
+                       <span style={{ color: 'var(--text-muted)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>RMS Limit:</span>
+                       <div style={{ color: 'var(--primary-color)' }}>₹{dematLimit.rms_limit?.toLocaleString() || 'N/A'}</div>
+                     </div>
+                   </div>
+                 )}
+              </div>
+            ) : (
+                             <div style={{
+                 background: 'rgba(107, 114, 128, 0.1)',
+                 padding: 'clamp(0.8em, 2vw, 1em)',
+                 borderRadius: '8px',
+                 border: '1px solid rgba(107, 114, 128, 0.2)',
+                 textAlign: 'center'
+               }}>
+                 <div style={{ color: 'var(--text-muted)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>
+                   No broker account connected
+                 </div>
+               </div>
+            )}
+          </div>
           </motion.div>
           
+        {/* Overview Stats */}
           <motion.div
-            whileHover={{ scale: 1.05, y: -5 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Link to="/admin-panel/trades" style={{
-              background: 'linear-gradient(135deg, #00b894 0%, #00a085 100%)',
-              color: '#ffffff',
-              padding: 'clamp(1em, 2.5vw, 1.2em)',
-              borderRadius: '12px',
-              textDecoration: 'none',
-              textAlign: 'center',
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          style={{
+            background: 'var(--bg-card)',
+            padding: 'clamp(1.2em, 3vw, 1.5em)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-md)',
+            border: '1px solid var(--border-primary)',
+            marginBottom: '2em'
+          }}
+        >
+          <motion.h3
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            style={{
+              color: 'var(--text-primary)',
+              marginBottom: '1.5em',
+              fontSize: 'clamp(1.1em, 3vw, 1.3em)',
               fontWeight: 600,
-              fontSize: 'clamp(13px, 2.8vw, 15px)',
-              transition: 'all 0.3s ease',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5em',
-              boxShadow: '0 4px 15px rgba(0, 184, 148, 0.3)'
-            }}>
-              <TrendingUp size={20} />
-              View Trades
-              <ArrowRight size={16} />
-            </Link>
+              gap: '0.5em'
+            }}
+          >
+            <BarChart3 size={20} />
+            Overview Stats
+          </motion.h3>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: 'clamp(1em, 2.5vw, 1.5em)',
+            '@media (max-width: 768px)': {
+              gridTemplateColumns: 'repeat(2, 1fr)'
+            },
+            '@media (max-width: 480px)': {
+              gridTemplateColumns: '1fr'
+            }
+          }}>
+            <div style={{
+              background: 'var(--bg-secondary)',
+              padding: 'clamp(1em, 2.5vw, 1.2em)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-primary)',
+              textAlign: 'center',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = 'var(--shadow-md)';
+              e.target.style.borderColor = 'var(--primary-color)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = 'var(--border-primary)';
+            }}
+            >
+              <div style={{ fontSize: 'clamp(1.2em, 3vw, 1.5em)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.3em' }}>{stats.totalUsers}</div>
+              <div style={{ fontSize: 'clamp(11px, 2.5vw, 12px)', color: 'var(--text-muted)' }}>Total Users</div>
+            </div>
+            <div style={{
+              background: 'var(--bg-secondary)',
+              padding: 'clamp(1em, 2.5vw, 1.2em)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-primary)',
+              textAlign: 'center',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = 'var(--shadow-md)';
+              e.target.style.borderColor = 'var(--primary-color)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = 'var(--border-primary)';
+            }}
+            >
+              <div style={{ fontSize: 'clamp(1.2em, 3vw, 1.5em)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.3em' }}>{stats.activeUsers}</div>
+              <div style={{ fontSize: 'clamp(11px, 2.5vw, 12px)', color: 'var(--text-muted)' }}>Active Users</div>
+            </div>
+            <div style={{
+              background: 'var(--bg-secondary)',
+              padding: 'clamp(1em, 2.5vw, 1.2em)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-primary)',
+              textAlign: 'center',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = 'var(--shadow-md)';
+              e.target.style.borderColor = 'var(--primary-color)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = 'var(--border-primary)';
+            }}
+            >
+              <div style={{ fontSize: 'clamp(1.2em, 3vw, 1.5em)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.3em' }}>{stats.totalTrades}</div>
+              <div style={{ fontSize: 'clamp(11px, 2.5vw, 12px)', color: 'var(--text-muted)' }}>Total Trades</div>
+            </div>
+            <div style={{
+              background: 'var(--bg-secondary)',
+              padding: 'clamp(1em, 2.5vw, 1.2em)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-primary)',
+              textAlign: 'center',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = 'var(--shadow-md)';
+              e.target.style.borderColor = 'var(--primary-color)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = 'var(--border-primary)';
+            }}
+            >
+              <div style={{ fontSize: 'clamp(1.2em, 3vw, 1.5em)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.3em' }}>₹{stats.totalVolume?.toLocaleString() || '0'}</div>
+              <div style={{ fontSize: 'clamp(11px, 2.5vw, 12px)', color: 'var(--text-muted)' }}>Total Volume</div>
+            </div>
+          </div>
           </motion.div>
           
+        {/* P&L Overview */}
+          <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          style={{
+            background: 'var(--bg-card)',
+            padding: 'clamp(1.2em, 3vw, 1.5em)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-md)',
+            border: '1px solid var(--border-primary)',
+            marginBottom: '2em'
+          }}
+        >
+          <motion.h3
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.7 }}
+            style={{
+              color: 'var(--text-primary)',
+              marginBottom: '1.5em',
+              fontSize: 'clamp(1.1em, 3vw, 1.3em)',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5em'
+            }}
+          >
+            <BarChart3 size={20} />
+            Profit & Loss Overview
+          </motion.h3>
+          
+          {/* P&L Summary Cards */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: 'clamp(1em, 2.5vw, 1.5em)',
+            marginBottom: '2em'
+          }}>
+            <div style={{
+              background: 'var(--bg-secondary)',
+              padding: 'clamp(1em, 2.5vw, 1.2em)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-primary)',
+              textAlign: 'center',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = 'var(--shadow-md)';
+              e.target.style.borderColor = 'var(--primary-color)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = 'var(--border-primary)';
+            }}
+            >
+              <div style={{ 
+                fontSize: 'clamp(1.2em, 3vw, 1.5em)', 
+              fontWeight: 600,
+                color: stats.totalProfitLoss >= 0 ? 'var(--success-color)' : 'var(--danger-color)', 
+                marginBottom: '0.3em' 
+              }}>
+                ₹{stats.totalProfitLoss?.toLocaleString() || '0'}
+              </div>
+              <div style={{ fontSize: 'clamp(11px, 2.5vw, 12px)', color: 'var(--text-muted)' }}>Total P&L</div>
+            </div>
+
+            <div style={{
+              background: 'var(--bg-secondary)',
+              padding: 'clamp(1em, 2.5vw, 1.2em)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-primary)',
+              textAlign: 'center',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = 'var(--shadow-md)';
+              e.target.style.borderColor = 'var(--primary-color)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = 'var(--border-primary)';
+            }}
+            >
+              <div style={{ 
+                fontSize: 'clamp(1.2em, 3vw, 1.5em)', 
+                fontWeight: 600, 
+                color: 'var(--text-primary)', 
+                marginBottom: '0.3em' 
+              }}>
+                ₹{stats.totalVolume?.toLocaleString() || '0'}
+              </div>
+              <div style={{ fontSize: 'clamp(11px, 2.5vw, 12px)', color: 'var(--text-muted)' }}>Total Volume</div>
+            </div>
+          </div>
+
+          {/* P&L Table */}
+          <div style={{ marginTop: '2em' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1em',
+              flexWrap: 'wrap',
+              gap: '1em'
+            }}>
+
+
+            </div>
+
         </div>
       </motion.div>
 
@@ -316,17 +829,26 @@ const AdminDashboard = () => {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
         style={{ 
-          background: 'white', 
+          background: 'var(--bg-card)', 
           padding: 'clamp(1em, 2.5vw, 1.2em)', 
-          borderRadius: '12px', 
+          borderRadius: 'var(--radius-lg)', 
           boxShadow: 'var(--shadow-md)', 
-          border: '1px solid var(--border-color)',
+          border: '1px solid var(--border-primary)',
           marginBottom: '2em',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.8em'
+          gap: '0.8em',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.boxShadow = 'var(--shadow-lg)';
+          e.target.style.borderColor = 'var(--primary-color)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.boxShadow = 'var(--shadow-md)';
+          e.target.style.borderColor = 'var(--border-primary)';
         }}
       >
         <Search size={20} color="var(--text-muted)" />
@@ -349,19 +871,26 @@ const AdminDashboard = () => {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
         style={{ 
-          background: 'white', 
+          background: 'var(--bg-card)', 
           padding: 'clamp(1.5em, 4vw, 2em)', 
-          borderRadius: '12px', 
+          borderRadius: 'var(--radius-lg)', 
           boxShadow: 'var(--shadow-md)', 
-          border: '1px solid var(--border-color)'
+          border: '1px solid var(--border-primary)',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.boxShadow = 'var(--shadow-lg)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.boxShadow = 'var(--shadow-md)';
         }}
       >
         <motion.h3 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
           style={{ 
             color: 'var(--text-primary)', 
             marginBottom: '1.5em', 
@@ -377,14 +906,25 @@ const AdminDashboard = () => {
         </motion.h3>
         {filteredUsers.length > 0 ? (
           <div style={{ overflowX: 'auto' }}>
+            <div style={{ 
+              display: 'none',
+              '@media (max-width: 768px)': { display: 'block' },
+              padding: '1em',
+              textAlign: 'center',
+              color: 'var(--text-muted)',
+              fontSize: 'clamp(12px, 2.5vw, 14px)'
+            }}>
+              💡 Swipe left/right to view full table on mobile
+            </div>
             <table style={{ 
               width: '100%', 
               borderCollapse: 'collapse',
               fontSize: 'clamp(12px, 2.5vw, 14px)',
-              color: 'var(--text-primary)'
+              color: 'var(--text-primary)',
+              minWidth: '600px' // Ensure table doesn't get too cramped on mobile
             }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                <tr style={{ borderBottom: '2px solid var(--border-primary)' }}>
                   <th style={{ 
                     padding: 'clamp(0.8em, 2vw, 1em)', 
                     textAlign: 'left', 
@@ -431,13 +971,13 @@ const AdminDashboard = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                     style={{ 
-                      borderBottom: '1px solid var(--border-color)',
-                      background: index % 2 === 0 ? 'white' : 'var(--background-color)',
+                      borderBottom: '1px solid var(--border-primary)',
+                      background: index % 2 === 0 ? 'var(--bg-primary)' : 'var(--bg-secondary)',
                       transition: 'all 0.3s ease'
                     }}
                     whileHover={{
-                      background: 'var(--background-color)',
-                      scale: 1.01
+                       background: 'var(--bg-secondary)',
+                       scale: 1.005
                     }}
                   >
                     <td style={{ 
@@ -445,7 +985,7 @@ const AdminDashboard = () => {
                       color: 'var(--text-primary)',
                       fontWeight: 500
                     }}>
-                      {user.name}
+                      {user.name || user.fullname || user.full_name || user.first_name || 'N/A'}
                     </td>
                     <td style={{ 
                       padding: 'clamp(0.8em, 2vw, 1em)', 
@@ -458,30 +998,30 @@ const AdminDashboard = () => {
                       textAlign: 'center'
                     }}>
                       <motion.span 
-                        whileHover={{ scale: 1.05 }}
+                         whileHover={{ scale: 1.02 }}
                         style={{
-                          padding: '0.4em 0.8em',
-                          borderRadius: '20px',
-                          fontSize: 'clamp(11px, 2.2vw, 12px)',
-                          fontWeight: 600,
+                           padding: '0.3em 0.6em',
+                           borderRadius: '16px',
+                           fontSize: 'clamp(10px, 2vw, 11px)',
+                           fontWeight: 500,
                           background: user.is_active_for_trading 
-                            ? 'linear-gradient(135deg, #00b894, #00a085)' 
-                            : 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
+                             ? 'var(--success-color)' 
+                             : 'var(--danger-color)',
                           color: '#ffffff',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                           boxShadow: 'var(--shadow-sm)',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.3em'
+                           gap: '0.2em'
                         }}
                       >
                         {user.is_active_for_trading ? (
                           <>
-                            <CheckCircle size={12} />
+                             <CheckCircle size={10} />
                             Active
                           </>
                         ) : (
                           <>
-                            <AlertCircle size={12} />
+                             <AlertCircle size={10} />
                             Inactive
                           </>
                         )}
@@ -492,30 +1032,30 @@ const AdminDashboard = () => {
                       textAlign: 'center'
                     }}>
                       <motion.span 
-                        whileHover={{ scale: 1.05 }}
+                         whileHover={{ scale: 1.02 }}
                         style={{
-                          padding: '0.4em 0.8em',
-                          borderRadius: '20px',
-                          fontSize: 'clamp(11px, 2.2vw, 12px)',
-                          fontWeight: 600,
+                           padding: '0.3em 0.6em',
+                           borderRadius: '16px',
+                           fontSize: 'clamp(10px, 2vw, 11px)',
+                           fontWeight: 500,
                           background: user.is_broker_connected 
-                            ? 'linear-gradient(135deg, #667eea, #764ba2)' 
-                            : 'linear-gradient(135deg, #fdcb6e, #e17055)',
+                             ? 'var(--primary-color)' 
+                             : 'var(--warning-color)',
                           color: '#ffffff',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                           boxShadow: 'var(--shadow-sm)',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.3em'
+                           gap: '0.2em'
                         }}
                       >
                         {user.is_broker_connected ? (
                           <>
-                            <CheckCircle size={12} />
+                             <CheckCircle size={10} />
                             Connected
                           </>
                         ) : (
                           <>
-                            <AlertCircle size={12} />
+                             <AlertCircle size={10} />
                             Disconnected
                           </>
                         )}
@@ -534,9 +1074,9 @@ const AdminDashboard = () => {
             style={{ 
               textAlign: 'center',
               padding: '2em',
-              background: 'var(--background-color)',
-              borderRadius: '12px',
-              border: '1px solid var(--border-color)'
+               background: 'var(--bg-secondary)',
+               borderRadius: 'var(--radius-lg)',
+               border: '1px solid var(--border-primary)'
             }}
           >
             <Users size={48} color="var(--text-muted)" style={{ marginBottom: '1em' }} />

@@ -321,21 +321,49 @@ const UserManagement = () => {
          if (mode === 'add') {
        try {
          const response = await addSegments({ name: data.name, description: data.description });
-         setSegments([...segments, response.data.data]);
+         console.log('Add segment response:', response);
+         
+         // Handle different response structures
+         let newSegment;
+         if (response && response.data && response.data.data) {
+           newSegment = response.data.data;
+         } else if (response && response.data) {
+           newSegment = response.data;
+         } else if (response) {
+           newSegment = response;
+         } else {
+           throw new Error('Invalid response structure');
+         }
+         
+         setSegments(prev => [...prev, newSegment]);
          closeModal();
        } catch (error) {
          console.error('Error adding segment:', error);
-         alert('Failed to add segment.');
+         alert('Failed to add segment: ' + (error.message || 'Unknown error'));
        }
      } 
      else if (mode === 'edit') {
          try {
              const response = await updateSegmentById(data.id, { name: data.name, description: data.description });
-             setSegments(segments.map(s => (s.id === response.data.data.id ? response.data.data : s)));
+             console.log('Update segment response:', response);
+             
+             // Handle different response structures
+             let updatedSegment;
+             if (response && response.data && response.data.data) {
+               updatedSegment = response.data.data;
+             } else if (response && response.data) {
+               updatedSegment = response.data;
+             } else if (response) {
+               updatedSegment = response;
+             } else {
+               throw new Error('Invalid response structure');
+             }
+             
+             setSegments(prev => prev.map(s => (s.id === updatedSegment.id ? updatedSegment : s)));
              closeModal();
          } catch(error) {
              console.error('Error updating segment:', error);
-             alert('Failed to update segment.');
+             alert('Failed to update segment: ' + (error.message || 'Unknown error'));
          }
      }
   };

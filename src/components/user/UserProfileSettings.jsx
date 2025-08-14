@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { updateProfile, getUserProfile } from '../../api/auth';
+import { updateProfile, getUserProfile, changeEmail, fetchMyBrokerProfile } from '../../api/auth';
 import { 
   addBrokerAccount, 
-  fetchMyBrokerProfile, 
   clearBrokerConnection 
 } from '../../api/auth';
 import { verifyBrokerTOTP } from '../../api/broker';
@@ -13,13 +12,13 @@ import {
   Plus,
   Trash2,
   Eye,
-  EyeOff
+  EyeOff,
+  User
 } from 'lucide-react';
 
 const UserProfileSettings = () => {
-  const { role } = useAuth();
+  const { role, currentUser, refreshUser } = useAuth();
   const [formData, setFormData] = useState({
-    name: '',
     fullName: '',
     email: '',
     phone: ''
@@ -29,18 +28,16 @@ const UserProfileSettings = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [validationErrors, setValidationErrors] = useState({});
+    const [validationErrors, setValidationErrors] = useState({});
   
   // Broker connection states
   const [brokerData, setBrokerData] = useState({
-    broker: 'Angel One',
     broker_name: 'angelone',
     broker_client_id: '',
     broker_api_key: '',
     broker_api_secret: '',
     angelone_token: '',
-    password: '',
-    mpin: '',
+    angelone_mpin: '',
     totp: '',
     showHashedDetails: false
   });
@@ -49,14 +46,15 @@ const UserProfileSettings = () => {
   const [showBrokerForm, setShowBrokerForm] = useState(false);
   const [brokerStep, setBrokerStep] = useState(1);
   const [showDetailsPopup, setShowDetailsPopup] = useState(false);
-
   const [brokerLoading, setBrokerLoading] = useState(false);
+  const [intentionallyDisconnected, setIntentionallyDisconnected] = useState(false);
 
-  // Utility function to hash sensitive data
-  const hashSensitiveData = (value) => {
-    if (!value) return '';
-    if (value.length <= 4) return '*'.repeat(value.length);
-    return '*'.repeat(value.length - 4) + value.slice(-4);
+  // Hash sensitive data for display
+  const hashSensitiveData = (data) => {
+    if (!data || data.trim() === '') return '';
+    const length = data.length;
+    if (length <= 4) return '*'.repeat(length);
+    return '*'.repeat(length - 4) + data.slice(-4);
   };
 
   useEffect(() => {
@@ -66,17 +64,20 @@ const UserProfileSettings = () => {
 
   const fetchBrokerProfile = async () => {
     try {
+      // Use the proper API function instead of direct fetch
       const response = await fetchMyBrokerProfile();
+      
       if (response && response.success && response.data) {
+        const data = response.data;
         // Map the API response fields to the expected frontend fields
         const mappedBrokerProfile = {
-          brokerName: response.data.broker_name || response.data.brokerName || 'No Broker Connected',
-          accountId: response.data.broker_client_id || response.data.accountId || 'N/A',
-          status: response.data.is_active_for_trading ? 'Active' : 'Inactive',
-          exchanges: response.data.exchanges || [],
-          products: response.data.products || [],
+            brokerName: data.broker_name || data.brokerName || 'No Broker Connected',
+            accountId: data.broker_client_id || data.accountId || 'N/A',
+            status: data.is_active_for_trading ? 'Active' : 'Inactive',
+            exchanges: data.exchanges || [],
+            products: data.products || [],
           // Add other fields as needed
-          ...response.data
+            ...data
         };
         
         setBrokerProfile(mappedBrokerProfile);
@@ -114,7 +115,7 @@ const UserProfileSettings = () => {
     e.preventDefault();
     setBrokerLoading(true);
     setError('');
-
+    
     try {
       if (brokerStep === 1) {
         // Step 1: Add broker account with MPIN
@@ -123,7 +124,7 @@ const UserProfileSettings = () => {
           broker_client_id: brokerData.broker_client_id,
           broker_api_key: brokerData.broker_api_key,
           broker_api_secret: brokerData.broker_api_secret,
-          angelone_mpin: brokerData.mpin,
+          angelone_mpin: brokerData.angelone_mpin,
           angelone_token: brokerData.angelone_token
         };
 
@@ -147,6 +148,7 @@ const UserProfileSettings = () => {
           setSuccess('Broker account verified successfully!');
           setShowBrokerForm(false);
           setBrokerStep(1);
+          setIntentionallyDisconnected(false); // Reset the disconnected flag
           resetBrokerForm();
           fetchBrokerProfile(); // Refresh broker profile
         } else {
@@ -162,36 +164,66 @@ const UserProfileSettings = () => {
   };
 
   const handleClearBroker = async () => {
-    try {
-      const result = await clearBrokerConnection();
-      if (result && result.success) {
-        setSuccess('Broker connection cleared successfully');
-        setBrokerProfile({
-          brokerName: 'No Broker Connected',
-          accountId: 'N/A',
-          status: 'Inactive',
-          exchanges: [],
-          products: []
-        });
-      } else {
-        setError('Failed to clear broker connection');
+    if (window.confirm('Are you sure you want to disconnect your broker account? This action cannot be undone.')) {
+      setBrokerLoading(true);
+      try {
+        const response = await clearBrokerConnection();
+        if (response && response.success) {
+          setSuccess('Broker account disconnected successfully!');
+          
+          // Clear broker profile immediately
+          setBrokerProfile(null);
+          
+          // Mark as intentionally disconnected to prevent auto-reconnection
+          setIntentionallyDisconnected(true);
+          
+          // Show the broker connection form after disconnecting
+          setShowBrokerForm(true);
+          
+          // Reset broker step to 1
+          setBrokerStep(1);
+          
+          // Clear broker data
+          setBrokerData({
+            broker_name: 'angelone',
+            broker_client_id: '',
+            broker_api_key: '',
+            broker_api_secret: '',
+            angelone_token: '',
+            angelone_mpin: '',
+            totp: '',
+            showHashedDetails: false
+          });
+          
+          // Refresh both broker profile and user profile
+          await fetchBrokerProfile();
+          await fetchUserProfile();
+          
+          // Force a re-render by updating the form data
+          setFormData(prev => ({
+            ...prev,
+            lastUpdated: Date.now()
+          }));
+        } else {
+          setError(response?.message || 'Failed to disconnect broker account.');
+        }
+      } catch (error) {
+        console.error('Error disconnecting broker account:', error);
+        setError('Failed to disconnect broker account. Please try again.');
+      } finally {
+        setBrokerLoading(false);
       }
-    } catch (err) {
-      console.error('Error clearing broker profile:', err);
-      setError('Failed to clear broker connection');
     }
   };
 
   const resetBrokerForm = () => {
     setBrokerData({
-      broker: 'Angel One',
       broker_name: 'angelone',
       broker_client_id: '',
       broker_api_key: '',
       broker_api_secret: '',
       angelone_token: '',
-      password: '',
-      mpin: '',
+      angelone_mpin: '',
       totp: '',
       showHashedDetails: false
     });
@@ -201,18 +233,37 @@ const UserProfileSettings = () => {
 
   const fetchUserProfile = async () => {
     try {
+    setLoading(true);
+      
+      // Check localStorage first for persisted data
+      const persistedName = localStorage.getItem('userFullName');
+      const persistedPhone = localStorage.getItem('userPhone');
+      
+      // Use current user data from auth context first
+      if (currentUser) {
+        setFormData({
+          fullName: persistedName || currentUser.fullName || currentUser.name || '',
+          email: currentUser.email || '',
+          phone: persistedPhone || currentUser.phone || ''
+        });
+      }
+      
+      // Try to fetch additional details from API
+    try {
       const response = await getUserProfile();
       if (response && response.success && response.data) {
-        setFormData({
-          name: response.data.name || '',
-          fullName: response.data.fullName || response.data.name || '',
-          email: response.data.email || '',
-          phone: response.data.phone || ''
-        });
+          setFormData(prev => ({
+            ...prev,
+            fullName: response.data.fullname || response.data.fullName || response.data.name || response.data.full_name || persistedName || prev.fullName,
+            phone: response.data.phone_number || response.data.phone || persistedPhone || prev.phone
+          }));
+        }
+      } catch (apiError) {
+        console.log('API profile fetch failed, using auth context data:', apiError);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      setError('Failed to fetch user profile');
+      setError('Failed to load profile data. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -220,10 +271,6 @@ const UserProfileSettings = () => {
 
   const validateForm = () => {
     const errors = {};
-    
-    if (!formData.name.trim()) {
-      errors.name = 'Name is required';
-    }
     
     if (!formData.fullName.trim()) {
       errors.fullName = 'Full name is required';
@@ -273,21 +320,111 @@ const UserProfileSettings = () => {
     setSuccess('');
     
     try {
-      const response = await updateProfile(formData);
+      // Only allow updating fullName and phone, keep email static
+      const updateData = {
+        fullname: formData.fullName, // Changed from fullName to fullname to match API
+        phone_number: formData.phone // Changed from phone to phone_number to match API
+      };
+
+      const response = await updateProfile(updateData);
+      
       if (response && response.success) {
         setSuccess('Profile updated successfully!');
+        
+        // Update form data with response data if available
+        if (response.data) {
+          setFormData(prev => ({
+            ...prev,
+            fullName: response.data.fullname || response.data.fullName || response.data.name || response.data.full_name || prev.fullName,
+            phone: response.data.phone_number || response.data.phone || prev.phone
+          }));
+        }
+        
+        // Store the updated name in localStorage for persistence
+        const currentUserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        const updatedUserData = {
+          ...currentUserData,
+          fullName: formData.fullName,
+          name: formData.fullName
+        };
+        localStorage.setItem('currentUser', JSON.stringify(updatedUserData));
+        
+        // Also update the token with user info if possible
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            // Store user info in localStorage for immediate access
+            localStorage.setItem('userFullName', formData.fullName);
+            localStorage.setItem('userPhone', formData.phone);
+          } catch (localStorageError) {
+            console.warn('Could not update localStorage:', localStorageError);
+          }
+        }
+        
+        // Refresh the user data in the auth context to ensure consistency
+        try {
+          await refreshUser();
+          console.log('User context refreshed successfully');
+        } catch (refreshError) {
+          console.error('Error refreshing user context:', refreshError);
+        }
       } else {
-        setError(response?.message || 'Failed to update profile');
+        setError(response?.message || 'Failed to update profile. Please try again.');
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      setError('Failed to update profile');
+      setError('Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
-  const InputField = ({ label, name, type = 'text', required = false, placeholder, validation }) => (
+  const handleChangeEmail = async () => {
+    const newEmail = prompt('Enter your new email address:');
+    if (!newEmail) return;
+    
+    if (!newEmail.includes('@')) {
+      alert('Please enter a valid email address');
+      return;
+    }
+    
+    try {
+      setError('');
+      setSuccess('');
+      const response = await changeEmail({ 
+        newEmail: newEmail,
+        currentPassword: prompt('Enter your current password:') || ''
+      });
+      
+      if (response && response.success) {
+        setSuccess('Email updated successfully! Please check your new email for verification.');
+        // Update the form data with new email
+        setFormData(prev => ({
+          ...prev,
+          email: newEmail
+        }));
+        // Update current user context if needed
+        if (currentUser) {
+          currentUser.email = newEmail;
+        }
+        
+        // Refresh the user data in the auth context to ensure consistency
+        try {
+          await refreshUser();
+          console.log('User context refreshed after email change');
+        } catch (refreshError) {
+          console.error('Error refreshing user context after email change:', refreshError);
+        }
+      } else {
+        setError(response?.message || 'Failed to update email. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error changing email:', error);
+      setError(error.response?.data?.message || 'Failed to update email. Please try again.');
+    }
+  };
+
+  const InputField = ({ label, name, type = 'text', required = false, placeholder, disabled = false, value, onChange }) => (
     <div style={{ marginBottom: '1.5em' }}>
       <label style={{ 
         color: '#495057', 
@@ -301,16 +438,19 @@ const UserProfileSettings = () => {
       <input
         type={type}
         name={name}
-        value={formData[name]}
-        onChange={handleChange}
+        value={value || formData[name] || ''}
+        onChange={onChange || handleChange}
         placeholder={placeholder}
+        disabled={disabled}
         style={{ 
           width: '100%', 
           padding: '0.8em', 
           border: validationErrors[name] ? '1px solid #dc3545' : '1px solid #e0e0e0', 
           borderRadius: '6px', 
           fontSize: 14, 
-          background: '#fff',
+          background: disabled ? '#f8f9fa' : '#fff',
+          color: disabled ? '#6c757d' : '#495057',
+          cursor: disabled ? 'not-allowed' : 'text',
           transition: 'border-color 0.3s ease'
         }}
       />
@@ -360,163 +500,64 @@ const UserProfileSettings = () => {
 
   return (
     <div style={{ 
-      maxWidth: 1200, 
+      maxWidth: '1200px', 
       margin: '0 auto', 
-      padding: 'clamp(1.5em, 3vw, 2em)', 
-      background: '#f8f9fa', 
-      minHeight: '100vh' 
+      padding: 'clamp(1em, 3vw, 2em)',
+      fontFamily: 'var(--font-family)'
+    }}>
+      {/* Header */}
+      <div style={{ 
+        marginBottom: 'clamp(1.5em, 4vw, 2.5em)',
+        textAlign: 'center'
     }}>
       <h1 style={{ 
-        color: '#2c3e50', 
-        marginBottom: '1.5em', 
-        textAlign: 'center', 
-        fontWeight: 600, 
-        fontSize: 'clamp(1.8em, 4vw, 2.2em)'
+          fontSize: 'clamp(1.8em, 4vw, 2.5em)',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
+          marginBottom: '0.5em'
       }}>
         Profile Settings
       </h1>
-      
-      {error && (
-        <div style={{ 
-          background: '#f8d7da', 
-          color: '#721c24', 
-          padding: '1em', 
-          borderRadius: '8px', 
-          marginBottom: '1.5em', 
-          border: '1px solid #f5c6cb', 
-          fontSize: 14,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5em'
+        <p style={{
+          fontSize: 'clamp(14px, 2.5vw, 16px)',
+          color: 'var(--text-muted)',
+          maxWidth: '600px',
+          margin: '0 auto'
         }}>
-          <span>⚠️</span>
-          <span>{error}</span>
+          Manage your profile information and broker account settings
+        </p>
         </div>
-      )}
       
-      {success && (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'clamp(1.5em, 4vw, 2em)' }}>
+        {/* Profile Information */}
         <div style={{ 
-          background: '#d4edda', 
-          color: '#155724', 
-          padding: '1em', 
-          borderRadius: '8px', 
-          marginBottom: '1.5em', 
-          border: '1px solid #c3e6cb', 
-          fontSize: 14,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5em'
-        }}>
-          <span>✅</span>
-          <span>{success}</span>
-        </div>
-      )}
-
-      <div style={{ 
-        display: 'grid', 
-        gap: '2em', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' 
-      }}>
-        {/* Personal Information */}
-        <div style={{ 
-          padding: '2em', 
-          background: '#fff', 
-          borderRadius: '12px', 
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)', 
-          border: '1px solid #e0e0e0' 
+          background: 'white',
+          padding: 'clamp(1.5em, 4vw, 2em)',
+          borderRadius: '16px',
+          boxShadow: 'var(--shadow-lg)',
+          border: '1px solid var(--border-color)'
         }}>
           <h2 style={{ 
-            color: '#2c3e50', 
-            marginBottom: '1.5em', 
+            fontSize: 'clamp(1.3em, 3vw, 1.6em)',
             fontWeight: 600, 
-            fontSize: '1.4em',
+            color: 'var(--text-primary)',
+            marginBottom: 'clamp(1em, 3vw, 1.5em)',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5em'
           }}>
-            <span>👤</span>
-            Personal Information
+            <User size={24} />
+            Profile Information
           </h2>
 
-          {/* Role Display Section */}
-          <div style={{ 
-            padding: '1em', 
-            background: '#e3f2fd', 
-            borderRadius: '6px', 
-            border: '1px solid #bbdefb',
-            marginBottom: '1.5em'
-          }}>
-            <div style={{ marginBottom: '0.5em' }}>
-              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Role: </span>
-              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12, textTransform: 'capitalize' }}>{role || 'User'}</span>
-            </div>
-            
-            <div style={{ marginBottom: '0.5em' }}>
-              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Account Type: </span>
-              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>Trading Account</span>
-            </div>
-            
-            <div>
-              <span style={{ color: '#495057', fontWeight: 500, fontSize: 12 }}>Access Level: </span>
-              <span style={{ color: '#1976d2', fontWeight: 600, fontSize: 12 }}>Standard Trading Access</span>
-            </div>
-          </div>
-
-          {/* Password Management Section */}
-          <div style={{ 
-            padding: '1em', 
-            background: '#fff3cd', 
-            borderRadius: '6px', 
-            border: '1px solid #ffeaa7',
-            marginBottom: '1.5em'
-          }}>
-            <h3 style={{ 
-              color: '#856404', 
-              marginBottom: '0.5em', 
-              fontWeight: 600, 
-              fontSize: '1em',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5em'
-            }}>
-              <span>🔐</span>
-              Password Management
-            </h3>
-            <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap' }}>
-              <Link to="/reset-password" style={{
-                padding: '0.5em 1em',
-                background: '#28a745',
-                color: '#fff',
-                textDecoration: 'none',
-                borderRadius: '4px',
-                fontSize: 12,
-                fontWeight: 500,
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = '#1e7e34';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = '#28a745';
-              }}>
-                Reset Password
-              </Link>
-            </div>
-          </div>
-
           <form onSubmit={handleSubmit}>
-            <InputField
-              label="Name"
-              name="name"
-              required
-              placeholder="Enter your name"
-            />
-            
             <InputField
               label="Full Name"
               name="fullName"
               required
               placeholder="Enter your full name"
+              value={formData.fullName}
+              onChange={(e) => handleChange(e)}
             />
             
             <InputField
@@ -525,6 +566,9 @@ const UserProfileSettings = () => {
               type="email"
               required
               placeholder="Enter your email address"
+              disabled
+              value={formData.email}
+              onChange={(e) => handleChange(e)}
             />
             
             <InputField
@@ -532,27 +576,96 @@ const UserProfileSettings = () => {
               name="phone"
               required
               placeholder="Enter your phone number"
+              value={formData.phone}
+              onChange={(e) => handleChange(e)}
             />
             
+            <div style={{ 
+              display: 'flex', 
+              gap: 'clamp(0.8em, 2vw, 1em)',
+              marginTop: 'clamp(1.5em, 4vw, 2em)',
+              flexWrap: 'wrap'
+            }}>
             <button
               type="submit"
               disabled={saving}
               style={{
-                width: '100%',
-                padding: '1em',
-                background: saving ? '#6c757d' : '#007bff',
-                color: '#fff',
+                  background: 'var(--primary-color)',
+                  color: 'white',
                 border: 'none',
+                  padding: 'clamp(0.8em, 2vw, 1em) clamp(1.5em, 3vw, 2em)',
                 borderRadius: '8px',
-                fontSize: 16,
-                fontWeight: 600,
+                  fontSize: 'clamp(14px, 2.5vw, 16px)',
+                  fontWeight: 500,
                 cursor: saving ? 'not-allowed' : 'pointer',
                 transition: 'all 0.3s ease',
-                marginTop: '1em'
+                  opacity: saving ? 0.7 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!saving) {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(0, 123, 255, 0.3)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 2px 8px rgba(0, 123, 255, 0.2)';
               }}
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
+
+              <Link
+                to="/forgot-password"
+                style={{
+                  background: 'var(--secondary-color)',
+                  color: 'white',
+                  textDecoration: 'none',
+                  padding: 'clamp(0.8em, 2vw, 1em) clamp(1.5em, 3vw, 2em)',
+                  borderRadius: '8px',
+                  fontSize: 'clamp(14px, 2.5vw, 16px)',
+                  fontWeight: 500,
+                  transition: 'all 0.3s ease',
+                  display: 'inline-block'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(108, 117, 125, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 2px 8px rgba(108, 117, 125, 0.2)';
+                }}
+              >
+                Reset Password
+              </Link>
+
+              <button
+                type="button"
+                onClick={handleChangeEmail}
+                style={{
+                  background: 'var(--warning-color)',
+                  color: 'white',
+                  border: 'none',
+                  padding: 'clamp(0.8em, 2vw, 1em) clamp(1.5em, 3vw, 2em)',
+                  borderRadius: '8px',
+                  fontSize: 'clamp(14px, 2.5vw, 16px)',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(255, 193, 7, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 2px 8px rgba(255, 193, 7, 0.2)';
+                }}
+              >
+                Change Email
+              </button>
+            </div>
           </form>
         </div>
 
@@ -577,18 +690,20 @@ const UserProfileSettings = () => {
             Broker Account
           </h2>
 
-          {brokerProfile && (
-            <div style={{ 
-              padding: '1.5em', 
+                      {brokerProfile && !showBrokerForm && !intentionallyDisconnected && (
+            <div style={{
+              padding: '1.5em',
               background: '#f8f9fa', 
-              borderRadius: '8px', 
+              borderRadius: '8px',
               border: '1px solid #e9ecef',
               marginBottom: '1.5em'
             }}>
               {brokerProfile.brokerName === 'No Broker Connected' ? (
                 // No broker connected state
                 <div style={{ textAlign: 'center', padding: '1em' }}>
-                  <p style={{ color: '#6c757d', marginBottom: '1em' }}>No broker account connected</p>
+                  <p style={{ color: '#6c757d', marginBottom: '1em' }}>
+                    {intentionallyDisconnected ? 'Broker account was disconnected. Connect a new broker account below.' : 'No broker account connected'}
+                  </p>
                   <button
                     onClick={() => setShowBrokerForm(true)}
                     style={{
@@ -632,121 +747,111 @@ const UserProfileSettings = () => {
                     <span style={{ color: '#155724', fontWeight: 600, fontSize: '1.1em' }}>
                       🏦 Broker Connected: {brokerProfile.brokerName}
                     </span>
-                    <span style={{ 
+                <span style={{ 
                       color: brokerProfile.status === 'Active' ? '#28a745' : '#dc3545', 
-                      fontWeight: 600,
+                  fontWeight: 600, 
                       background: brokerProfile.status === 'Active' ? '#d4edda' : '#f8d7da',
                       padding: '0.3em 0.8em',
                       borderRadius: '12px',
                       fontSize: '0.85em'
                     }}>
                       {brokerProfile.status}
-                    </span>
-                  </div>
-                  
-                  <div style={{ 
+                </span>
+              </div>
+              
+              <div style={{ 
                     display: 'flex', 
-                    gap: '1em', 
+                gap: '1em',
                     marginTop: '0.5em',
                     flexWrap: 'wrap'
                   }}>
-                    <button
-                      onClick={() => setShowDetailsPopup(true)}
-                      style={{
-                        padding: '0.6em 1.2em',
-                        background: '#17a2b8',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: 14,
-                        fontWeight: 500,
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5em'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.background = '#138496';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = '#17a2b8';
-                      }}
-                    >
-                      👁️ View Details
-                    </button>
-                    
-                    <button
-                      onClick={() => setShowBrokerForm(true)}
-                      style={{
+                <button
+                  onClick={() => setShowBrokerForm(true)}
+                  style={{
                         padding: '0.6em 1.2em',
                         background: '#007bff',
                         color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
+                    border: 'none',
+                    borderRadius: '6px',
                         fontSize: 14,
                         fontWeight: 500,
-                        cursor: 'pointer',
+                    cursor: 'pointer',
                         transition: 'all 0.3s ease',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5em'
-                      }}
-                      onMouseEnter={(e) => {
+                  }}
+                  onMouseEnter={(e) => {
                         e.target.style.background = '#0056b3';
-                      }}
-                      onMouseLeave={(e) => {
+                  }}
+                  onMouseLeave={(e) => {
                         e.target.style.background = '#007bff';
-                      }}
-                    >
+                  }}
+                >
                       <Plus size={16} />
-                      Change Broker
-                    </button>
-                    
-                    <button
+                  Change Broker
+                </button>
+                
+                <button
                       onClick={handleClearBroker}
-                      style={{
+                  style={{
                         padding: '0.6em 1.2em',
                         background: '#dc3545',
                         color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
+                    border: 'none',
+                    borderRadius: '6px',
                         fontSize: 14,
                         fontWeight: 500,
-                        cursor: 'pointer',
+                    cursor: 'pointer',
                         transition: 'all 0.3s ease',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5em'
-                      }}
-                      onMouseEnter={(e) => {
+                  }}
+                  onMouseEnter={(e) => {
                         e.target.style.background = '#c82333';
-                      }}
-                      onMouseLeave={(e) => {
+                  }}
+                  onMouseLeave={(e) => {
                         e.target.style.background = '#dc3545';
-                      }}
-                    >
+                  }}
+                >
                       <Trash2 size={16} />
                       Disconnect
-                    </button>
-                  </div>
-                </div>
+                </button>
+              </div>
+            </div>
               )}
+            </div>
+          )}
+
+          {/* Show connection form message when form is open */}
+          {showBrokerForm && (
+            <div style={{
+              padding: '1em',
+              background: 'rgba(0,212,170,0.1)',
+              borderRadius: '8px',
+              border: '1px solid rgba(0,212,170,0.2)',
+              marginBottom: '1.5em',
+              textAlign: 'center'
+            }}>
+              <p style={{ color: '#00d4aa', margin: 0, fontSize: '14px' }}>
+                Broker connection form is open below
+              </p>
             </div>
           )}
 
           {/* Broker Connection Form */}
           {showBrokerForm && (
-            <div style={{ 
-              padding: '1.5em', 
+            <div style={{
+              padding: '1.5em',
               background: '#f8f9fa', 
-              borderRadius: '8px', 
+              borderRadius: '8px',
               border: '1px solid #e9ecef'
             }}>
               <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
-                alignItems: 'center',
+                alignItems: 'center', 
                 marginBottom: '1.5em'
               }}>
                 <h3 style={{ 
@@ -762,18 +867,18 @@ const UserProfileSettings = () => {
                     <button
                       type="button"
                       onClick={() => setBrokerData(prev => ({ ...prev, showHashedDetails: !prev.showHashedDetails }))}
-                      style={{
+                  style={{
                         padding: '0.4em 0.8em',
                         background: '#17a2b8',
                         color: '#fff',
-                        border: 'none',
+                    border: 'none',
                         borderRadius: '4px',
                         fontSize: '12px',
                         fontWeight: 500,
-                        cursor: 'pointer',
+                    cursor: 'pointer',
                         transition: 'all 0.3s ease',
-                        display: 'flex',
-                        alignItems: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
                         gap: '0.3em'
                       }}
                       onMouseEnter={(e) => e.target.style.background = '#138496'}
@@ -799,22 +904,22 @@ const UserProfileSettings = () => {
                   >
                     <X />
                   </button>
-                </div>
-              </div>
+                    </div>
+                  </div>
 
               <form onSubmit={handleAddBroker}>
                 {brokerStep === 1 ? (
-                  <>
+                    <>
                     <div style={{ marginBottom: '1em' }}>
-                      <label style={{ 
+                        <label style={{ 
                         color: '#495057', 
                         fontWeight: 500, 
-                        display: 'block', 
-                        marginBottom: '0.5em', 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
                         fontSize: 14 
-                      }}>
+                        }}>
                         Broker Client ID
-                      </label>
+                        </label>
                       <div style={{ position: 'relative' }}>
                         <input
                           type="text"
@@ -857,18 +962,18 @@ const UserProfileSettings = () => {
                           {brokerData.showHashedDetails ? 'Hide' : 'View'}
                         </button>
                       </div>
-                    </div>
-                    
+                      </div>
+
                     <div style={{ marginBottom: '1em' }}>
-                      <label style={{ 
+                        <label style={{ 
                         color: '#495057', 
                         fontWeight: 500, 
-                        display: 'block', 
-                        marginBottom: '0.5em', 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
                         fontSize: 14 
-                      }}>
+                        }}>
                         API Key
-                      </label>
+                        </label>
                       <div style={{ position: 'relative' }}>
                         <input
                           type="text"
@@ -911,18 +1016,18 @@ const UserProfileSettings = () => {
                           {brokerData.showHashedDetails ? 'Hide' : 'View'}
                         </button>
                       </div>
-                    </div>
-                    
+                      </div>
+
                     <div style={{ marginBottom: '1em' }}>
-                      <label style={{ 
+                        <label style={{ 
                         color: '#495057', 
                         fontWeight: 500, 
-                        display: 'block', 
-                        marginBottom: '0.5em', 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
                         fontSize: 14 
-                      }}>
+                        }}>
                         API Secret
-                      </label>
+                        </label>
                       <div style={{ position: 'relative' }}>
                         <input
                           type="text"
@@ -965,18 +1070,18 @@ const UserProfileSettings = () => {
                           {brokerData.showHashedDetails ? 'Hide' : 'View'}
                         </button>
                       </div>
-                    </div>
-                    
+                      </div>
+
                     <div style={{ marginBottom: '1em' }}>
-                      <label style={{ 
+                        <label style={{ 
                         color: '#495057', 
                         fontWeight: 500, 
-                        display: 'block', 
-                        marginBottom: '0.5em', 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
                         fontSize: 14 
-                      }}>
+                        }}>
                         Angel One Token
-                      </label>
+                        </label>
                       <div style={{ position: 'relative' }}>
                         <input
                           type="text"
@@ -1020,22 +1125,22 @@ const UserProfileSettings = () => {
                         </button>
                       </div>
                     </div>
-                    
+
                     <div style={{ marginBottom: '1.5em' }}>
-                      <label style={{ 
+                        <label style={{ 
                         color: '#495057', 
                         fontWeight: 500, 
-                        display: 'block', 
-                        marginBottom: '0.5em', 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
                         fontSize: 14 
-                      }}>
+                        }}>
                         MPIN
-                      </label>
+                        </label>
                       <div style={{ position: 'relative' }}>
                         <input
                           type="password"
-                          name="mpin"
-                          value={brokerData.showHashedDetails ? brokerData.mpin : hashSensitiveData(brokerData.mpin)}
+                          name="angelone_mpin"
+                          value={brokerData.showHashedDetails ? brokerData.angelone_mpin : hashSensitiveData(brokerData.angelone_mpin)}
                           onChange={handleBrokerChange}
                           placeholder="Enter your MPIN"
                           style={{ 
@@ -1073,51 +1178,51 @@ const UserProfileSettings = () => {
                           {brokerData.showHashedDetails ? 'Hide' : 'View'}
                         </button>
                       </div>
-                    </div>
-                  </>
+                      </div>
+                    </>
                 ) : (
                   <div style={{ marginBottom: '1.5em' }}>
-                    <label style={{ 
+                        <label style={{ 
                       color: '#495057', 
                       fontWeight: 500, 
-                      display: 'block', 
-                      marginBottom: '0.5em', 
+                          display: 'block', 
+                          marginBottom: '0.5em', 
                       fontSize: 14 
-                    }}>
+                        }}>
                       TOTP Code
-                    </label>
-                    <input
+                        </label>
+                        <input
                       type="text"
                       name="totp"
                       value={brokerData.totp}
-                      onChange={handleBrokerChange}
+                          onChange={handleBrokerChange}
                       placeholder="Enter TOTP from your authenticator app"
-                      style={{ 
-                        width: '100%', 
+                          style={{ 
+                            width: '100%', 
                         padding: '0.8em', 
-                        border: '1px solid #e0e0e0', 
-                        borderRadius: '6px', 
+                            border: '1px solid #e0e0e0', 
+                            borderRadius: '6px', 
                         fontSize: 14, 
                         background: '#fff' 
                       }}
                       required
                     />
-                  </div>
-                )}
-                
+                      </div>
+                  )}
+
                 <button
-                  type="submit"
-                  disabled={brokerLoading}
-                  style={{
+                      type="submit"
+                      disabled={brokerLoading}
+                      style={{
                     width: '100%',
                     padding: '1em',
                     background: brokerLoading ? '#6c757d' : '#28a745',
                     color: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
+                        border: 'none',
+                        borderRadius: '8px',
                     fontSize: 16,
-                    fontWeight: 600,
-                    cursor: brokerLoading ? 'not-allowed' : 'pointer',
+                        fontWeight: 600,
+                        cursor: brokerLoading ? 'not-allowed' : 'pointer',
                     transition: 'all 0.3s ease'
                   }}
                 >
@@ -1136,9 +1241,9 @@ const UserProfileSettings = () => {
               right: 0,
               bottom: 0,
               background: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
               zIndex: 1000,
               padding: '1em'
             }}>
@@ -1183,7 +1288,7 @@ const UserProfileSettings = () => {
                   <div style={{
                     padding: '1em',
                     background: '#f8f9fa',
-                    borderRadius: '8px',
+                        borderRadius: '8px',
                     border: '1px solid #e9ecef'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5em' }}>

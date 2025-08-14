@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import axios from 'axios';
+import TradeDetails from './TradeDetails';
 
 const TradeList = () => {
   const [trades, setTrades] = useState([]);
@@ -7,6 +8,8 @@ const TradeList = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedTrade, setSelectedTrade] = useState(null);
+  const [showTradeDetails, setShowTradeDetails] = useState(false);
 
   // Filter trades based on search term with active search
   const filteredTrades = useMemo(() => {
@@ -27,24 +30,24 @@ const TradeList = () => {
   }, [trades, searchTerm]);
 
   const fetchTrades = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/trades');
-      if (response.data && response.data.success) {
-        setTrades(response.data.trades || []);
-      } else if (response.data && Array.isArray(response.data)) {
-        setTrades(response.data);
-      } else {
+      setLoading(true);
+      setError('');
+      try {
+        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/trades');
+        if (response.data && response.data.success) {
+          setTrades(response.data.trades || []);
+        } else if (response.data && Array.isArray(response.data)) {
+          setTrades(response.data);
+        } else {
+          setTrades([]);
+        }
+      } catch (error) {
+        console.error('Error fetching trades:', error);
+        setError('Failed to fetch trade history. Please try again later.');
         setTrades([]);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching trades:', error);
-      setError('Failed to fetch trade history. Please try again later.');
-      setTrades([]);
-    } finally {
-      setLoading(false);
-    }
   }, []);
 
   const refreshTrades = useCallback(async () => {
@@ -73,6 +76,16 @@ const TradeList = () => {
 
   const clearSearch = () => {
     setSearchTerm('');
+  };
+
+  const handleTradeClick = (trade) => {
+    setSelectedTrade(trade);
+    setShowTradeDetails(true);
+  };
+
+  const closeTradeDetails = () => {
+    setShowTradeDetails(false);
+    setSelectedTrade(null);
   };
 
   const getStatusColor = (status) => {
@@ -322,11 +335,26 @@ const TradeList = () => {
 
       {/* Trades Table */}
       {filteredTrades.length > 0 ? (
-        <div style={{ 
-          overflowX: 'auto',
-          borderRadius: '12px',
-          border: '1px solid rgba(0,0,0,0.1)'
-        }}>
+        <>
+          {/* Clickable indicator */}
+          <div style={{
+            background: 'linear-gradient(135deg, #667eea, #764ba2)',
+            color: '#ffffff',
+            padding: '1em',
+            borderRadius: '12px',
+            marginBottom: '1em',
+            textAlign: 'center',
+            fontSize: 'clamp(12px, 2.5vw, 14px)',
+            fontWeight: 500
+          }}>
+            💡 <strong>Tip:</strong> Click on any trade row to view detailed information
+          </div>
+          
+          <div style={{ 
+            overflowX: 'auto',
+            borderRadius: '12px',
+            border: '1px solid rgba(0,0,0,0.1)'
+          }}>
           <table style={{ 
             width: '100%', 
             borderCollapse: 'collapse',
@@ -391,18 +419,23 @@ const TradeList = () => {
             </thead>
             <tbody>
               {filteredTrades.map((trade, index) => (
-                <tr key={trade.id || trade.tradeId || index} style={{ 
-                  borderBottom: '1px solid #f0f0f0',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.parentElement.style.background = '#f8f9fa';
-                  e.target.parentElement.style.transform = 'scale(1.01)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.parentElement.style.background = '#ffffff';
-                  e.target.parentElement.style.transform = 'scale(1)';
-                }}>
+                <tr key={trade.id || trade.tradeId || index} 
+                    style={{ 
+                      borderBottom: '1px solid #f0f0f0',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => handleTradeClick(trade)}
+                    onMouseEnter={(e) => {
+                      e.target.parentElement.style.background = '#f8f9fa';
+                      e.target.parentElement.style.transform = 'scale(1.01)';
+                      e.target.parentElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.parentElement.style.background = '#ffffff';
+                      e.target.parentElement.style.transform = 'scale(1)';
+                      e.target.parentElement.style.boxShadow = 'none';
+                    }}>
                   <td style={{ 
                     padding: 'clamp(0.8em, 2vw, 1em)', 
                     fontWeight: 600,
@@ -472,6 +505,7 @@ const TradeList = () => {
             </tbody>
           </table>
         </div>
+      </>
       ) : (
         <div style={{ 
           textAlign: 'center', 
@@ -499,6 +533,10 @@ const TradeList = () => {
             {searchTerm ? 'Try adjusting your search terms' : 'Start trading to see your trade history here'}
           </p>
         </div>
+      )}
+
+      {showTradeDetails && selectedTrade && (
+        <TradeDetails trade={selectedTrade} onClose={closeTradeDetails} />
       )}
     </div>
   );

@@ -11,12 +11,26 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     
-    if (token) {
+    // Define the function before using it
+    const fetchUserFromAPI = () => {
       getCurrentUserEnhanced()
         .then(res => {
           const userData = res.data;
           setUser(userData);
           setRole(userData.role);
+          
+          // Store in localStorage for future use
+          try {
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+            if (userData.fullName || userData.name) {
+              localStorage.setItem('userFullName', userData.fullName || userData.name);
+            }
+            if (userData.phone || userData.phone_number) {
+              localStorage.setItem('userPhone', userData.phone || userData.phone_number);
+            }
+          } catch (localStorageError) {
+            console.warn('Could not store user data in localStorage:', localStorageError);
+          }
         })
         .catch((error) => {
           console.error('Error in AuthContext getCurrentUser:', error);
@@ -27,6 +41,64 @@ export const AuthProvider = ({ children }) => {
         .finally(() => {
           setLoading(false);
         });
+    };
+    
+    if (token) {
+      // Check localStorage first for cached user data
+      const cachedUser = localStorage.getItem('currentUser');
+      const cachedName = localStorage.getItem('userFullName');
+      const cachedPhone = localStorage.getItem('userPhone');
+      
+      if (cachedUser && cachedName) {
+        try {
+          const userData = JSON.parse(cachedUser);
+          // Ensure we have the latest name from localStorage
+          if (cachedName) {
+            userData.fullName = cachedName;
+            userData.name = cachedName;
+          }
+          if (cachedPhone) {
+            userData.phone = cachedPhone;
+            userData.phone_number = cachedPhone;
+          }
+          
+          setUser(userData);
+          setRole(userData.role);
+          setLoading(false);
+          
+          // Refresh in background to get latest data
+          getCurrentUserEnhanced()
+            .then(res => {
+              const freshUserData = res.data;
+              setUser(freshUserData);
+              setRole(freshUserData.role);
+              
+              // Update localStorage with fresh data
+              try {
+                localStorage.setItem('currentUser', JSON.stringify(freshUserData));
+                if (freshUserData.fullName || freshUserData.name) {
+                  localStorage.setItem('userFullName', freshUserData.fullName || freshUserData.name);
+                }
+                if (freshUserData.phone || freshUserData.phone_number) {
+                  localStorage.setItem('userPhone', freshUserData.phone || freshUserData.phone_number);
+                }
+              } catch (localStorageError) {
+                console.warn('Could not update localStorage:', localStorageError);
+              }
+            })
+            .catch((error) => {
+              console.error('Error refreshing user data in background:', error);
+              // Keep cached data if refresh fails
+            });
+        } catch (parseError) {
+          console.error('Error parsing cached user data:', parseError);
+          // Fall back to API call
+          fetchUserFromAPI();
+        }
+      } else {
+        // No cached data, fetch from API
+        fetchUserFromAPI();
+      }
     } else {
       setLoading(false);
     }
@@ -43,8 +115,23 @@ export const AuthProvider = ({ children }) => {
       const userResponse = await getCurrentUserEnhanced();
       const userData = userResponse.data;
       
+      // Update state
       setUser(userData);
       setRole(userData.role);
+      
+      // Store user data in localStorage for persistence
+      try {
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        if (userData.fullName || userData.name) {
+          localStorage.setItem('userFullName', userData.fullName || userData.name);
+        }
+        if (userData.phone || userData.phone_number) {
+          localStorage.setItem('userPhone', userData.phone || userData.phone_number);
+        }
+      } catch (localStorageError) {
+        console.warn('Could not store user data in localStorage:', localStorageError);
+      }
+      
       return userData;
     } catch (error) {
       console.error('Login error:', error);
@@ -70,8 +157,24 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await getCurrentUserEnhanced();
       const userData = res.data;
+      
+      // Update state
       setUser(userData);
       setRole(userData.role);
+      
+      // Also update localStorage for persistence
+      try {
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        if (userData.fullName || userData.name) {
+          localStorage.setItem('userFullName', userData.fullName || userData.name);
+        }
+        if (userData.phone || userData.phone_number) {
+          localStorage.setItem('userPhone', userData.phone || userData.phone_number);
+        }
+      } catch (localStorageError) {
+        console.warn('Could not update localStorage:', localStorageError);
+      }
+      
       return userData;
     } catch (error) {
       console.error('Error refreshing user data:', error);

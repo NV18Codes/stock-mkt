@@ -11,7 +11,9 @@ const AdminOrderForm = ({ onOrderSubmit, selectedUserIds }) => {
     limit_price: '',
     target_user_ids: [],
     target_all_active_users: false,
-    remarks: ''
+    remarks: '',
+    custom_symbol: '',
+    use_custom_symbol: false
   });
 
   const [underlyings, setUnderlyings] = useState([]);
@@ -413,6 +415,71 @@ const AdminOrderForm = ({ onOrderSubmit, selectedUserIds }) => {
               </select>
             </div>
 
+            {/* Custom Symbol Entry Option */}
+            <div style={{ marginBottom: '1em' }}>
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5em',
+                fontWeight: 500, 
+                color: '#2c3e50',
+                fontSize: 'clamp(12px, 2.5vw, 14px)'
+              }}>
+                <input
+                  type="checkbox"
+                  name="use_custom_symbol"
+                  checked={formData.use_custom_symbol}
+                  onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      use_custom_symbol: e.target.checked,
+                      trading_symbol: e.target.checked ? prev.custom_symbol : '',
+                      instrument_token: e.target.checked ? 'CUSTOM' : ''
+                    }));
+                  }}
+                  style={{ transform: 'scale(1.2)' }}
+                />
+                Use Custom Symbol
+              </label>
+            </div>
+
+            {formData.use_custom_symbol && (
+              <div style={{ marginBottom: '1em' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '0.5em', 
+                  fontWeight: 500, 
+                  color: '#2c3e50',
+                  fontSize: 'clamp(12px, 2.5vw, 14px)'
+                }}>
+                  Custom Trading Symbol:
+                </label>
+                <input
+                  type="text"
+                  name="custom_symbol"
+                  value={formData.custom_symbol}
+                  onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      custom_symbol: e.target.value,
+                      trading_symbol: prev.use_custom_symbol ? e.target.value : prev.trading_symbol
+                    }));
+                  }}
+                  placeholder="Enter custom trading symbol (e.g., NIFTY25AUG22000CE)"
+                  style={{
+                    width: '100%',
+                    padding: '0.8em',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '6px',
+                    fontSize: 'clamp(12px, 2.5vw, 14px)',
+                    background: '#fff'
+                  }}
+                />
+              </div>
+            )}
+
+
+
             {formData.instrument_token && (
               <div style={{ 
                 background: '#e3f2fd', 
@@ -579,6 +646,8 @@ const AdminOrderForm = ({ onOrderSubmit, selectedUserIds }) => {
               />
             </div>
           </div>
+
+
 
           {/* Target Selection */}
           <div>
