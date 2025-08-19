@@ -12,7 +12,6 @@ const LandingPage = () => {
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth <= 768;
-      console.log('LandingPage Mobile check:', { width: window.innerWidth, mobile });
       setIsMobile(mobile);
       if (mobile) {
         setIsMobileMenuOpen(false);
@@ -23,11 +22,6 @@ const LandingPage = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  // Debug mobile state
-  useEffect(() => {
-    console.log('LandingPage Mobile state changed:', { isMobile, isMobileMenuOpen });
-  }, [isMobile, isMobileMenuOpen]);
 
   const features = [
     {

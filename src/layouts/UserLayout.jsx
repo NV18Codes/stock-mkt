@@ -14,7 +14,6 @@ const UserLayout = () => {
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth <= 768;
-      console.log('Mobile check:', { width: window.innerWidth, mobile });
       setIsMobile(mobile);
       if (mobile) {
         setIsSidebarCollapsed(true);
@@ -26,11 +25,6 @@ const UserLayout = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  // Debug mobile state
-  useEffect(() => {
-    console.log('Mobile state changed:', { isMobile, isMobileMenuOpen });
-  }, [isMobile, isMobileMenuOpen]);
 
   const handleLogout = async () => {
     if (window.confirm('Are you sure you want to logout?')) {

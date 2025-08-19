@@ -12,7 +12,6 @@ const AdminLayout = () => {
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth <= 768;
-      console.log('AdminLayout Mobile check:', { width: window.innerWidth, mobile });
       setIsMobile(mobile);
       if (mobile) {
         setIsMobileMenuOpen(false);
@@ -23,11 +22,6 @@ const AdminLayout = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  // Debug mobile state
-  useEffect(() => {
-    console.log('AdminLayout Mobile state changed:', { isMobile, isMobileMenuOpen });
-  }, [isMobile, isMobileMenuOpen]);
 
   const handleLogout = async () => {
     if (window.confirm('Are you sure you want to logout?')) {
