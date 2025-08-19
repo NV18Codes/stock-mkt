@@ -151,6 +151,30 @@ const AdminLayout = () => {
                 📈 Trade Monitoring
               </Link>
               <Link 
+                to="/admin/trading-portal" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                style={{
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  color: '#475569',
+                  textDecoration: 'none',
+                  fontWeight: '500',
+                  border: '1px solid #e2e8f0',
+                  textAlign: 'center',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#f1f5f9';
+                  e.target.style.borderColor = '#2563eb';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.borderColor = '#e2e8f0';
+                }}
+              >
+                🎯 Trading Portal
+              </Link>
+              <Link 
                 to="/admin/settings" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 style={{
@@ -342,6 +366,28 @@ const AdminLayout = () => {
           >
             <span style={{ fontSize: '1.2em' }}>📈</span>
             Trade Monitoring
+          </NavLink>
+
+          <NavLink
+            to="/admin/trading-portal"
+            style={({ isActive }) => ({
+              padding: '1em 1.2em',
+              borderRadius: '8px',
+              color: isActive ? 'var(--text-inverse)' : 'var(--text-secondary)',
+              background: isActive ? 'var(--gradient-primary)' : 'transparent',
+              textDecoration: 'none',
+              transition: 'all 0.3s ease',
+              fontWeight: isActive ? 600 : 500,
+              border: isActive ? 'none' : '1px solid transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.8em',
+              fontSize: '0.95em',
+              boxShadow: isActive ? '0 2px 8px rgba(0, 212, 170, 0.3)' : 'none'
+            })}
+          >
+            <span style={{ fontSize: '1.2em' }}>🎯</span>
+            Trading Portal
           </NavLink>
 
           <NavLink

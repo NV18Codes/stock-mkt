@@ -9,6 +9,7 @@ import UserProfileSettings from './components/user/UserProfileSettings';
 import TradingPortal from './components/user/TradingPortal';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminProfileSettings from './components/admin/AdminProfileSettings';
+import AdminTradingPortal from './components/admin/AdminTradingPortal';
 import UserManagement from './components/admin/UserManagement';
 import TradeHistory from './components/admin/TradeHistory';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -17,8 +18,6 @@ import AdminLayout from './layouts/AdminLayout';
 
 // Import our comprehensive ErrorBoundary
 import ErrorBoundary from './components/common/ErrorBoundary';
-
-
 
 const ProtectedRoute = ({ children, role: requiredRole }) => {
   const { isAuthenticated, role, loading } = useAuth();
@@ -120,6 +119,7 @@ function AppRoutes() {
           <Route path="settings" element={<AdminProfileSettings />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="trades" element={<TradeHistory />} />
+          <Route path="trading-portal" element={<AdminTradingPortal />} />
         </Route>
 
         {/* Fallback */}
