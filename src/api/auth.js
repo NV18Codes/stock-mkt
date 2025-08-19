@@ -343,6 +343,16 @@ export const clearBrokerConnection = async () => {
   }
 };
 
+export const clearBrokerProfile = async () => {
+  try {
+    const response = await axios.delete('https://apistocktrading-production.up.railway.app/api/users/me/broker/clear');
+    return response.data;
+  } catch (error) {
+    console.error('Error clearing broker profile:', error);
+    throw error;
+  }
+};
+
 export const refreshBrokerConnection = async (refreshToken) => {
   try {
     const response = await axios.post('https://apiconnect.angelone.in/rest/auth/angelbroking/jwt/v1/generateTokens', {
@@ -530,6 +540,7 @@ export const getUserProfile = async () => {
   try {
     // Since the profile endpoint is not available, directly use the working auth endpoint
     const userResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+    
     const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
     
     // Normalize the user data to match profile format
@@ -557,11 +568,14 @@ export const getUserProfile = async () => {
       updated_at: userData.updated_at || userData.updatedAt
     };
     
-    return { data: normalizedProfile };
+    return { 
+      success: true,
+      data: normalizedProfile 
+    };
   } catch (error) {
-    console.error('Error fetching user profile:', error);
     // Return a default profile structure
     return { 
+      success: false,
       data: {
         id: '',
         name: '',

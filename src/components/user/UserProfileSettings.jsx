@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 
 const UserProfileSettings = () => {
-  const { role, currentUser, refreshUser } = useAuth();
+  const { role, user, refreshUser } = useAuth();
+  
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -61,6 +62,8 @@ const UserProfileSettings = () => {
     fetchUserProfile();
     fetchBrokerProfile();
   }, []);
+
+
 
   const fetchBrokerProfile = async () => {
     try {
@@ -233,33 +236,41 @@ const UserProfileSettings = () => {
 
   const fetchUserProfile = async () => {
     try {
-    setLoading(true);
+      setLoading(true);
       
       // Check localStorage first for persisted data
       const persistedName = localStorage.getItem('userFullName');
       const persistedPhone = localStorage.getItem('userPhone');
       
       // Use current user data from auth context first
-      if (currentUser) {
+      if (user) {
+        // Ensure we have the name field properly mapped
+        const userName = persistedName || user.fullName || user.name || '';
+        const userPhone = persistedPhone || user.phone || user.phone_number || '';
+        const userEmail = user.email || '';
+        
         setFormData({
-          fullName: persistedName || currentUser.fullName || currentUser.name || '',
-          email: currentUser.email || '',
-          phone: persistedPhone || currentUser.phone || ''
+          fullName: userName,
+          email: userEmail,
+          phone: userPhone
         });
       }
       
       // Try to fetch additional details from API
-    try {
-      const response = await getUserProfile();
-      if (response && response.success && response.data) {
-          setFormData(prev => ({
-            ...prev,
-            fullName: response.data.fullname || response.data.fullName || response.data.name || response.data.full_name || persistedName || prev.fullName,
-            phone: response.data.phone_number || response.data.phone || persistedPhone || prev.phone
-          }));
+      try {
+        const response = await getUserProfile();
+        if (response && response.success && response.data) {
+          setFormData(prev => {
+            const newData = {
+              ...prev,
+              fullName: response.data.fullname || response.data.fullName || response.data.name || response.data.full_name || persistedName || prev.fullName,
+              phone: response.data.phone_number || response.data.phone || persistedPhone || prev.phone
+            };
+            return newData;
+          });
         }
       } catch (apiError) {
-        console.log('API profile fetch failed, using auth context data:', apiError);
+        // API profile fetch failed, using auth context data
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -364,9 +375,8 @@ const UserProfileSettings = () => {
         // Refresh the user data in the auth context to ensure consistency
         try {
           await refreshUser();
-          console.log('User context refreshed successfully');
         } catch (refreshError) {
-          console.error('Error refreshing user context:', refreshError);
+          // Error refreshing user context
         }
       } else {
         setError(response?.message || 'Failed to update profile. Please try again.');
@@ -404,16 +414,16 @@ const UserProfileSettings = () => {
           email: newEmail
         }));
         // Update current user context if needed
-        if (currentUser) {
-          currentUser.email = newEmail;
+        if (user) {
+          // Note: We can't directly modify the user object from context
+          // The email will be updated when refreshUser() is called
         }
         
         // Refresh the user data in the auth context to ensure consistency
         try {
           await refreshUser();
-          console.log('User context refreshed after email change');
         } catch (refreshError) {
-          console.error('Error refreshing user context after email change:', refreshError);
+          // Error refreshing user context after email change
         }
       } else {
         setError(response?.message || 'Failed to update email. Please try again.');
