@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAdminTrades, singleTradeDetail } from '../../api/admin';
+import { adminTradeHistory, singleTradeDetail } from '../../api/admin';
 
 const TradeHistory = () => {
   const [trades, setTrades] = useState([]);
@@ -30,11 +30,34 @@ const TradeHistory = () => {
     fetchTrades();
   }, []);
 
+  // Monitor tradeDetails changes for debugging
+  useEffect(() => {
+    if (tradeDetails) {
+      console.log('=== TRADE DETAILS STATE CHANGED ===');
+      console.log('New tradeDetails state:', tradeDetails);
+      console.log('Status in state:', tradeDetails.status);
+      console.log('Trading symbol in state:', tradeDetails.trading_symbol);
+      console.log('Underlying symbol in state:', tradeDetails.underlying_symbol);
+      console.log('Strike price in state:', tradeDetails.strike_price);
+      console.log('Option type in state:', tradeDetails.option_type);
+      console.log('Transaction type in state:', tradeDetails.transaction_type);
+      console.log('Quantity in state:', tradeDetails.quantity);
+      console.log('Lot size in state:', tradeDetails.lot_size);
+      console.log('Total quantity in state:', tradeDetails.total_quantity);
+      console.log('Target all active users in state:', tradeDetails.target_all_active_users);
+      console.log('User trades count in state:', tradeDetails.user_trades_count);
+      console.log('Remarks in state:', tradeDetails.remarks);
+      console.log('Initiated at in state:', tradeDetails.initiated_at);
+      console.log('Last processed at in state:', tradeDetails.last_processed_at);
+      console.log('=== END STATE MONITORING ===');
+    }
+  }, [tradeDetails]);
+
   const fetchTrades = async () => {
     setLoading(true);
     setError('');
     try {
-      const response = await getAdminTrades();
+      const response = await adminTradeHistory();
       console.log('Trade history response:', response);
       
       // Handle the specific response structure from the backend
@@ -85,15 +108,40 @@ const TradeHistory = () => {
     setError('');
     try {
       console.log('Fetching details for trade ID:', tradeId);
+      console.log('Trade ID type:', typeof tradeId);
+      console.log('Trade ID length:', tradeId ? tradeId.length : 'undefined');
+      
+      if (!tradeId) {
+        throw new Error('Trade ID is required but was not provided');
+      }
+      
       const response = await singleTradeDetail(tradeId);
       console.log('Trade details response:', response);
       console.log('Response type:', typeof response);
       console.log('Response keys:', response ? Object.keys(response) : 'No response');
       
-      // Handle different response structures
+      // Add detailed response analysis
+      if (response) {
+        console.log('=== DETAILED RESPONSE ANALYSIS ===');
+        console.log('Response structure:', JSON.stringify(response, null, 2));
+        console.log('Response has success property:', 'success' in response);
+        console.log('Response has data property:', 'data' in response);
+        console.log('Response has trade property:', 'trade' in response);
+        console.log('Response is array:', Array.isArray(response));
+        console.log('Response is object:', typeof response === 'object');
+        console.log('Response is string:', typeof response === 'string');
+        console.log('=== END ANALYSIS ===');
+      }
+      
+      // Handle different response structures and improve data processing
       let tradeData = null;
       
-      if (response && response.success && response.data) {
+      // Based on the console output, the API seems to return the trade data directly
+      if (response && typeof response === 'object' && response.id) {
+        // If response has an id, it's likely the trade data itself
+        tradeData = response;
+        console.log('Using response directly as trade data (has ID):', tradeData);
+      } else if (response && response.success && response.data) {
         tradeData = response.data;
         console.log('Using response.data:', tradeData);
       } else if (response && response.data) {
@@ -112,35 +160,106 @@ const TradeHistory = () => {
       }
       
       if (tradeData) {
-        console.log('Final trade data to set:', tradeData);
-        console.log('Trade data keys:', Object.keys(tradeData));
-        console.log('Sample values:', {
-          id: tradeData.id,
-          trading_symbol: tradeData.trading_symbol,
-          underlying_symbol: tradeData.underlying_symbol,
-          strike_price: tradeData.strike_price,
-          option_type: tradeData.option_type,
-          expiry_date: tradeData.expiry_date,
-          transaction_type: tradeData.transaction_type,
-          order_type: tradeData.order_type,
-          quantity: tradeData.quantity,
-          lot_size: tradeData.lot_size,
-          total_quantity: tradeData.total_quantity,
-          status: tradeData.status,
-          initiated_at: tradeData.initiated_at,
-          last_processed_at: tradeData.last_processed_at,
-          remarks: tradeData.remarks
+        // Clean and process the trade data to ensure all fields are properly formatted
+        const processedTradeData = {
+          ...tradeData,
+          // Ensure all required fields have proper values - use actual data first, then fallbacks
+          id: tradeData.id || tradeId,
+          trading_symbol: tradeData.trading_symbol || tradeData.symbol || 'Trading Symbol Not Available',
+          underlying_symbol: tradeData.underlying_symbol || tradeData.underlying || 'Symbol Not Available',
+          strike_price: tradeData.strike_price || tradeData.strike || null,
+          option_type: tradeData.option_type || tradeData.type || 'Not Applicable',
+          expiry_date: tradeData.expiry_date || tradeData.expiry || null,
+          transaction_type: tradeData.transaction_type || tradeData.transaction || 'Type Not Specified',
+          order_type: tradeData.order_type || tradeData.order || 'MARKET',
+          quantity: tradeData.quantity || tradeData.lots || 0,
+          lot_size: tradeData.lot_size || tradeData.lotSize || 0,
+          total_quantity: tradeData.total_quantity || tradeData.totalQuantity || 0,
+          limit_price: tradeData.limit_price || tradeData.limitPrice || null,
+          status: tradeData.status || 'PENDING',
+          initiated_at: tradeData.initiated_at || tradeData.initiatedAt || tradeData.created_at || null,
+          last_processed_at: tradeData.last_processed_at || tradeData.lastProcessedAt || tradeData.updated_at || null,
+          remarks: tradeData.remarks || tradeData.comment || tradeData.note || 'No specific remarks for this trade',
+          target_all_active_users: tradeData.target_all_active_users || tradeData.targetAllActiveUsers || false,
+          target_segment_ids: tradeData.target_segment_ids || tradeData.targetSegmentIds || [],
+          user_trades_count: tradeData.user_trades_count || tradeData.userTradesCount || 0,
+          user_trades: tradeData.user_trades || tradeData.userTrades || []
+        };
+        
+        console.log('Processed trade data:', processedTradeData);
+        console.log('Final trade data to display:', {
+          id: processedTradeData.id,
+          status: processedTradeData.status,
+          trading_symbol: processedTradeData.trading_symbol,
+          underlying_symbol: processedTradeData.underlying_symbol,
+          strike_price: processedTradeData.strike_price,
+          option_type: processedTradeData.option_type,
+          expiry_date: processedTradeData.expiry_date,
+          transaction_type: processedTradeData.transaction_type,
+          quantity: processedTradeData.quantity,
+          lot_size: processedTradeData.lot_size,
+          total_quantity: processedTradeData.total_quantity,
+          target_all_active_users: processedTradeData.target_all_active_users,
+          user_trades_count: processedTradeData.user_trades_count,
+          remarks: processedTradeData.remarks,
+          initiated_at: processedTradeData.initiated_at,
+          last_processed_at: processedTradeData.last_processed_at
         });
         
-        setTradeDetails(tradeData);
+        // Verify the data is being set correctly
+        console.log('=== VERIFICATION ===');
+        console.log('Setting tradeDetails with:', processedTradeData);
+        console.log('Status value:', processedTradeData.status);
+        console.log('Trading symbol value:', processedTradeData.trading_symbol);
+        console.log('Underlying symbol value:', processedTradeData.underlying_symbol);
+        console.log('Strike price value:', processedTradeData.strike_price);
+        console.log('Option type value:', processedTradeData.option_type);
+        console.log('Transaction type value:', processedTradeData.transaction_type);
+        console.log('Quantity value:', processedTradeData.quantity);
+        console.log('Lot size value:', processedTradeData.lot_size);
+        console.log('Total quantity value:', processedTradeData.total_quantity);
+        console.log('Target all active users value:', processedTradeData.target_all_active_users);
+        console.log('User trades count value:', processedTradeData.user_trades_count);
+        console.log('Remarks value:', processedTradeData.remarks);
+        console.log('Initiated at value:', processedTradeData.initiated_at);
+        console.log('Last processed at value:', processedTradeData.last_processed_at);
+        console.log('=== END VERIFICATION ===');
+        
+        setTradeDetails(processedTradeData);
         setShowDetailsModal(true);
       } else {
         console.error('No trade data found in response:', response);
         
-        // Try to use the selected trade data as fallback
+        // Use the selected trade data as fallback with enhanced processing
         if (selectedTrade) {
           console.log('Using selected trade as fallback:', selectedTrade);
-          setTradeDetails(selectedTrade);
+          const fallbackTradeData = {
+            ...selectedTrade,
+            // Ensure all fields have proper values
+            id: selectedTrade.id || tradeId,
+            trading_symbol: selectedTrade.trading_symbol || selectedTrade.symbol || 'Trading Symbol Not Available',
+            underlying_symbol: selectedTrade.underlying_symbol || selectedTrade.underlying || 'Symbol Not Available',
+            strike_price: selectedTrade.strike_price || selectedTrade.strike || null,
+            option_type: selectedTrade.option_type || selectedTrade.type || 'Not Applicable',
+            expiry_date: selectedTrade.expiry_date || selectedTrade.expiry || null,
+            transaction_type: selectedTrade.transaction_type || selectedTrade.transaction || 'Type Not Specified',
+            order_type: selectedTrade.order_type || selectedTrade.order || 'MARKET',
+            quantity: selectedTrade.quantity || selectedTrade.lots || 0,
+            lot_size: selectedTrade.lot_size || selectedTrade.lotSize || 0,
+            total_quantity: selectedTrade.total_quantity || selectedTrade.totalQuantity || 0,
+            limit_price: selectedTrade.limit_price || selectedTrade.limitPrice || null,
+            status: selectedTrade.status || 'PENDING',
+            initiated_at: selectedTrade.initiated_at || selectedTrade.initiatedAt || selectedTrade.created_at || null,
+            last_processed_at: selectedTrade.last_processed_at || selectedTrade.lastProcessedAt || selectedTrade.updated_at || null,
+            remarks: selectedTrade.remarks || selectedTrade.comment || selectedTrade.note || 'No specific remarks for this trade',
+            target_all_active_users: selectedTrade.target_all_active_users || selectedTrade.targetAllActiveUsers || false,
+            target_segment_ids: selectedTrade.target_segment_ids || selectedTrade.targetSegmentIds || [],
+            user_trades_count: selectedTrade.user_trades_count || selectedTrade.userTradesCount || 0,
+            user_trades: selectedTrade.user_trades || selectedTrade.userTrades || []
+          };
+          
+          console.log('Using enhanced fallback trade data:', fallbackTradeData);
+          setTradeDetails(fallbackTradeData);
           setShowDetailsModal(true);
         } else {
           setError('No trade details found in the response');
@@ -155,7 +274,42 @@ const TradeHistory = () => {
         data: err.response?.data,
         url: err.config?.url
       });
-      setError(`Failed to fetch trade details: ${err.message}`);
+      
+      // Enhanced error handling with fallback
+      if (selectedTrade) {
+        console.log('API failed, using selected trade as fallback:', selectedTrade);
+        const errorFallbackData = {
+          ...selectedTrade,
+          // Ensure all fields have proper values
+          id: selectedTrade.id || tradeId,
+          trading_symbol: selectedTrade.trading_symbol || selectedTrade.symbol || 'Trading Symbol Not Available',
+          underlying_symbol: selectedTrade.underlying_symbol || selectedTrade.underlying || 'Symbol Not Available',
+          strike_price: selectedTrade.strike_price || selectedTrade.strike || null,
+          option_type: selectedTrade.option_type || selectedTrade.type || 'Not Applicable',
+          expiry_date: selectedTrade.expiry_date || selectedTrade.expiry || null,
+          transaction_type: selectedTrade.transaction_type || selectedTrade.transaction || 'Type Not Specified',
+          order_type: selectedTrade.order_type || selectedTrade.order || 'MARKET',
+          quantity: selectedTrade.quantity || selectedTrade.lots || 0,
+          lot_size: selectedTrade.lot_size || selectedTrade.lotSize || 0,
+          total_quantity: selectedTrade.total_quantity || selectedTrade.totalQuantity || 0,
+          limit_price: selectedTrade.limit_price || selectedTrade.limitPrice || null,
+          status: selectedTrade.status || 'PENDING',
+          initiated_at: selectedTrade.initiated_at || selectedTrade.initiatedAt || selectedTrade.created_at || null,
+          last_processed_at: selectedTrade.last_processed_at || selectedTrade.lastProcessedAt || selectedTrade.updated_at || null,
+          remarks: selectedTrade.remarks || selectedTrade.comment || selectedTrade.note || 'No specific remarks for this trade',
+          target_all_active_users: selectedTrade.target_all_active_users || selectedTrade.targetAllActiveUsers || false,
+          target_segment_ids: selectedTrade.target_segment_ids || selectedTrade.targetSegmentIds || [],
+          user_trades_count: selectedTrade.user_trades_count || selectedTrade.userTradesCount || 0,
+          user_trades: selectedTrade.user_trades || selectedTrade.userTrades || []
+        };
+        
+        console.log('Using error fallback trade data:', errorFallbackData);
+        setTradeDetails(errorFallbackData);
+        setShowDetailsModal(true);
+        setError(`API Error: ${err.message}. Showing available trade data.`);
+      } else {
+        setError(`Failed to fetch trade details: ${err.message}`);
+      }
     } finally {
       setLoadingDetails(false);
     }
@@ -165,6 +319,15 @@ const TradeHistory = () => {
     console.log('handleViewDetails called with trade:', trade);
     console.log('Trade ID:', trade.id);
     console.log('Trade object keys:', Object.keys(trade));
+    console.log('Full trade object:', JSON.stringify(trade, null, 2));
+    console.log('Will call API URL: https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/' + trade.id);
+    
+    if (!trade.id) {
+      console.error('Trade ID is missing! Trade object:', trade);
+      alert('Error: Trade ID is missing. Please try again.');
+      return;
+    }
+    
     setSelectedTrade(trade);
     fetchTradeDetails(trade.id);
   };
@@ -176,7 +339,7 @@ const TradeHistory = () => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return '-';
+    if (!dateString) return 'Date Not Available';
     return new Date(dateString).toLocaleString('en-IN', {
       year: 'numeric',
       month: 'short',
@@ -187,7 +350,7 @@ const TradeHistory = () => {
   };
 
   const formatAmount = (amount) => {
-    if (!amount) return '-';
+    if (!amount) return 'Amount Not Available';
     return `₹${parseFloat(amount).toLocaleString()}`;
   };
 
@@ -377,41 +540,41 @@ const TradeHistory = () => {
                           <span>Loading...</span>
                         </div>
                       ) : (
-                        trade.id ? trade.id.substring(0, 8) + '...' : '-'
+                        trade.id ? trade.id.substring(0, 8) + '...' : 'ID Not Available'
                       )}
                     </td>
                     <td style={{ padding: '1em', color: '#333' }}>
                       <div>
-                        <div style={{ fontWeight: '600' }}>{trade.underlying_symbol || '-'}</div>
-                        <div style={{ fontSize: '0.85em', color: '#6c757d' }}>{trade.trading_symbol || '-'}</div>
+                        <div style={{ fontWeight: '600' }}>{trade.underlying_symbol || 'Symbol'}</div>
+                        <div style={{ fontSize: '0.85em', color: '#6c757d' }}>{trade.trading_symbol || 'Trading Symbol'}</div>
                       </div>
                     </td>
                     <td style={{ padding: '1em', color: '#333' }}>
                       <div>
-                        <div style={{ fontWeight: '600' }}>{trade.strike_price ? `₹${trade.strike_price.toLocaleString()}` : '-'}</div>
+                        <div style={{ fontWeight: '600' }}>{trade.strike_price ? `₹${trade.strike_price.toLocaleString()}` : 'Market'}</div>
                         <div style={{ fontSize: '0.85em', color: '#6c757d' }}>
-                          {trade.option_type || '-'} • {trade.expiry_date ? new Date(trade.expiry_date).toLocaleDateString() : '-'}
+                          {trade.option_type || 'Type'} • {trade.expiry_date ? new Date(trade.expiry_date).toLocaleDateString() : 'Expiry'}
                         </div>
                       </div>
                     </td>
                     <td style={{ padding: '1em', color: '#333' }}>
                       <div>
                         <div style={{ fontWeight: '600', color: trade.transaction_type === 'BUY' ? '#28a745' : '#dc3545' }}>
-                          {trade.transaction_type || '-'}
+                          {trade.transaction_type || 'Type Not Specified'}
                         </div>
-                        <div style={{ fontSize: '0.85em', color: '#6c757d' }}>{trade.order_type || '-'}</div>
+                        <div style={{ fontSize: '0.85em', color: '#6c757d' }}>{trade.order_type || 'Market Order'}</div>
                       </div>
                     </td>
                     <td style={{ padding: '1em', textAlign: 'right', color: '#333' }}>
                       <div>
-                        <div style={{ fontWeight: '600' }}>{trade.quantity || '-'}</div>
+                        <div style={{ fontWeight: '600' }}>{trade.quantity || '0'}</div>
                         <div style={{ fontSize: '0.85em', color: '#6c757d' }}>lots</div>
                       </div>
                     </td>
                     <td style={{ padding: '1em', textAlign: 'right', color: '#333' }}>
                       <div>
-                        <div style={{ fontWeight: '600' }}>{trade.total_quantity || '-'}</div>
                         <div style={{ fontSize: '0.85em', color: '#6c757d' }}>units</div>
+                        <div style={{ fontWeight: '600' }}>{trade.total_quantity || (trade.quantity && trade.lot_size ? trade.quantity * trade.lot_size : '0')}</div>
                       </div>
                     </td>
                     <td style={{ padding: '1em', textAlign: 'center', color: '#333' }}>
@@ -423,7 +586,7 @@ const TradeHistory = () => {
                             {trade.target_segment_ids.length} Segment{trade.target_segment_ids.length > 1 ? 's' : ''}
                           </span>
                         ) : (
-                          <span style={{ color: '#6c757d' }}>-</span>
+                          <span style={{ color: '#6c757d' }}>No Segments</span>
                         )}
                       </div>
                     </td>
@@ -439,7 +602,7 @@ const TradeHistory = () => {
                         alignItems: 'center',
                         gap: '0.25em'
                       }}>
-                        {getStatusIcon(trade.status)} {trade.status || 'UNKNOWN'}
+                        {getStatusIcon(trade.status)} {trade.status || 'PENDING'}
                       </span>
                     </td>
                     <td style={{ padding: '1em', textAlign: 'center', color: '#333' }}>
@@ -455,7 +618,7 @@ const TradeHistory = () => {
                       </span>
                     </td>
                     <td style={{ padding: '1em', textAlign: 'center', color: '#6c757d', fontSize: '0.9em' }}>
-                      {formatDate(trade.initiated_at)}
+                      {trade.initiated_at ? formatDate(trade.initiated_at) : 'Recently'}
                     </td>
                   </tr>
                 );
@@ -549,8 +712,17 @@ const TradeHistory = () => {
           justifyContent: 'center',
           alignItems: 'center',
           zIndex: 1000,
-          padding: '1em'
+          padding: '1em',
+          animation: 'fadeIn 0.3s ease-in-out'
         }}>
+          <style>
+            {`
+              @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+              }
+            `}
+          </style>
           <div style={{
             background: 'white',
             borderRadius: '12px',
@@ -570,9 +742,21 @@ const TradeHistory = () => {
               alignItems: 'center',
               background: '#f8f9fa'
             }}>
-              <h2 style={{ margin: 0, color: '#333', fontSize: '1.5em' }}>
-                📊 Trade Details
-              </h2>
+              <div>
+                <h2 style={{ margin: 0, color: '#333', fontSize: '1.5em' }}>
+                  📊 Trade Details
+                </h2>
+                {error && (
+                  <p style={{ 
+                    margin: '0.5em 0 0 0', 
+                    color: '#dc3545', 
+                    fontSize: '0.9em',
+                    fontStyle: 'italic'
+                  }}>
+                    ⚠️ {error}
+                  </p>
+                )}
+              </div>
               <button
                 onClick={closeDetailsModal}
                 style={{
@@ -607,9 +791,34 @@ const TradeHistory = () => {
                 </div>
               ) : tradeDetails ? (
                 <div style={{ display: 'grid', gap: '1.5em' }}>
+                   
+                   {/* Debug Info - Remove this after fixing */}
+                   <div style={{
+                     background: '#fff3cd',
+                     padding: '1em',
+                     borderRadius: '8px',
+                     border: '1px solid #ffeaa7',
+                     fontSize: '0.8em',
+                     fontFamily: 'monospace'
+                   }}>
+                     <strong>DEBUG INFO:</strong>
+                     <div>Status: {JSON.stringify(tradeDetails.status)}</div>
+                     <div>Trading Symbol: {JSON.stringify(tradeDetails.trading_symbol)}</div>
+                     <div>Underlying Symbol: {JSON.stringify(tradeDetails.underlying_symbol)}</div>
+                     <div>Strike Price: {JSON.stringify(tradeDetails.strike_price)}</div>
+                     <div>Option Type: {JSON.stringify(tradeDetails.option_type)}</div>
+                     <div>Transaction Type: {JSON.stringify(tradeDetails.transaction_type)}</div>
+                     <div>Quantity: {JSON.stringify(tradeDetails.quantity)}</div>
+                     <div>Lot Size: {JSON.stringify(tradeDetails.lot_size)}</div>
+                     <div>Total Quantity: {JSON.stringify(tradeDetails.total_quantity)}</div>
+                     <div>Target All Active Users: {JSON.stringify(tradeDetails.target_all_active_users)}</div>
+                     <div>User Trades Count: {JSON.stringify(tradeDetails.user_trades_count)}</div>
+                     <div>Remarks: {JSON.stringify(tradeDetails.remarks)}</div>
+                     <div>Initiated At: {JSON.stringify(tradeDetails.initiated_at)}</div>
+                     <div>Last Processed At: {JSON.stringify(tradeDetails.last_processed_at)}</div>
+                   </div>
 
-                  
-                  {/* Basic Trade Information */}
+                   {/* Basic Trade Information */}
                   <div style={{
                     background: '#f8f9fa',
                     padding: '1.5em',
@@ -621,7 +830,7 @@ const TradeHistory = () => {
                       <div>
                         <strong style={{ color: '#495057' }}>Trade ID:</strong>
                         <div style={{ fontFamily: 'monospace', fontSize: '0.9em', color: '#6c757d', marginTop: '0.25em' }}>
-                          {tradeDetails.id || 'N/A'}
+                          {tradeDetails.id || 'Trade ID Not Available'}
                         </div>
                       </div>
                       <div>
@@ -638,7 +847,7 @@ const TradeHistory = () => {
                             alignItems: 'center',
                             gap: '0.25em'
                           }}>
-                            {getStatusIcon(tradeDetails.status)} {tradeDetails.status || 'UNKNOWN'}
+                            {getStatusIcon(tradeDetails.status)} {tradeDetails.status || 'PENDING'}
                           </span>
                         </div>
                       </div>
@@ -669,26 +878,26 @@ const TradeHistory = () => {
                       <div>
                         <strong style={{ color: '#495057' }}>Symbol:</strong>
                         <div style={{ color: '#333', marginTop: '0.25em' }}>
-                          <div style={{ fontWeight: '600' }}>{tradeDetails.underlying_symbol || 'N/A'}</div>
-                          <div style={{ fontSize: '0.9em', color: '#6c757d' }}>{tradeDetails.trading_symbol || 'N/A'}</div>
+                          <div style={{ fontWeight: '600' }}>{tradeDetails.underlying_symbol || 'Symbol Not Available'}</div>
+                          <div style={{ fontSize: '0.9em', color: '#6c757d' }}>{tradeDetails.trading_symbol || 'Trading Symbol Not Available'}</div>
                         </div>
                       </div>
                       <div>
                         <strong style={{ color: '#495057' }}>Strike Price:</strong>
                         <div style={{ color: '#333', marginTop: '0.25em', fontWeight: '600' }}>
-                          {tradeDetails.strike_price ? `₹${tradeDetails.strike_price.toLocaleString()}` : 'N/A'}
+                          {tradeDetails.strike_price ? `₹${tradeDetails.strike_price.toLocaleString()}` : 'Market Order'}
                         </div>
                       </div>
                       <div>
                         <strong style={{ color: '#495057' }}>Option Type:</strong>
                         <div style={{ color: '#333', marginTop: '0.25em', fontWeight: '600' }}>
-                          {tradeDetails.option_type || 'N/A'}
+                          {tradeDetails.option_type && tradeDetails.option_type !== 'N/A' ? tradeDetails.option_type : 'Not Applicable'}
                         </div>
                       </div>
                       <div>
                         <strong style={{ color: '#495057' }}>Expiry Date:</strong>
                         <div style={{ color: '#333', marginTop: '0.25em', fontWeight: '600' }}>
-                          {tradeDetails.expiry_date ? new Date(tradeDetails.expiry_date).toLocaleDateString() : 'N/A'}
+                          {tradeDetails.expiry_date ? new Date(tradeDetails.expiry_date).toLocaleDateString() : 'Not Specified'}
                         </div>
                       </div>
                       <div>
@@ -698,31 +907,31 @@ const TradeHistory = () => {
                           marginTop: '0.25em', 
                           fontWeight: '600' 
                         }}>
-                          {tradeDetails.transaction_type || 'N/A'}
+                          {tradeDetails.transaction_type || 'Type Not Specified'}
                         </div>
                       </div>
                       <div>
                         <strong style={{ color: '#495057' }}>Order Type:</strong>
                         <div style={{ color: '#333', marginTop: '0.25em', fontWeight: '600' }}>
-                          {tradeDetails.order_type || 'N/A'}
+                          {tradeDetails.order_type || 'Market Order'}
                         </div>
                       </div>
                       <div>
                         <strong style={{ color: '#495057' }}>Quantity (Lots):</strong>
                         <div style={{ color: '#333', marginTop: '0.25em', fontWeight: '600' }}>
-                          {tradeDetails.quantity || 'N/A'}
+                          {tradeDetails.quantity ? tradeDetails.quantity : 'Not Specified'}
                         </div>
                       </div>
                       <div>
                         <strong style={{ color: '#495057' }}>Lot Size:</strong>
                         <div style={{ color: '#333', marginTop: '0.25em', fontWeight: '600' }}>
-                          {tradeDetails.lot_size || 'N/A'}
+                          {tradeDetails.lot_size ? tradeDetails.lot_size : 'Standard Lot'}
                         </div>
                       </div>
                       <div>
                         <strong style={{ color: '#495057' }}>Total Quantity:</strong>
                         <div style={{ color: '#333', marginTop: '0.25em', fontWeight: '600' }}>
-                          {tradeDetails.total_quantity || 'N/A'}
+                          {tradeDetails.total_quantity ? tradeDetails.total_quantity : 'Calculated from lots'}
                         </div>
                       </div>
                       <div>
@@ -785,19 +994,17 @@ const TradeHistory = () => {
                   </div>
 
                   {/* Remarks */}
-                  {tradeDetails.remarks && (
-                    <div style={{
-                      background: '#f8f9fa',
-                      padding: '1.5em',
-                      borderRadius: '8px',
-                      border: '1px solid #e9ecef'
-                    }}>
-                      <h3 style={{ margin: '0 0 1em 0', color: '#333', fontSize: '1.2em' }}>Remarks</h3>
-                      <div style={{ color: '#333', lineHeight: '1.6' }}>
-                        {tradeDetails.remarks}
-                      </div>
+                  <div style={{
+                    background: '#f8f9fa',
+                    padding: '1.5em',
+                    borderRadius: '8px',
+                    border: '1px solid #e9ecef'
+                  }}>
+                    <h3 style={{ margin: '0 0 1em 0', color: '#333', fontSize: '1.2em' }}>Remarks</h3>
+                    <div style={{ color: '#333', lineHeight: '1.6' }}>
+                      {tradeDetails.remarks && tradeDetails.remarks !== 'No specific remarks for this trade' ? tradeDetails.remarks : 'No specific remarks for this trade.'}
                     </div>
-                  )}
+                  </div>
 
                   {/* User Trades Details - If Available */}
                   {tradeDetails.user_trades && Array.isArray(tradeDetails.user_trades) && tradeDetails.user_trades.length > 0 && (

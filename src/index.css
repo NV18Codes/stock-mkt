@@ -3,73 +3,61 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-  /* Primary Brand Colors - Professional Blue */
-  --primary-color: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-light: #3b82f6;
-  --primary-dark: #1e40af;
-  
-  /* Secondary Colors - Light Blue Accents */
-  --secondary-color: #60a5fa;
-  --secondary-hover: #3b82f6;
-  --secondary-light: #93c5fd;
-  --secondary-dark: #2563eb;
-  
-  /* Background Colors - Clean White */
+  /* Primary Brand Colors */
+  --primary-color: #d3503f;          /* Strong orange-red */
+  --primary-color-dark: #b03d2e;     /* Darker orange-red */
+  --primary-hover: #e05a47;          /* Hover state */
+  --primary-light: #e79a7e;          /* Light orange-peach */
+  --primary-dark: #a03d2e;           /* Dark orange-red */
+
+  /* Secondary Colors */
+  --secondary-color: #2d6fa0;        /* Medium blue */
+  --secondary-hover: #146fb4;        /* Bright blue */
+  --secondary-light: #7393ab;        /* Grayish blue */
+  --secondary-dark: #1e4a6b;         /* Dark blue */
+
+  /* Background Colors */
   --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
-  --bg-surface: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e8d4c8;           /* Beige/light cream */
   --bg-card: #ffffff;
-  
-  /* Text Colors - Professional Dark */
-  --text-primary: #0f172a;
-  --text-secondary: #1e293b;
-  --text-muted: #475569;
+  --bg-dark: #2c3e50;
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Text Colors */
+  --text-primary: #2c3e50;
+  --text-secondary: #6c757d;
+  --text-light: #ffffff;
+  --text-muted: #9ca3af;
   --text-inverse: #ffffff;
-  
+
   /* Border Colors */
-  --border-primary: #e2e8f0;
-  --border-secondary: #cbd5e1;
-  --border-accent: #2563eb;
-  
+  --border-color: #e5e7eb;
+  --border-primary: #e5e7eb;
+  --border-accent: var(--primary-color);
+  --border-focus: var(--secondary-color);
+
   /* Status Colors */
-  --success-color: #059669;
-  --success-hover: #047857;
-  --warning-color: #d97706;
-  --warning-hover: #b45309;
-  --danger-color: #dc2626;
-  --danger-hover: #b91c1c;
-  --info-color: #2563eb;
-  --info-hover: #1d4ed8;
-  
-  /* Shadows - Subtle & Professional */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
-  
-  /* Gradients - Clean Blue */
-  --gradient-primary: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  --gradient-secondary: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-  --gradient-bg: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  --gradient-hero: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-  --gradient-accent: linear-gradient(135deg, #2563eb 0%, #60a5fa 100%);
-  --gradient-dark: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
-  
-  /* Typography */
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-weight-light: 300;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --font-weight-extrabold: 800;
-  --font-weight-black: 900;
-  
+  --success-color: var(--primary-color);
+  --warning-color: #f59e0b;
+  --danger-color: #ef4444;
+  --danger-color-dark: #dc2626;
+  --info-color: var(--secondary-color);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(211, 80, 63, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(211, 80, 63, 0.1), 0 2px 4px -1px rgba(211, 80, 63, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(211, 80, 63, 0.1), 0 4px 6px -2px rgba(211, 80, 63, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(211, 80, 63, 0.1), 0 10px 10px -5px rgba(211, 80, 63, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(211, 80, 63, 0.25);
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--secondary-color) 0%, var(--secondary-light) 100%);
+  --gradient-hero: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  --gradient-accent: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary-light) 100%);
+  --gradient-bg: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+
   /* Spacing */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -77,14 +65,33 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
   --spacing-2xl: 3rem;
-  
+
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+
   /* Border Radius */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.5rem;
-  --radius-3xl: 2rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+
+  /* Transitions */
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 250ms ease-in-out;
+  --transition-slow: 350ms ease-in-out;
 }
 
 * {

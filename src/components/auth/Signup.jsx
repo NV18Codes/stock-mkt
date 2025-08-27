@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { signup } from '../../api/auth';
 import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaPhone, FaChartLine, FaArrowLeft } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
-import v4Logo from '../../assets/logo-V4.png';
+import v4Logo from '../../assets/Logo-updated-removebg-preview.png';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -148,8 +148,8 @@ const Signup = () => {
           marginBottom: '2.5rem' 
         }}>
           <div style={{
-            width: '80px',
-            height: '80px',
+            width: '120px',
+            height: '120px',
             background: 'white',
             borderRadius: '50%',
             display: 'flex',
@@ -166,7 +166,7 @@ const Signup = () => {
               src={v4Logo} 
               alt="V4 Fintech Solutions" 
               style={{ 
-                height: '80px', 
+                height: '120px', 
                 width: 'auto',
                 borderRadius: '50%'
               }}

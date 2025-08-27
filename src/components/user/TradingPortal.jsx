@@ -161,7 +161,7 @@ const TradingPortal = () => {
 
       {clearBrokerStatus && (
         <div style={{ 
-          background: clearBrokerStatus.includes('successfully') ? 'linear-gradient(135deg, #00d4aa, #00b894)' : 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
+          background: clearBrokerStatus.includes('successfully') ? 'var(--gradient-primary)' : 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
           color: '#ffffff', 
           padding: 'clamp(0.8em, 2vw, 1em)', 
           borderRadius: '12px', 
@@ -169,7 +169,7 @@ const TradingPortal = () => {
           border: '1px solid rgba(255,255,255,0.2)', 
           fontSize: 'clamp(12px, 2.5vw, 14px)',
           fontWeight: 500,
-          boxShadow: clearBrokerStatus.includes('successfully') ? '0 4px 15px rgba(0,212,170,0.3)' : '0 4px 15px rgba(255,107,107,0.3)'
+                      boxShadow: clearBrokerStatus.includes('successfully') ? '0 4px 15px rgba(211, 80, 63, 0.3)' : '0 4px 15px rgba(255,107,107,0.3)'
         }}>
           {clearBrokerStatus}
         </div>

@@ -47,7 +47,7 @@ const BrokerAccountSettings = () => {
     setError('');
     try {
       // Fetch broker profile using the new API endpoint
-      const profileRes = await fetch('https://apistocktrading-production.up.railway.app/api/users/me/broker/profile', {
+      const profileRes = await fetch('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/profile', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -298,11 +298,11 @@ const BrokerAccountSettings = () => {
       }}>
         {/* Connection Status */}
         <div style={{ 
-          background: status === 'ACTIVE' ? 'linear-gradient(135deg, #00d4aa, #00b894)' : 'linear-gradient(135deg, #ff6b6b, #ee5a52)', 
+          background: status === 'ACTIVE' ? 'var(--gradient-primary)' : 'linear-gradient(135deg, #ff6b6b, #ee5a52)', 
           color: '#ffffff', 
           padding: 'clamp(1.2em, 2.5vw, 1.5em)', 
           borderRadius: '16px', 
-          boxShadow: status === 'ACTIVE' ? '0 8px 25px rgba(0,212,170,0.3)' : '0 8px 25px rgba(255,107,107,0.3)',
+                          boxShadow: status === 'ACTIVE' ? '0 8px 25px rgba(211, 80, 63, 0.3)' : '0 8px 25px rgba(255,107,107,0.3)',
           border: '1px solid rgba(255,255,255,0.2)'
         }}>
           <h3 style={{ margin: '0 0 0.5em 0', fontSize: 'clamp(14px, 2.5vw, 16px)', opacity: 0.9 }}>Connection Status</h3>
@@ -378,7 +378,7 @@ const BrokerAccountSettings = () => {
 
       {success && (
         <div style={{ 
-          background: 'linear-gradient(135deg, #00d4aa, #00b894)', 
+          background: 'var(--gradient-primary)', 
           color: '#ffffff', 
           padding: 'clamp(0.8em, 2vw, 1em)', 
           borderRadius: '12px', 
@@ -386,7 +386,7 @@ const BrokerAccountSettings = () => {
           border: '1px solid rgba(255,255,255,0.2)', 
           fontSize: 'clamp(12px, 2.5vw, 14px)',
           fontWeight: 500,
-          boxShadow: '0 4px 15px rgba(0,212,170,0.3)'
+                      boxShadow: '0 4px 15px rgba(211, 80, 63, 0.3)'
         }}>
           ✅ {success}
         </div>
@@ -407,21 +407,21 @@ const BrokerAccountSettings = () => {
               padding: 'clamp(0.8em, 2vw, 1em) clamp(1.5em, 3vw, 2em)',
               borderRadius: '12px',
               border: 'none',
-              background: 'linear-gradient(135deg, #00d4aa, #0099cc)',
+              background: 'var(--gradient-accent)',
               color: '#ffffff',
               fontWeight: 600,
               fontSize: 'clamp(14px, 2.5vw, 16px)',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
-              boxShadow: '0 4px 15px rgba(0,212,170,0.3)'
+              boxShadow: '0 4px 15px rgba(211, 80, 63, 0.3)'
             }}
             onMouseEnter={(e) => {
               e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 6px 20px rgba(0,212,170,0.4)';
+              e.target.style.boxShadow = '0 6px 20px rgba(211, 80, 63, 0.4)';
             }}
             onMouseLeave={(e) => {
               e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 15px rgba(0,212,170,0.3)';
+              e.target.style.boxShadow = '0 4px 15px rgba(211, 80, 63, 0.3)';
             }}
           >
             🔗 Connect Broker Account
@@ -643,14 +643,14 @@ const BrokerAccountSettings = () => {
             ) : (
               <div style={{ textAlign: 'center' }}>
                 <div style={{ 
-                  background: 'rgba(0,212,170,0.1)', 
+                  background: 'rgba(211, 80, 63, 0.1)', 
                   padding: 'clamp(1.5em, 3vw, 2em)', 
                   borderRadius: '12px', 
-                  border: '1px solid rgba(0,212,170,0.2)',
+                  border: '1px solid rgba(211, 80, 63, 0.2)',
                   marginBottom: '2em'
                 }}>
                   <h3 style={{ 
-                    color: '#00d4aa', 
+                    color: 'var(--primary-color)', 
                     marginBottom: '1em',
                     fontSize: 'clamp(1.2em, 3vw, 1.5em)'
                   }}>
@@ -812,13 +812,13 @@ const BrokerAccountSettings = () => {
             </div>
             
             <div style={{ 
-              background: 'rgba(0,212,170,0.1)', 
+              background: 'rgba(211, 80, 63, 0.1)', 
               padding: 'clamp(1em, 2vw, 1.2em)', 
               borderRadius: '12px', 
-              border: '1px solid rgba(0,212,170,0.2)' 
+              border: '1px solid rgba(211, 80, 63, 0.2)' 
             }}>
               <div style={{ fontWeight: 600, color: '#2c3e50', marginBottom: '0.5em', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Client ID</div>
-              <div style={{ color: '#00d4aa', fontSize: 'clamp(14px, 2.5vw, 16px)' }}>
+              <div style={{ color: 'var(--primary-color)', fontSize: 'clamp(14px, 2.5vw, 16px)' }}>
                 {showHashedDetails ? brokerProfile.client_id : hashSensitiveData(brokerProfile.client_id)}
               </div>
             </div>
@@ -893,9 +893,9 @@ const BrokerAccountSettings = () => {
             alignItems: 'flex-start', 
             gap: '1em',
             padding: '1em',
-            background: 'rgba(0,212,170,0.1)',
+            background: 'rgba(211, 80, 63, 0.1)',
             borderRadius: '8px',
-            border: '1px solid rgba(0,212,170,0.2)'
+            border: '1px solid rgba(211, 80, 63, 0.2)'
           }}>
             <span style={{ fontSize: '1.2em' }}>🔑</span>
             <div>

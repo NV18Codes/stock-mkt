@@ -42,12 +42,12 @@ axios.interceptors.response.use(
 );
 
 // AUTH API endpoints - Updated with exact URLs from the provided APIs
-export const signup = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/signup', data);
-export const signin = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/signin', data);
-export const signout = () => axios.get('https://apistocktrading-production.up.railway.app/api/auth/signout');
-export const getCurrentUser = () => axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
-export const forgotPassword = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/forgot-password', data);
-export const resetPassword = (data) => axios.post('https://apistocktrading-production.up.railway.app/api/auth/reset-password', {
+export const signup = (data) => axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/signup', data);
+export const signin = (data) => axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/signin', data);
+export const signout = () => axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/signout');
+export const getCurrentUser = () => axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/me');
+export const forgotPassword = (data) => axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/forgot-password', data);
+export const resetPassword = (data) => axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/reset-password', {
   password: data.password,
   accessToken: data.accessToken
 });
@@ -64,7 +64,7 @@ export const changeEmail = async (data) => {
     };
     
     console.log('Sending email change request with data:', apiData);
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/change-email', apiData);
+    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/change-email', apiData);
     return response.data;
   } catch (error) {
     console.error('Email change failed:', error);
@@ -75,14 +75,14 @@ export const changeEmail = async (data) => {
 export const userProfileUpdate = async (data) => {
   try {
     console.log('Attempting profile update with data:', data);
-    const response = await axios.put('https://apistocktrading-production.up.railway.app/api/users/me/profileUpdate', data);
+    const response = await axios.put('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/profileUpdate', data);
     return response.data;
   } catch (error) {
     console.error('Profile update failed, trying alternative endpoint...');
     
     // Try alternative endpoint if the first one fails
     try {
-      const altResponse = await axios.put('https://apistocktrading-production.up.railway.app/api/users/profile', data);
+      const altResponse = await axios.put('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile', data);
       return altResponse.data;
     } catch (altError) {
       console.error('Alternative profile update also failed:', altError);
@@ -112,7 +112,7 @@ export const addBrokerAccount = async (data) => {
     
     console.log('Sending API payload:', apiPayload);
     
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/connect', apiPayload);
+    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/connect', apiPayload);
     console.log('Broker connection response:', response.data);
     
     return response.data;
@@ -130,7 +130,7 @@ export const addBrokerAccount = async (data) => {
 
 export const getDematLimit = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/rmsLimit');
+    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/rmsLimit');
     return response.data;
   } catch (error) {
     console.error('Error fetching demat limit:', error);
@@ -164,7 +164,7 @@ export const getDematLimit = async () => {
 
 export const verifyBrokerConnection = async (data) => {
   try {
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/verify', data);
+    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/verify', data);
     return response.data;
   } catch (error) {
     console.error('Error verifying broker connection:', error);
@@ -176,14 +176,14 @@ export const fetchMyBrokerProfile = async (totpData = null) => {
   try {
     if (totpData) {
       // If TOTP provided, use the profile endpoint
-      const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/profile', totpData);
+      const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/profile', totpData);
       console.log('Broker profile response with TOTP:', response.data);
       return response.data;
     } else {
       // Try to get broker info from user data first
       console.log('No TOTP provided, trying to get broker info from user data...');
       try {
-        const userResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+        const userResponse = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/me');
         const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
         
         console.log('User data for broker check:', userData);
@@ -235,7 +235,7 @@ export const fetchMyBrokerProfile = async (totpData = null) => {
 
 export const fetchBrokerConnectionStatus = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/status');
+    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/status');
     return response.data;
   } catch (error) {
     console.error('Error fetching broker connection status:', error);
@@ -256,7 +256,7 @@ export const clearBrokerConnection = async () => {
     console.log('Clearing broker connection...');
     
     // Call the primary endpoint for clearing broker connection
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/users/me/broker/clear');
+    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/clear');
     console.log('Clear broker response:', response.data);
 
     if (response.data && response.data.success) {
@@ -290,7 +290,7 @@ export const clearBrokerConnection = async () => {
     // If the primary endpoint fails, try alternative approaches
     try {
       console.log('Primary endpoint failed, trying alternative clear endpoint...');
-      const altResponse = await axios.delete('https://apistocktrading-production.up.railway.app/api/users/me/broker');
+      const altResponse = await axios.delete('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker');
       console.log('Alternative clear response:', altResponse.data);
 
       if (altResponse.data && altResponse.data.success) {
@@ -345,7 +345,7 @@ export const clearBrokerConnection = async () => {
 
 export const clearBrokerProfile = async () => {
   try {
-    const response = await axios.delete('https://apistocktrading-production.up.railway.app/api/users/me/broker/clear');
+    const response = await axios.delete('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/clear');
     return response.data;
   } catch (error) {
     console.error('Error clearing broker profile:', error);
@@ -368,7 +368,7 @@ export const refreshBrokerConnection = async (refreshToken) => {
 // Enhanced get current user details with better error handling and data normalization
 export const getCurrentUserEnhanced = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/me');
     
     // Normalize the response data
     let userData;
@@ -430,7 +430,7 @@ export const updateProfile = async (data) => {
     const endpoints = [
       // API structure from user specification - Try this first
       {
-        url: 'https://apistocktrading-production.up.railway.app/api/users/profile',
+        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile',
         method: 'PUT',
         data: {
           fullname: data.fullName,
@@ -438,7 +438,7 @@ export const updateProfile = async (data) => {
         }
       },
       {
-        url: 'https://apistocktrading-production.up.railway.app/api/users/profile',
+        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile',
         method: 'PUT',
         data: {
           full_name: data.fullName,
@@ -446,7 +446,7 @@ export const updateProfile = async (data) => {
         }
       },
       {
-        url: 'https://apistocktrading-production.up.railway.app/api/users/profile',
+        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile',
         method: 'PUT',
         data: {
           name: data.fullName,
@@ -454,27 +454,27 @@ export const updateProfile = async (data) => {
         }
       },
       {
-        url: 'https://apistocktrading-production.up.railway.app/api/users/profile',
+        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile',
         method: 'PUT',
         data: data
       },
       {
-        url: 'https://apistocktrading-production.up.railway.app/api/users/profile',
+        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile',
         method: 'POST',
         data: data
       },
       {
-        url: 'https://apistocktrading-production.up.railway.app/api/users/me/profileUpdate',
+        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/profileUpdate',
         method: 'PUT',
         data: data
       },
       {
-        url: 'https://apistocktrading-production.up.railway.app/api/users/me/profile',
+        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/profile',
         method: 'PUT',
         data: data
       },
       {
-        url: 'https://apistocktrading-production.up.railway.app/api/users/me',
+        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me',
         method: 'PUT',
         data: data
       }
@@ -539,7 +539,7 @@ export const updateProfile = async (data) => {
 export const getUserProfile = async () => {
   try {
     // Since the profile endpoint is not available, directly use the working auth endpoint
-    const userResponse = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+    const userResponse = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/me');
     
     const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
     

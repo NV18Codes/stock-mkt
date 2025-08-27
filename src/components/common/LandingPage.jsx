@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, TrendingUp, Shield, Zap, Users, BarChart3, Menu, X } from 'lucide-react';
-import v4Logo from '../../assets/logo-V4.png';
+import v4Logo from '../../assets/Logo-updated-removebg-preview.png';
 
 const LandingPage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -61,7 +61,7 @@ const LandingPage = () => {
         style={{
           background: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid #e2e8f0',
+          borderBottom: '1px solid var(--border-primary)',
           padding: '1rem 2rem',
           position: 'sticky',
           top: 0,
@@ -75,21 +75,11 @@ const LandingPage = () => {
           whileHover={{ scale: 1.05 }}
           style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}
         >
-          <img 
-            src={v4Logo} 
-            alt="V4 Fintech Solutions" 
-            style={{ height: '40px', width: 'auto' }}
-          />
-          <span style={{ 
-            fontSize: '1.5rem', 
-            fontWeight: '700', 
-            background: 'var(--gradient-primary)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>
-            V4 Fintech
-          </span>
+                     <img 
+             src={v4Logo} 
+             alt="V4 Fintech Solutions" 
+             style={{ height: '120px', width: 'auto' }}
+           />
         </motion.div>
 
         {/* Mobile Menu Toggle - Always visible on mobile */}
@@ -97,7 +87,7 @@ const LandingPage = () => {
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             style={{
-              background: '#2563eb',
+              background: 'var(--secondary-color)',
               border: '2px solid white',
               borderRadius: '12px',
               padding: '1rem',
@@ -106,7 +96,7 @@ const LandingPage = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 20px rgba(37, 99, 235, 0.4)',
+              boxShadow: 'var(--shadow-lg)',
               minWidth: '56px',
               minHeight: '56px',
               fontSize: '1.2rem'
@@ -121,7 +111,7 @@ const LandingPage = () => {
         {!isMobile && (
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <Link to="/login" style={{
-              color: '#475569',
+              color: 'var(--text-muted)',
               textDecoration: 'none',
               padding: '0.75rem 1.5rem',
               borderRadius: '8px',
@@ -130,28 +120,28 @@ const LandingPage = () => {
               fontSize: '0.95rem'
             }}
             onMouseEnter={(e) => {
-              e.target.style.color = '#00d4aa';
+              e.target.style.color = 'var(--primary-color)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.color = '#475569';
+              e.target.style.color = 'var(--text-muted)';
             }}>
               Sign In
             </Link>
             <Link to="/signup" style={{
-              color: '#ffffff',
+              color: 'var(--text-inverse)',
               borderRadius: '8px',
               padding: '0.75rem 1.5rem',
-              background: '#00d4aa',
+              background: 'var(--primary-color)',
               textDecoration: 'none',
               fontWeight: '600',
               transition: 'all 0.2s ease',
               fontSize: '0.95rem'
             }}
             onMouseEnter={(e) => {
-              e.target.style.background = '#00b894';
+              e.target.style.background = 'var(--primary-hover)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.background = '#00d4aa';
+              e.target.style.background = 'var(--primary-color)';
             }}>
               Get Started
             </Link>
@@ -160,72 +150,72 @@ const LandingPage = () => {
 
         {/* Mobile Menu Overlay */}
         {isMobile && isMobileMenuOpen && (
-          <div style={{
-            position: 'fixed',
-            top: '100%',
-            left: 0,
-            right: 0,
-            background: 'rgba(255, 255, 255, 0.98)',
-            backdropFilter: 'blur(20px)',
-            borderBottom: '1px solid #e2e8f0',
-            padding: '2rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.5rem',
-            zIndex: 999,
-            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
-            borderTop: '1px solid #e2e8f0'
-          }}>
-            <h3 style={{ 
-              fontSize: '1.5rem', 
-              fontWeight: '600', 
-              color: '#0f172a',
-              marginBottom: '1rem',
-              textAlign: 'center'
-            }}>
+                     <div style={{
+             position: 'fixed',
+             top: '100%',
+             left: 0,
+             right: 0,
+             background: 'rgba(255, 255, 255, 0.98)',
+             backdropFilter: 'blur(20px)',
+             borderBottom: '1px solid var(--border-primary)',
+             padding: '2rem',
+             display: 'flex',
+             flexDirection: 'column',
+             gap: '1.5rem',
+             zIndex: 999,
+             boxShadow: 'var(--shadow-lg)',
+             borderTop: '1px solid var(--border-primary)'
+           }}>
+                         <h3 style={{ 
+               fontSize: '1.5rem', 
+               fontWeight: '600', 
+               color: 'var(--text-primary)',
+               marginBottom: '1rem',
+               textAlign: 'center'
+             }}>
               Navigation
             </h3>
-            <Link to="/login" style={{
-              color: '#475569',
-              textDecoration: 'none',
-              padding: '1rem 1.5rem',
-              borderRadius: '12px',
-              fontWeight: '600',
-              textAlign: 'center',
-              border: '2px solid #e2e8f0',
-              transition: 'all 0.3s ease',
-              fontSize: '1.1rem'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.borderColor = '#00d4aa';
-              e.target.style.color = '#00d4aa';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.borderColor = '#e2e8f0';
-              e.target.style.color = '#475569';
-            }}>
+                         <Link to="/login" style={{
+               color: 'var(--text-muted)',
+               textDecoration: 'none',
+               padding: '1rem 1.5rem',
+               borderRadius: '12px',
+               fontWeight: '600',
+               textAlign: 'center',
+               border: '2px solid var(--border-primary)',
+               transition: 'all 0.3s ease',
+               fontSize: '1.1rem'
+             }}
+             onMouseEnter={(e) => {
+               e.target.style.borderColor = 'var(--primary-color)';
+               e.target.style.color = 'var(--primary-color)';
+             }}
+             onMouseLeave={(e) => {
+               e.target.style.borderColor = 'var(--border-primary)';
+               e.target.style.color = 'var(--text-muted)';
+             }}>
               Sign In
             </Link>
-            <Link to="/signup" style={{
-              color: '#ffffff',
-              borderRadius: '12px',
-              padding: '1rem 1.5rem',
-              background: '#00d4aa',
-              textDecoration: 'none',
-              fontWeight: '600',
-              textAlign: 'center',
-              fontSize: '1.1rem',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 4px 15px rgba(0, 212, 170, 0.3)'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 8px 25px rgba(0, 212, 170, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 15px rgba(0, 212, 170, 0.3)';
-            }}>
+                         <Link to="/signup" style={{
+               color: 'var(--text-inverse)',
+               borderRadius: '12px',
+               padding: '1rem 1.5rem',
+               background: 'var(--primary-color)',
+               textDecoration: 'none',
+               fontWeight: '600',
+               textAlign: 'center',
+               fontSize: '1.1rem',
+               transition: 'all 0.3s ease',
+               boxShadow: 'var(--shadow-md)'
+             }}
+             onMouseEnter={(e) => {
+               e.target.style.transform = 'translateY(-2px)';
+               e.target.style.boxShadow = 'var(--shadow-xl)';
+             }}
+             onMouseLeave={(e) => {
+               e.target.style.transform = 'translateY(0)';
+               e.target.style.boxShadow = 'var(--shadow-md)';
+             }}>
               Get Started
             </Link>
           </div>
@@ -248,35 +238,35 @@ const LandingPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         >
-          <h1 style={{ 
-            fontSize: isMobile ? '2.5rem' : '4rem',
-            fontWeight: '800',
-            color: '#0f172a',
-            marginBottom: '1.5rem',
-            lineHeight: '1.1',
-            maxWidth: '800px'
-          }}>
-            The Future of{' '}
-            <span style={{ 
-              background: 'var(--gradient-primary)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}>
-              Stock Trading
-            </span>
-            {' '}is Here
-          </h1>
+                     <h1 style={{ 
+             fontSize: isMobile ? '2.5rem' : '4rem',
+             fontWeight: '800',
+             color: 'var(--text-primary)',
+             marginBottom: '1.5rem',
+             lineHeight: '1.1',
+             maxWidth: '800px'
+           }}>
+             The Future of{' '}
+             <span style={{ 
+               background: 'var(--gradient-primary)',
+               WebkitBackgroundClip: 'text',
+               WebkitTextFillColor: 'transparent',
+               backgroundClip: 'text'
+             }}>
+               Stock Trading
+             </span>
+             {' '}is Here
+           </h1>
           
-          <p style={{ 
-            color: '#475569',
-            fontSize: isMobile ? '1rem' : '1.25rem',
-            maxWidth: '600px',
-            margin: '0 auto 3rem',
-            lineHeight: '1.6',
-            fontWeight: '400',
-            padding: isMobile ? '0 1rem' : '0'
-          }}>
+                     <p style={{ 
+             color: 'var(--text-muted)',
+             fontSize: isMobile ? '1rem' : '1.25rem',
+             maxWidth: '600px',
+             margin: '0 auto 3rem',
+             lineHeight: '1.6',
+             fontWeight: '400',
+             padding: isMobile ? '0 1rem' : '0'
+           }}>
             Join thousands of traders who trust V4 Fintech Solutions for their trading journey. 
             Experience the future of trading with our advanced platform.
           </p>
@@ -290,52 +280,52 @@ const LandingPage = () => {
             padding: isMobile ? '0 1rem' : '0'
           }}>
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Link to="/signup" style={{ 
-                padding: '1rem 2rem',
-                background: 'var(--gradient-primary)',
-                color: 'white',
-                textDecoration: 'none',
-                borderRadius: '12px',
-                fontWeight: '600',
-                fontSize: '1.1rem',
-                display: 'inline-block',
-                boxShadow: '0 4px 15px rgba(37, 99, 235, 0.3)',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 8px 25px rgba(37, 99, 235, 0.4)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)';
-                e.target.style.boxShadow = '0 4px 15px rgba(37, 99, 235, 0.3)';
-              }}>
+                             <Link to="/signup" style={{ 
+                 padding: '1rem 2rem',
+                 background: 'var(--gradient-primary)',
+                 color: 'white',
+                 textDecoration: 'none',
+                 borderRadius: '12px',
+                 fontWeight: '600',
+                 fontSize: '1.1rem',
+                 display: 'inline-block',
+                 boxShadow: 'var(--shadow-md)',
+                 transition: 'all 0.3s ease'
+               }}
+               onMouseEnter={(e) => {
+                 e.target.style.transform = 'translateY(-2px)';
+                 e.target.style.boxShadow = 'var(--shadow-xl)';
+               }}
+               onMouseLeave={(e) => {
+                 e.target.style.transform = 'translateY(0)';
+                 e.target.style.boxShadow = 'var(--shadow-md)';
+               }}>
                 Start Trading Now
                 <ArrowRight size={20} style={{ marginLeft: '0.5rem', verticalAlign: 'middle' }} />
               </Link>
             </motion.div>
             
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Link to="/login" style={{ 
-                padding: '1rem 2rem',
-                background: 'transparent',
-                color: '#475569',
-                textDecoration: 'none',
-                borderRadius: '12px',
-                fontWeight: '600',
-                fontSize: '1.1rem',
-                display: 'inline-block',
-                border: '2px solid #e2e8f0',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.borderColor = '#00d4aa';
-                e.target.style.color = '#00d4aa';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.borderColor = '#e2e8f0';
-                e.target.style.color = '#475569';
-              }}>
+                           <Link to="/login" style={{ 
+               padding: '1rem 2rem',
+               background: 'transparent',
+               color: 'var(--text-muted)',
+               textDecoration: 'none',
+               borderRadius: '12px',
+               fontWeight: '600',
+               fontSize: '1.1rem',
+               display: 'inline-block',
+               border: '2px solid var(--border-primary)',
+               transition: 'all 0.3s ease'
+             }}
+             onMouseEnter={(e) => {
+               e.target.style.borderColor = 'var(--primary-color)';
+               e.target.style.color = 'var(--primary-color)';
+             }}
+             onMouseLeave={(e) => {
+               e.target.style.borderColor = 'var(--border-primary)';
+               e.target.style.color = 'var(--text-muted)';
+             }}>
                 Sign In
               </Link>
             </motion.div>
@@ -356,21 +346,21 @@ const LandingPage = () => {
             viewport={{ once: true }}
             style={{ textAlign: 'center', marginBottom: '4rem' }}
           >
-            <h2 style={{ 
-              fontSize: '2.5rem', 
-              fontWeight: '700', 
-              color: '#0f172a',
-              marginBottom: '1rem'
-            }}>
-              Why Choose V4 Fintech?
-            </h2>
-            <p style={{ 
-              fontSize: '1.1rem', 
-              color: '#475569', 
-              maxWidth: '600px', 
-              margin: '0 auto',
-              lineHeight: '1.6'
-            }}>
+                         <h2 style={{ 
+               fontSize: '2.5rem', 
+               fontWeight: '700', 
+               color: 'var(--text-primary)',
+               marginBottom: '1rem'
+             }}>
+               Why Choose V4 Fintech?
+             </h2>
+             <p style={{ 
+               fontSize: '1.1rem', 
+               color: 'var(--text-muted)', 
+               maxWidth: '600px', 
+               margin: '0 auto',
+               lineHeight: '1.6'
+             }}>
               Experience the most advanced trading platform with cutting-edge technology and unparalleled support.
             </p>
           </motion.div>
@@ -390,13 +380,13 @@ const LandingPage = () => {
                 viewport={{ once: true }}
                 whileHover={{ y: -5 }}
                 style={{
-                  background: '#ffffff',
+                  background: 'var(--bg-card)',
                   padding: '2rem',
                   borderRadius: '16px',
-                  border: '1px solid #e2e8f0',
+                  border: '1px solid var(--border-primary)',
                   textAlign: 'center',
                   transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  boxShadow: 'var(--shadow-md)'
                 }}
               >
                 <div style={{
@@ -415,13 +405,13 @@ const LandingPage = () => {
                 <h3 style={{ 
                   fontSize: '1.5rem', 
                   fontWeight: '600', 
-                  color: '#0f172a',
+                  color: 'var(--text-primary)',
                   marginBottom: '1rem'
                 }}>
                   {feature.title}
                 </h3>
                 <p style={{ 
-                  color: '#475569', 
+                  color: 'var(--text-muted)', 
                   lineHeight: '1.6',
                   fontSize: '1rem'
                 }}>
@@ -433,10 +423,10 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Subscription Model Section */}
+      {/* Enhanced Features Section */}
       <section style={{
         padding: '6rem 2rem',
-        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
+        background: 'var(--gradient-bg)'
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
           <motion.div
@@ -448,19 +438,19 @@ const LandingPage = () => {
             <h2 style={{ 
               fontSize: '2.5rem', 
               fontWeight: '700', 
-              color: '#0f172a',
+              color: 'var(--text-primary)',
               marginBottom: '1rem'
             }}>
-              Choose Your Trading Plan
+              Why Choose Our Trading Platform?
             </h2>
             <p style={{ 
               fontSize: '1.1rem', 
-              color: '#475569', 
+              color: 'var(--text-muted)', 
               maxWidth: '600px', 
               margin: '0 auto 3rem',
               lineHeight: '1.6'
             }}>
-              Start with our free plan and upgrade as you grow. No hidden fees, transparent pricing.
+              Experience the next generation of trading with our cutting-edge technology and comprehensive features.
             </p>
           </motion.div>
 
@@ -470,7 +460,7 @@ const LandingPage = () => {
             gap: '2rem',
             marginTop: '3rem'
           }}>
-            {/* Free Plan */}
+            {/* Advanced Analytics */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -478,68 +468,67 @@ const LandingPage = () => {
               viewport={{ once: true }}
               whileHover={{ y: -5 }}
               style={{
-                background: '#ffffff',
+                background: 'var(--bg-card)',
                 padding: '2rem',
                 borderRadius: '16px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--border-primary)',
                 textAlign: 'center',
                 transition: 'all 0.3s ease',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                boxShadow: 'var(--shadow-md)'
               }}
             >
+              <div style={{
+                background: 'var(--gradient-primary)',
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.5rem',
+                boxShadow: 'var(--shadow-lg)'
+              }}>
+                <BarChart3 size={32} color="white" />
+              </div>
               <h3 style={{ 
                 fontSize: '1.5rem', 
                 fontWeight: '600', 
-                color: '#0f172a',
-                marginBottom: '0.5rem'
-              }}>
-                Free Plan
-              </h3>
-              <div style={{ 
-                fontSize: '2.5rem', 
-                fontWeight: '700', 
-                color: '#00d4aa',
+                color: 'var(--text-primary)',
                 marginBottom: '1rem'
               }}>
-                $0
-                <span style={{ fontSize: '1rem', color: '#475569', fontWeight: '400' }}>/month</span>
-              </div>
-              <ul style={{ 
-                listStyle: 'none', 
-                padding: 0, 
-                margin: '1.5rem 0',
-                textAlign: 'left'
+                Advanced Analytics
+              </h3>
+              <p style={{ 
+                color: 'var(--text-muted)', 
+                lineHeight: '1.6',
+                marginBottom: '1.5rem'
               }}>
-                <li style={{ padding: '0.5rem 0', color: '#475569' }}>✓ Basic trading features</li>
-                <li style={{ padding: '0.5rem 0', color: '#475569' }}>✓ Real-time market data</li>
-                <li style={{ padding: '0.5rem 0', color: '#475569' }}>✓ Basic charting tools</li>
-                <li style={{ padding: '0.5rem 0', color: '#475569' }}>✓ Community support</li>
-              </ul>
+                Get deep insights into market trends with our advanced analytics and AI-powered predictions.
+              </p>
               <Link to="/signup" style={{
                 display: 'inline-block',
-                width: '100%',
-                padding: '1rem',
+                padding: '0.75rem 1.5rem',
                 background: 'transparent',
-                color: '#00d4aa',
+                color: 'var(--primary-color)',
                 textDecoration: 'none',
                 borderRadius: '8px',
-                border: '2px solid #00d4aa',
+                border: '2px solid var(--primary-color)',
                 fontWeight: '600',
                 transition: 'all 0.3s ease'
               }}
               onMouseEnter={(e) => {
-                e.target.style.background = '#00d4aa';
+                e.target.style.background = 'var(--primary-color)';
                 e.target.style.color = 'white';
               }}
               onMouseLeave={(e) => {
                 e.target.style.background = 'transparent';
-                e.target.style.color = '#00d4aa';
+                e.target.style.color = 'var(--primary-color)';
               }}>
-                Get Started Free
+                Learn More
               </Link>
             </motion.div>
 
-            {/* Pro Plan */}
+            {/* Real-time Trading */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -553,58 +542,43 @@ const LandingPage = () => {
                 color: 'white',
                 textAlign: 'center',
                 transition: 'all 0.3s ease',
-                boxShadow: '0 8px 25px rgba(37, 99, 235, 0.3)',
+                boxShadow: 'var(--shadow-xl)',
                 position: 'relative',
                 transform: 'scale(1.05)'
               }}
             >
               <div style={{
-                position: 'absolute',
-                top: '-10px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: '#00d4aa',
-                color: 'white',
-                padding: '0.5rem 1rem',
-                borderRadius: '20px',
-                fontSize: '0.9rem',
-                fontWeight: '600'
+                background: 'rgba(255, 255, 255, 0.2)',
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.5rem',
+                backdropFilter: 'blur(10px)'
               }}>
-                Most Popular
+                <TrendingUp size={32} color="white" />
               </div>
               <h3 style={{ 
                 fontSize: '1.5rem', 
                 fontWeight: '600',
-                marginBottom: '0.5rem'
-              }}>
-                Pro Plan
-              </h3>
-              <div style={{ 
-                fontSize: '2.5rem', 
-                fontWeight: '700',
                 marginBottom: '1rem'
               }}>
-                $29
-                <span style={{ fontSize: '1rem', opacity: 0.8, fontWeight: '400' }}>/month</span>
-              </div>
-              <ul style={{ 
-                listStyle: 'none', 
-                padding: 0, 
-                margin: '1.5rem 0',
-                textAlign: 'left'
+                Real-time Trading
+              </h3>
+              <p style={{ 
+                opacity: 0.9, 
+                lineHeight: '1.6',
+                marginBottom: '1.5rem'
               }}>
-                <li style={{ padding: '0.5rem 0', opacity: 0.9 }}>✓ Everything in Free</li>
-                <li style={{ padding: '0.5rem 0', opacity: 0.9 }}>✓ Advanced charting</li>
-                <li style={{ padding: '0.5rem 0', opacity: 0.9 }}>✓ Priority support</li>
-                <li style={{ padding: '0.5rem 0', opacity: 0.9 }}>✓ Custom indicators</li>
-                <li style={{ padding: '0.5rem 0', opacity: 0.9 }}>✓ API access</li>
-              </ul>
+                Execute trades with lightning-fast speed and real-time market data from global exchanges.
+              </p>
               <Link to="/signup" style={{
                 display: 'inline-block',
-                width: '100%',
-                padding: '1rem',
+                padding: '0.75rem 1.5rem',
                 background: 'white',
-                color: '#2563eb',
+                color: 'var(--primary-color)',
                 textDecoration: 'none',
                 borderRadius: '8px',
                 fontWeight: '600',
@@ -612,17 +586,17 @@ const LandingPage = () => {
               }}
               onMouseEnter={(e) => {
                 e.target.style.transform = 'translateY(-2px)';
-                e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
+                e.target.style.boxShadow = 'var(--shadow-md)';
               }}
               onMouseLeave={(e) => {
                 e.target.style.transform = 'translateY(0)';
                 e.target.style.boxShadow = 'none';
               }}>
-                Start Pro Trial
+                Start Trading
               </Link>
             </motion.div>
 
-            {/* Enterprise Plan */}
+            {/* Security & Compliance */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -630,68 +604,150 @@ const LandingPage = () => {
               viewport={{ once: true }}
               whileHover={{ y: -5 }}
               style={{
-                background: '#ffffff',
+                background: 'var(--bg-card)',
                 padding: '2rem',
                 borderRadius: '16px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--border-primary)',
                 textAlign: 'center',
                 transition: 'all 0.3s ease',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                boxShadow: 'var(--shadow-md)'
               }}
             >
+              <div style={{
+                background: 'var(--gradient-primary)',
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.5rem',
+                boxShadow: 'var(--shadow-lg)'
+              }}>
+                <Shield size={32} color="white" />
+              </div>
               <h3 style={{ 
                 fontSize: '1.5rem', 
                 fontWeight: '600', 
-                color: '#0f172a',
-                marginBottom: '0.5rem'
-              }}>
-                Enterprise
-              </h3>
-              <div style={{ 
-                fontSize: '2.5rem', 
-                fontWeight: '700', 
-                color: '#00d4aa',
+                color: 'var(--text-primary)',
                 marginBottom: '1rem'
               }}>
-                Custom
-                <span style={{ fontSize: '1rem', color: '#475569', fontWeight: '400' }}>/month</span>
-              </div>
-              <ul style={{ 
-                listStyle: 'none', 
-                padding: 0, 
-                margin: '1.5rem 0',
-                textAlign: 'left'
+                Security & Compliance
+              </h3>
+              <p style={{ 
+                color: 'var(--text-muted)', 
+                lineHeight: '1.6',
+                marginBottom: '1.5rem'
               }}>
-                <li style={{ padding: '0.5rem 0', color: '#475569' }}>✓ Everything in Pro</li>
-                <li style={{ padding: '0.5rem 0', color: '#475569' }}>✓ Dedicated support</li>
-                <li style={{ padding: '0.5rem 0', color: '#475569' }}>✓ Custom integrations</li>
-                <li style={{ padding: '0.5rem 0', color: '#475569' }}>✓ White-label options</li>
-                <li style={{ padding: '0.5rem 0', color: '#475569' }}>✓ SLA guarantees</li>
-              </ul>
-              <Link to="/contact" style={{
+                Bank-level security with SOC 2 compliance and encrypted connections for your peace of mind.
+              </p>
+              <Link to="/signup" style={{
                 display: 'inline-block',
-                width: '100%',
-                padding: '1rem',
+                padding: '0.75rem 1.5rem',
                 background: 'transparent',
-                color: '#00d4aa',
+                color: 'var(--primary-color)',
                 textDecoration: 'none',
                 borderRadius: '8px',
-                border: '2px solid #00d4aa',
+                border: '2px solid var(--primary-color)',
                 fontWeight: '600',
                 transition: 'all 0.3s ease'
               }}
               onMouseEnter={(e) => {
-                e.target.style.background = '#00d4aa';
+                e.target.style.background = 'var(--primary-color)';
                 e.target.style.color = 'white';
               }}
               onMouseLeave={(e) => {
                 e.target.style.background = 'transparent';
-                e.target.style.color = '#00d4aa';
+                e.target.style.color = 'var(--primary-color)';
               }}>
-                Contact Sales
+                Learn More
               </Link>
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* Call to Action Section */}
+      <section style={{
+        padding: '6rem 2rem',
+        background: 'var(--gradient-primary)',
+        textAlign: 'center'
+      }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+          >
+            <h2 style={{ 
+              fontSize: '2.5rem', 
+              fontWeight: '700', 
+              color: 'white',
+              marginBottom: '1.5rem'
+            }}>
+              Ready to Start Your Trading Journey?
+            </h2>
+            <p style={{ 
+              fontSize: '1.1rem', 
+              color: 'rgba(255, 255, 255, 0.9)', 
+              marginBottom: '2rem',
+              lineHeight: '1.6'
+            }}>
+              Join thousands of successful traders who trust our platform for their investment needs.
+            </p>
+            <div style={{
+              display: 'flex',
+              gap: '1rem',
+              justifyContent: 'center',
+              flexWrap: 'wrap'
+            }}>
+              <Link to="/signup" style={{
+                display: 'inline-block',
+                padding: '1rem 2rem',
+                background: 'white',
+                color: 'var(--primary-color)',
+                textDecoration: 'none',
+                borderRadius: '12px',
+                fontWeight: '600',
+                fontSize: '1.1rem',
+                transition: 'all 0.3s ease',
+                boxShadow: 'var(--shadow-lg)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = 'var(--shadow-xl)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = 'var(--shadow-lg)';
+              }}>
+                Get Started Free
+              </Link>
+              <Link to="/demo" style={{
+                display: 'inline-block',
+                padding: '1rem 2rem',
+                background: 'transparent',
+                color: 'white',
+                textDecoration: 'none',
+                borderRadius: '12px',
+                fontWeight: '600',
+                fontSize: '1.1rem',
+                border: '2px solid white',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'white';
+                e.target.style.color = 'var(--primary-color)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent';
+                e.target.style.color = 'white';
+              }}>
+                Try Demo
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -712,24 +768,14 @@ const LandingPage = () => {
           }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', justifyContent: isMobile ? 'center' : 'flex-start', marginBottom: '1rem' }}>
-                <img 
-                  src={v4Logo} 
-                  alt="V4 Fintech Solutions" 
-                  style={{ height: '40px', width: 'auto' }}
-                />
-                <span style={{ 
-                  fontSize: '1.5rem', 
-                  fontWeight: '700',
-                  background: 'linear-gradient(135deg, #00d4aa 0%, #00b894 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}>
-                  V4 Fintech
-                </span>
+                                 <img 
+                   src={v4Logo} 
+                   alt="Trading Platform Logo" 
+                   style={{ height: '120px', width: 'auto' }}
+                 />
               </div>
               <p style={{ 
-                color: '#94a3b8', 
+                color: 'var(--text-muted)', 
                 lineHeight: '1.6',
                 maxWidth: '300px',
                 margin: isMobile ? '0 auto' : '0'
@@ -754,9 +800,7 @@ const LandingPage = () => {
                 <li style={{ marginBottom: '0.5rem' }}>
                   <Link to="/features" style={{ color: '#94a3b8', textDecoration: 'none' }}>Features</Link>
                 </li>
-                <li style={{ marginBottom: '0.5rem' }}>
-                  <Link to="/pricing" style={{ color: '#94a3b8', textDecoration: 'none' }}>Pricing</Link>
-                </li>
+
                 <li style={{ marginBottom: '0.5rem' }}>
                   <Link to="/contact" style={{ color: '#94a3b8', textDecoration: 'none' }}>Contact</Link>
                 </li>
@@ -820,7 +864,7 @@ const LandingPage = () => {
             textAlign: 'center'
           }}>
             <p style={{ color: '#94a3b8', margin: 0 }}>
-              © 2024 V4 Fintech Solutions. All rights reserved. | 
+              © 2024 Trading Platform. All rights reserved. | 
               <Link to="/privacy" style={{ color: '#94a3b8', textDecoration: 'none', marginLeft: '0.5rem' }}>Privacy</Link> | 
               <Link to="/terms" style={{ color: '#94a3b8', textDecoration: 'none', marginLeft: '0.5rem' }}>Terms</Link>
             </p>

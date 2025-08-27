@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaEnvelope, FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
 import { forgotPassword } from '../../api/auth';
-import v4Logo from '../../assets/logo-V4.png';
+import v4Logo from '../../assets/Logo-updated-removebg-preview.png';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -258,8 +258,8 @@ const ForgotPassword = () => {
           marginBottom: '2.5rem' 
         }}>
           <div style={{
-            width: '80px',
-            height: '80px',
+            width: '120px',
+            height: '120px',
             background: 'white',
             borderRadius: '50%',
             display: 'flex',
@@ -276,7 +276,7 @@ const ForgotPassword = () => {
               src={v4Logo} 
               alt="V4 Fintech Solutions" 
               style={{ 
-                height: '80px', 
+                height: '120px', 
                 width: 'auto',
                 borderRadius: '50%'
               }}

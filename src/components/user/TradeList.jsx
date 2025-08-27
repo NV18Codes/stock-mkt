@@ -33,7 +33,7 @@ const TradeList = () => {
       setLoading(true);
       setError('');
       try {
-        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/trades');
+        const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/trades');
         if (response.data && response.data.success) {
           setTrades(response.data.trades || []);
         } else if (response.data && Array.isArray(response.data)) {
@@ -91,7 +91,7 @@ const TradeList = () => {
   const getStatusColor = (status) => {
     if (!status) return '#6c757d';
     const statusLower = status.toLowerCase();
-    if (statusLower.includes('completed') || statusLower.includes('filled')) return '#00d4aa';
+    if (statusLower.includes('completed') || statusLower.includes('filled')) return 'var(--primary-color)';
     if (statusLower.includes('pending') || statusLower.includes('open')) return '#ffa726';
     if (statusLower.includes('cancelled') || statusLower.includes('rejected')) return '#ff6b6b';
     if (statusLower.includes('partial')) return '#667eea';
@@ -101,7 +101,7 @@ const TradeList = () => {
   const getTypeColor = (type) => {
     if (!type) return '#6c757d';
     const typeLower = type.toLowerCase();
-    if (typeLower.includes('buy')) return '#00d4aa';
+    if (typeLower.includes('buy')) return 'var(--primary-color)';
     if (typeLower.includes('sell')) return '#ff6b6b';
     return '#667eea';
   };
@@ -303,8 +303,8 @@ const TradeList = () => {
             style={{
               padding: 'clamp(0.6em, 1.5vw, 0.8em)',
               borderRadius: '12px',
-              border: '1px solid #00d4aa',
-              background: refreshing ? '#ccc' : 'linear-gradient(135deg, #00d4aa, #00b894)',
+                      border: '1px solid var(--primary-color)',
+        background: refreshing ? '#ccc' : 'var(--gradient-primary)',
               color: '#ffffff',
               cursor: refreshing ? 'not-allowed' : 'pointer',
               transition: 'all 0.3s ease',
@@ -318,7 +318,7 @@ const TradeList = () => {
             onMouseEnter={(e) => {
               if (!refreshing) {
                 e.target.style.transform = 'translateY(-1px)';
-                e.target.style.boxShadow = '0 4px 15px rgba(0,212,170,0.3)';
+                e.target.style.boxShadow = '0 4px 15px rgba(211, 80, 63, 0.3)';
               }
             }}
             onMouseLeave={(e) => {

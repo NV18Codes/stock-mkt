@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaLock, FaEye, FaEyeSlash, FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
 import { resetPassword } from '../../api/auth';
-import v4Logo from '../../assets/logo-V4.png';
+import v4Logo from '../../assets/Logo-updated-removebg-preview.png';
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');
@@ -322,8 +322,8 @@ const ResetPassword = () => {
           marginBottom: '2.5rem' 
         }}>
           <div style={{
-            width: '80px',
-            height: '80px',
+            width: '120px',
+            height: '120px',
             background: 'white',
             borderRadius: '50%',
             display: 'flex',
@@ -340,7 +340,7 @@ const ResetPassword = () => {
               src={v4Logo} 
               alt="V4 Fintech Solutions" 
               style={{ 
-                height: '80px', 
+                height: '120px', 
                 width: 'auto',
                 borderRadius: '50%'
               }}

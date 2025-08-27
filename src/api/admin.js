@@ -4,7 +4,7 @@ import axios from 'axios';
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://apistocktrading-production.up.railway.app/api'))) {
+    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://y9tyscpumt.us-east-1.awsapprunner.com/api'))) {
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
       // Add additional headers for better compatibility
@@ -38,7 +38,7 @@ axios.interceptors.response.use(
 // MARKET DATA API endpoints
 export const getOptionExpiries = async (underlying) => {
   try {
-    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/market-data/option-expiries/${underlying}`);
+    const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/market-data/option-expiries/${underlying}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching option expiries:', error);
@@ -48,7 +48,7 @@ export const getOptionExpiries = async (underlying) => {
 
 export const getOptionChainStructure = async (underlying, expiry) => {
   try {
-    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/market-data/option-chain?underlying=${underlying}&expiry=${expiry}`);
+    const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/market-data/option-chain?underlying=${underlying}&expiry=${expiry}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching option chain structure:', error);
@@ -58,7 +58,7 @@ export const getOptionChainStructure = async (underlying, expiry) => {
 
 export const getOptionsUnderlying = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/market-data/option-underlyings');
+    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/market-data/option-underlyings');
     return response.data;
   } catch (error) {
     console.error('Error fetching options underlying:', error);
@@ -69,7 +69,7 @@ export const getOptionsUnderlying = async () => {
 // TRADE EXECUTION API endpoints
 export const initiateTrade = async (tradeData) => {
   try {
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/admin/trades/initiate', tradeData);
+    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/initiate', tradeData);
     return response.data;
   } catch (error) {
     console.error('Error initiating trade:', error);
@@ -79,7 +79,7 @@ export const initiateTrade = async (tradeData) => {
 
 export const adminTradeHistory = async (params = {}) => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades', { params });
+    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades', { params });
     return response.data;
   } catch (error) {
     console.error('Error fetching admin trade history:', error);
@@ -90,9 +90,9 @@ export const adminTradeHistory = async (params = {}) => {
 export const singleTradeDetail = async (tradeId) => {
   try {
     console.log(`Fetching trade details for ID: ${tradeId}`);
-    console.log(`API URL: https://apistocktrading-production.up.railway.app/api/admin/trades/${tradeId}`);
+    console.log(`API URL: https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/${tradeId}`);
     
-    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/trades/${tradeId}`);
+    const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/${tradeId}`);
     
     console.log('API Response Status:', response.status);
     console.log('API Response Headers:', response.headers);
@@ -115,7 +115,7 @@ export const singleTradeDetail = async (tradeId) => {
 export const getAllSegments = async () => {
   try {
     console.log('Attempting to fetch segments from working endpoint');
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/segments');
+    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments');
     console.log('Segments endpoint response:', response.data);
     return response.data;
   } catch (error) {
@@ -133,7 +133,7 @@ export const getAllSegments = async () => {
 
 export const addSegments = async (segmentData) => {
   try {
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/admin/segments', segmentData);
+    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments', segmentData);
     return response.data;
   } catch (error) {
     console.error('Error adding segment:', error);
@@ -143,7 +143,7 @@ export const addSegments = async (segmentData) => {
 
 export const getSingleSegmentByID = async (segmentId) => {
   try {
-    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}`);
+    const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching single segment:', error);
@@ -153,7 +153,7 @@ export const getSingleSegmentByID = async (segmentId) => {
 
 export const updateSegmentById = async (segmentId, segmentData) => {
   try {
-    const response = await axios.put(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}`, segmentData);
+    const response = await axios.put(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`, segmentData);
     return response.data;
   } catch (error) {
     console.error('Error updating segment:', error);
@@ -163,7 +163,7 @@ export const updateSegmentById = async (segmentId, segmentData) => {
 
 export const deleteSegmentById = async (segmentId) => {
   try {
-    const response = await axios.delete(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}`);
+    const response = await axios.delete(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting segment:', error);
@@ -175,7 +175,7 @@ export const deleteSegmentById = async (segmentId) => {
 export const addUserToSegment = async (segmentId, userData) => {
   try {
     console.log('addUserToSegment called with:', { segmentId, userData });
-    const response = await axios.post(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}/users`, userData);
+    const response = await axios.post(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users`, userData);
     console.log('addUserToSegment response:', response.data);
     return response.data;
   } catch (error) {
@@ -183,7 +183,7 @@ export const addUserToSegment = async (segmentId, userData) => {
     console.error('Request details:', {
       segmentId,
       userData,
-      url: `https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}/users`,
+      url: `https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users`,
       method: 'POST',
       headers: error.config?.headers,
       status: error.response?.status,
@@ -196,7 +196,7 @@ export const addUserToSegment = async (segmentId, userData) => {
 
 export const getUsersInSegment = async (segmentId) => {
   try {
-    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}/users`);
+    const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users`);
     return response.data;
   } catch (error) {
     console.error('Error fetching users in segment:', error);
@@ -207,7 +207,7 @@ export const getUsersInSegment = async (segmentId) => {
 // USER MANAGEMENT API endpoints
 export const getSingleUser = async (userId) => {
   try {
-    const response = await axios.get(`https://apistocktrading-production.up.railway.app/api/users/${userId}`);
+    const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/${userId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching single user:', error);
@@ -217,7 +217,7 @@ export const getSingleUser = async (userId) => {
 
 export const getListUsers = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users');
+    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users');
     return response.data;
   } catch (error) {
     console.error('Error fetching users list:', error);
@@ -228,7 +228,7 @@ export const getListUsers = async () => {
 // Enhanced get current user details
 export const getCurrentUser = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/auth/me');
+    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/me');
     console.log('Admin getCurrentUser response:', response.data);
     
     // Normalize the response data
@@ -278,7 +278,7 @@ export const getCurrentUser = async () => {
 export const getAdminUsers = async () => {
   try {
     console.log('Attempting to fetch users from working endpoint');
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users');
+    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users');
     console.log('Users endpoint response:', response.data);
     
     let usersData;
@@ -343,7 +343,7 @@ export const getAdminUsers = async () => {
 export const assignUserToSegment = async (segmentId, userId) => {
   try {
     console.log(`Attempting to assign user ${userId} to segment ${segmentId}`);
-    const response = await axios.post(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}/users`, { userId });
+    const response = await axios.post(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users`, { userId });
     console.log('Assign user to segment response:', response.data);
     return response.data;
   } catch (error) {
@@ -362,7 +362,7 @@ export const assignUserToSegment = async (segmentId, userId) => {
 export const removeUserFromSegment = async (segmentId, userId) => {
   try {
     console.log(`Attempting to remove user ${userId} from segment ${segmentId}`);
-    const response = await axios.delete(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}/users/${userId}`);
+    const response = await axios.delete(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users/${userId}`);
     console.log('Remove user from segment response:', response.data);
     return response.data;
   } catch (error) {
@@ -381,7 +381,7 @@ export const removeUserFromSegment = async (segmentId, userId) => {
 export const createSegment = async (segmentData) => {
   try {
     console.log('Attempting to create segment:', segmentData);
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/admin/segments', segmentData);
+    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments', segmentData);
     console.log('Create segment response:', response.data);
     return response.data;
   } catch (error) {
@@ -400,7 +400,7 @@ export const createSegment = async (segmentData) => {
 export const updateSegment = async (segmentId, segmentData) => {
   try {
     console.log(`Attempting to update segment ${segmentId}:`, segmentData);
-    const response = await axios.put(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}`, segmentData);
+    const response = await axios.put(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`, segmentData);
     console.log('Update segment response:', response.data);
     return response.data;
   } catch (error) {
@@ -419,7 +419,7 @@ export const updateSegment = async (segmentId, segmentData) => {
 export const deleteSegment = async (segmentId) => {
   try {
     console.log(`Attempting to delete segment ${segmentId}`);
-    const response = await axios.delete(`https://apistocktrading-production.up.railway.app/api/admin/segments/${segmentId}`);
+    const response = await axios.delete(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`);
     console.log('Delete segment response:', response.data);
     return response.data;
   } catch (error) {
@@ -438,7 +438,7 @@ export const deleteSegment = async (segmentId) => {
 // Get admin trades with working endpoint
 export const getAdminTrades = async () => {
   try {
-    const response = await axios.get('https://apistocktrading-production.up.railway.app/api/admin/trades');
+    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades');
     console.log('Admin trades API response:', response.data);
     return response.data;
   } catch (error) {
@@ -454,7 +454,7 @@ export const getAdminDashboardStats = async () => {
   try {
     // Since the stats endpoint doesn't exist, we'll construct stats from available data
     const [usersResponse, tradesResponse] = await Promise.all([
-      axios.get('https://apistocktrading-production.up.railway.app/api/users'),
+      axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users'),
       getAdminTrades()
     ]);
     
@@ -495,10 +495,30 @@ export const getAdminDashboardStats = async () => {
 
 export const initiateAdminTrade = async (tradeData) => {
   try {
-    const response = await axios.post('https://apistocktrading-production.up.railway.app/api/admin/trades/initiate', tradeData);
+    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/initiate', tradeData);
     return response.data;
   } catch (error) {
     console.error('Error initiating admin trade:', error);
+    throw error;
+  }
+};
+
+// Exit trade functionality - NEW ENDPOINT
+export const exitTrade = async (adminTradeId) => {
+  try {
+    console.log(`Attempting to exit trade with ID: ${adminTradeId}`);
+    const response = await axios.post(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/${adminTradeId}/exit`, {});
+    console.log('Exit trade response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error exiting trade:', error);
+    console.error('Error details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method
+    });
     throw error;
   }
 };

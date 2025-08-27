@@ -4,7 +4,7 @@ import axios from 'axios';
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token && config.url && config.url.startsWith('https://apistocktrading-production.up.railway.app/api')) {
+    if (token && config.url && config.url.startsWith('https://y9tyscpumt.us-east-1.awsapprunner.com/api')) {
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
       // Add additional headers for better compatibility

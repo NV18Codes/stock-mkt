@@ -8,7 +8,7 @@ const TradeDetails = ({ trade, isOpen, onClose }) => {
     if (!status) return <AlertCircle size={20} color="#6c757d" />;
     const statusLower = status.toLowerCase();
     if (statusLower.includes('completed') || statusLower.includes('filled')) {
-      return <CheckCircle size={20} color="#00d4aa" />;
+      return <CheckCircle size={20} color="var(--primary-color)" />;
     }
     if (statusLower.includes('pending') || statusLower.includes('open')) {
       return <AlertCircle size={20} color="#ffa726" />;
@@ -23,7 +23,7 @@ const TradeDetails = ({ trade, isOpen, onClose }) => {
     if (!type) return <TrendingUp size={20} color="#6c757d" />;
     const typeLower = type.toLowerCase();
     if (typeLower.includes('buy')) {
-      return <TrendingUp size={20} color="#00d4aa" />;
+      return <TrendingUp size={20} color="var(--primary-color)" />;
     }
     if (typeLower.includes('sell')) {
       return <TrendingDown size={20} color="#ff6b6b" />;
@@ -233,7 +233,7 @@ const TradeDetails = ({ trade, isOpen, onClose }) => {
                   fontSize: '0.9em',
                   fontWeight: 600,
                   color: '#ffffff',
-                  background: trade.type?.toLowerCase().includes('buy') ? '#00d4aa' : 
+                  background: trade.type?.toLowerCase().includes('buy') ? 'var(--primary-color)' : 
                              trade.type?.toLowerCase().includes('sell') ? '#ff6b6b' : '#667eea',
                   textTransform: 'uppercase'
                 }}>
@@ -257,7 +257,7 @@ const TradeDetails = ({ trade, isOpen, onClose }) => {
                   fontSize: '0.9em',
                   fontWeight: 600,
                   color: '#ffffff',
-                  background: trade.status?.toLowerCase().includes('completed') || trade.status?.toLowerCase().includes('filled') ? '#00d4aa' :
+                  background: trade.status?.toLowerCase().includes('completed') || trade.status?.toLowerCase().includes('filled') ? 'var(--primary-color)' :
                              trade.status?.toLowerCase().includes('pending') || trade.status?.toLowerCase().includes('open') ? '#ffa726' :
                              trade.status?.toLowerCase().includes('cancelled') || trade.status?.toLowerCase().includes('rejected') ? '#ff6b6b' : '#6c757d',
                   textTransform: 'capitalize'

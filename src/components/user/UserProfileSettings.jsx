@@ -838,13 +838,13 @@ const UserProfileSettings = () => {
           {showBrokerForm && (
             <div style={{
               padding: '1em',
-              background: 'rgba(0,212,170,0.1)',
+              background: 'rgba(211, 80, 63, 0.1)',
               borderRadius: '8px',
-              border: '1px solid rgba(0,212,170,0.2)',
+              border: '1px solid rgba(211, 80, 63, 0.2)',
               marginBottom: '1.5em',
               textAlign: 'center'
             }}>
-              <p style={{ color: '#00d4aa', margin: 0, fontSize: '14px' }}>
+              <p style={{ color: 'var(--primary-color)', margin: 0, fontSize: '14px' }}>
                 Broker connection form is open below
               </p>
             </div>

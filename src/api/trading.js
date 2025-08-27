@@ -4,7 +4,7 @@ import axios from 'axios';
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://apistocktrading-production.up.railway.app/api'))) {
+    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://y9tyscpumt.us-east-1.awsapprunner.com/api'))) {
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
       // Add additional headers for better compatibility
@@ -38,7 +38,7 @@ axios.interceptors.response.use(
 // TRADE EXECUTION API endpoints
 export const placeTradeOrder = async (orderData) => {
     try {
-        const response = await axios.post('https://apistocktrading-production.up.railway.app/api/admin/trades/initiate', orderData);
+        const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/initiate', orderData);
         console.log('Trade order response:', response.data);
         return response.data;
     } catch (error) {
@@ -50,7 +50,7 @@ export const placeTradeOrder = async (orderData) => {
 // Get positions
 export const getPositions = async () => {
     try {
-        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/trading/positions');
+        const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/trading/positions');
         return response.data;
     } catch (error) {
         console.error('Error fetching positions:', error);

@@ -777,43 +777,43 @@ const AdminProfileSettings = () => {
             // Broker is connected and form is not shown - show status and details
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(1em, 2.5vw, 1.5em)' }}>
               <div style={{
-                background: 'rgba(0,212,170,0.1)',
+                background: 'rgba(211, 80, 63, 0.1)',
                 padding: 'clamp(0.8em, 2vw, 1em)',
                 borderRadius: '8px',
-                border: '1px solid rgba(0,212,170,0.2)'
+                border: '1px solid rgba(211, 80, 63, 0.2)'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.8em' }}>
-                  <CheckCircle size={20} color="#00d4aa" />
+                  <CheckCircle size={20} color="var(--primary-color)" />
                   <span style={{ color: 'var(--text-muted)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Status:</span>
-                  <div style={{ color: '#00d4aa', fontWeight: 500 }}>Connected</div>
+                                      <div style={{ color: 'var(--primary-color)', fontWeight: 500 }}>Connected</div>
                 </div>
               </div>
               
               <div style={{ 
-                background: 'rgba(0,212,170,0.1)',
+                background: 'rgba(211, 80, 63, 0.1)',
                 padding: 'clamp(0.8em, 2vw, 1em)',
                 borderRadius: '8px',
-                border: '1px solid rgba(0,212,170,0.2)'
+                border: '1px solid rgba(211, 80, 63, 0.2)'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.8em' }}>
-                  <Building size={20} color="#00d4aa" />
+                  <Building size={20} color="var(--primary-color)" />
                   <span style={{ color: 'var(--text-muted)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Broker:</span>
-                  <div style={{ color: '#00d4aa', fontWeight: 500 }}>
+                  <div style={{ color: 'var(--primary-color)', fontWeight: 500 }}>
                     {brokerProfile.broker_name || brokerProfile.brokerName || 'Angel One'}
                   </div>
                 </div>
               </div>
               
               <div style={{ 
-                background: 'rgba(0,212,170,0.1)',
+                background: 'rgba(211, 80, 63, 0.1)',
                 padding: 'clamp(0.8em, 2vw, 1em)',
                 borderRadius: '8px',
-                border: '1px solid rgba(0,212,170,0.2)'
+                border: '1px solid rgba(211, 80, 63, 0.2)'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.8em' }}>
-                  <User size={20} color="#00d4aa" />
+                  <User size={20} color="var(--primary-color)" />
                   <span style={{ color: 'var(--text-muted)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Client ID:</span>
-                  <div style={{ color: '#00d4aa', fontWeight: 500 }}>
+                  <div style={{ color: 'var(--primary-color)', fontWeight: 500 }}>
                     {brokerProfile.broker_client_id || brokerProfile.accountId || 'N/A'}
                   </div>
                 </div>
@@ -1274,13 +1274,13 @@ const AdminProfileSettings = () => {
                 ) : (
                   <>
                     <div style={{
-                      background: 'rgba(0,212,170,0.1)',
+                      background: 'rgba(211, 80, 63, 0.1)',
                       padding: 'clamp(1em, 2.5vw, 1.5em)',
                       borderRadius: '8px',
-                      border: '1px solid rgba(0,212,170,0.2)',
+                      border: '1px solid rgba(211, 80, 63, 0.2)',
                       marginBottom: 'clamp(1em, 2.5vw, 1.5em)'
                     }}>
-                      <div style={{ color: '#00d4aa', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>
+                      <div style={{ color: 'var(--primary-color)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>
                         Please check your Angel One app and enter the TOTP code to complete the connection.
                       </div>
                     </div>
@@ -1432,13 +1432,13 @@ const AdminProfileSettings = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(1em, 2.5vw, 1.5em)' }}>
           <div style={{ 
-                  background: 'rgba(0,212,170,0.1)',
+                  background: 'rgba(211, 80, 63, 0.1)',
                   padding: 'clamp(1em, 2.5vw, 1.5em)',
                   borderRadius: '12px',
-                  border: '1px solid rgba(0,212,170,0.2)'
+                  border: '1px solid rgba(211, 80, 63, 0.2)'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.8em', marginBottom: '0.5em' }}>
-                    <Building size={20} color="#00d4aa" />
+                    <Building size={20} color="var(--primary-color)" />
                     <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Broker Information</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1em' }}>
@@ -1456,7 +1456,7 @@ const AdminProfileSettings = () => {
                     </div>
                     <div>
                       <span style={{ color: 'var(--text-muted)', fontSize: 'clamp(12px, 2.5vw, 14px)' }}>Status:</span>
-                      <div style={{ color: '#00d4aa', fontWeight: 500 }}>
+                      <div style={{ color: 'var(--primary-color)', fontWeight: 500 }}>
                         {brokerProfile?.is_active_for_trading ? 'Active for Trading' : 'Inactive'}
                       </div>
                     </div>
@@ -1465,13 +1465,13 @@ const AdminProfileSettings = () => {
             
                 {brokerProfile?.exchanges && brokerProfile.exchanges.length > 0 && (
                   <div style={{
-                    background: 'rgba(0,212,170,0.1)',
+                    background: 'rgba(211, 80, 63, 0.1)',
                     padding: 'clamp(1em, 2.5vw, 1.5em)',
                     borderRadius: '12px',
-                    border: '1px solid rgba(0,212,170,0.2)'
+                    border: '1px solid rgba(211, 80, 63, 0.2)'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.8em', marginBottom: '0.5em' }}>
-                      <BarChart3 size={20} color="#00d4aa" />
+                      <BarChart3 size={20} color="var(--primary-color)" />
                       <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Exchanges</span>
             </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5em' }}>
@@ -1479,7 +1479,7 @@ const AdminProfileSettings = () => {
                         <span
                           key={index}
                           style={{
-                            background: '#00d4aa',
+                            background: 'var(--primary-color)',
                             color: 'white',
                             padding: '0.3em 0.8em',
                             borderRadius: '20px',
@@ -1496,13 +1496,13 @@ const AdminProfileSettings = () => {
 
                 {brokerProfile?.products && brokerProfile.products.length > 0 && (
                   <div style={{
-                    background: 'rgba(0,212,170,0.1)',
+                    background: 'rgba(211, 80, 63, 0.1)',
                     padding: 'clamp(1em, 2.5vw, 1.5em)',
                     borderRadius: '12px',
-                    border: '1px solid rgba(0,212,170,0.2)'
+                    border: '1px solid rgba(211, 80, 63, 0.2)'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.8em', marginBottom: '0.5em' }}>
-                      <Package size={20} color="#00d4aa" />
+                      <Package size={20} color="var(--primary-color)" />
                       <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Products</span>
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5em' }}>
@@ -1510,7 +1510,7 @@ const AdminProfileSettings = () => {
                         <span
                           key={index}
                           style={{
-                            background: '#00d4aa',
+                            background: 'var(--primary-color)',
                             color: 'white',
                             padding: '0.3em 0.8em',
                             borderRadius: '20px',
