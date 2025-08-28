@@ -12,8 +12,7 @@ import {
 import {
   getUserBrokerTrades
 } from '../../api/broker';
-
-
+import { exitTrade } from '../../api/admin';
 
 const TradingPortal = () => {
   const navigate = useNavigate();
@@ -25,6 +24,8 @@ const TradingPortal = () => {
   const [clearBrokerStatus, setClearBrokerStatus] = useState('');
   const [clearBrokerLoading, setClearBrokerLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [exitTradeStatus, setExitTradeStatus] = useState('');
+  const [exitTradeLoading, setExitTradeLoading] = useState(false);
 
   useEffect(() => {
 		const fetchAll = async () => {
@@ -94,6 +95,36 @@ const TradingPortal = () => {
       setClearBrokerStatus('Failed to clear broker connection');
     } finally {
       setClearBrokerLoading(false);
+    }
+  };
+
+  const handleExitTrade = async (tradeId) => {
+    if (!tradeId) {
+      setExitTradeStatus('Error: No trade ID provided');
+      return;
+    }
+
+    setExitTradeLoading(true);
+    setExitTradeStatus('');
+    
+    try {
+      console.log(`Attempting to exit trade with ID: ${tradeId}`);
+      const result = await exitTrade(tradeId);
+      
+      if (result && result.success) {
+        setExitTradeStatus('✅ Trade exit initiated successfully!');
+        // Refresh the trade list after a short delay
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        setExitTradeStatus('❌ Failed to exit trade. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error exiting trade:', err);
+      setExitTradeStatus('❌ Error exiting trade: ' + (err.message || 'Unknown error'));
+    } finally {
+      setExitTradeLoading(false);
     }
   };
 
@@ -269,6 +300,143 @@ const TradingPortal = () => {
           }}>
             <h3 style={{ margin: '0 0 1em 0', color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Order History</h3>
             <TradeList />
+          </div>
+
+          {/* Exit Trade Section */}
+          <div style={{ 
+            background: 'rgba(255,255,255,0.9)', 
+            borderRadius: '16px', 
+            padding: 'clamp(1.5em, 3vw, 2em)', 
+            marginBottom: '2em',
+            boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+            border: '1px solid rgba(255,255,255,0.3)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1em', flexWrap: 'wrap', gap: '1em' }}>
+              <h3 style={{ margin: 0, color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Exit Trade</h3>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#d3503f' }}>
+                🚨 Exit Active Trades
+              </div>
+            </div>
+            
+            {/* Status Message */}
+            {exitTradeStatus && (
+              <div style={{ 
+                background: exitTradeStatus.includes('✅') ? '#f0fff4' : '#fff5f5', 
+                border: `1px solid ${exitTradeStatus.includes('✅') ? '#9ae6b4' : '#fed7d7'}`, 
+                borderRadius: '8px', 
+                padding: '1em',
+                marginBottom: '1em',
+                color: exitTradeStatus.includes('✅') ? '#22543d' : '#c53030',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                {exitTradeStatus}
+              </div>
+            )}
+            
+            <div style={{ 
+              background: '#fff5f5', 
+              border: '1px solid #fed7d7', 
+              borderRadius: '8px', 
+              padding: '1em',
+              marginBottom: '1em'
+            }}>
+              <div style={{ color: '#c53030', fontSize: '14px', marginBottom: '0.5em' }}>
+                <strong>⚠️ Important:</strong> This will exit all active trades for your account.
+              </div>
+              <div style={{ color: '#744210', fontSize: '13px' }}>
+                Use this feature carefully as it will close all open positions and may result in losses.
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1em', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => navigate('/admin/trading-portal')}
+                style={{
+                  padding: 'clamp(0.6em, 1.5vw, 0.8em) clamp(1em, 2vw, 1.2em)',
+                  borderRadius: '8px',
+                  border: '1px solid #d3503f',
+                  background: 'linear-gradient(135deg, #d3503f, #c53030)',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  fontSize: 'clamp(12px, 2.5vw, 14px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5em'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 4px 15px rgba(211, 80, 63, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                🚪 Exit All Trades
+              </button>
+              <button
+                onClick={() => navigate('/admin/trade-history')}
+                style={{
+                  padding: 'clamp(0.6em, 1.5vw, 0.8em) clamp(1em, 2vw, 1.2em)',
+                  borderRadius: '8px',
+                  border: '1px solid #2d6fa0',
+                  background: 'linear-gradient(135deg, #2d6fa0, #146fb4)',
+                  color: '#ffffff',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  fontSize: 'clamp(12px, 2.5vw, 14px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5em'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-1px)';
+                  e.target.style.boxShadow = '0 4px 15px rgba(45, 111, 160, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                📊 View Trade History
+              </button>
+              <button
+                onClick={() => handleExitTrade('demo-trade-id')}
+                disabled={exitTradeLoading}
+                style={{
+                  padding: 'clamp(0.6em, 1.5vw, 0.8em) clamp(1em, 2vw, 1.2em)',
+                  borderRadius: '8px',
+                  border: '1px solid #e79a7e',
+                  background: exitTradeLoading ? '#ccc' : 'linear-gradient(135deg, #e79a7e, #d3503f)',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  cursor: exitTradeLoading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  fontSize: 'clamp(12px, 2.5vw, 14px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5em'
+                }}
+                onMouseEnter={(e) => {
+                  if (!exitTradeLoading) {
+                    e.target.style.transform = 'translateY(-1px)';
+                    e.target.style.boxShadow = '0 4px 15px rgba(231, 154, 126, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!exitTradeLoading) {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = 'none';
+                  }
+                }}
+              >
+                {exitTradeLoading ? '🔄 Processing...' : '🔄 Exit Demo Trade'}
+              </button>
+            </div>
           </div>
 
           {/* Broker Details (RMS & Profile) - only if connected */}

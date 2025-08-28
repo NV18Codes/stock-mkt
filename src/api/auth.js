@@ -178,7 +178,7 @@ export const addBrokerAccount = async (data) => {
 
 export const getDematLimit = async () => {
   try {
-    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/rmsLimit');
+    const response = await axios.get(API_ENDPOINTS.USERS.BROKER.RMS_LIMIT);
     return response.data;
   } catch (error) {
     console.error('Error fetching demat limit:', error);
@@ -212,7 +212,7 @@ export const getDematLimit = async () => {
 
 export const verifyBrokerConnection = async (data) => {
   try {
-    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/verify', data);
+    const response = await axios.post(API_ENDPOINTS.USERS.BROKER.VERIFY, data);
     return response.data;
   } catch (error) {
     console.error('Error verifying broker connection:', error);
@@ -224,14 +224,14 @@ export const fetchMyBrokerProfile = async (totpData = null) => {
   try {
     if (totpData) {
       // If TOTP provided, use the profile endpoint
-      const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/profile', totpData);
+      const response = await axios.post(API_ENDPOINTS.USERS.BROKER.PROFILE, totpData);
       console.log('Broker profile response with TOTP:', response.data);
       return response.data;
     } else {
       // Try to get broker info from user data first
       console.log('No TOTP provided, trying to get broker info from user data...');
       try {
-        const userResponse = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/me');
+        const userResponse = await axios.get(API_ENDPOINTS.AUTH.ME);
         const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
         
         console.log('User data for broker check:', userData);
@@ -283,7 +283,7 @@ export const fetchMyBrokerProfile = async (totpData = null) => {
 
 export const fetchBrokerConnectionStatus = async () => {
   try {
-    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/status');
+    const response = await axios.get(API_ENDPOINTS.USERS.BROKER.STATUS);
     return response.data;
   } catch (error) {
     console.error('Error fetching broker connection status:', error);
@@ -304,7 +304,7 @@ export const clearBrokerConnection = async () => {
     console.log('Clearing broker connection...');
     
     // Call the primary endpoint for clearing broker connection
-    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/clear');
+    const response = await axios.post(API_ENDPOINTS.USERS.BROKER.CLEAR);
     console.log('Clear broker response:', response.data);
 
     if (response.data && response.data.success) {
@@ -338,7 +338,7 @@ export const clearBrokerConnection = async () => {
     // If the primary endpoint fails, try alternative approaches
     try {
       console.log('Primary endpoint failed, trying alternative clear endpoint...');
-      const altResponse = await axios.delete('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker');
+      const altResponse = await axios.delete(API_ENDPOINTS.USERS.BROKER.DELETE);
       console.log('Alternative clear response:', altResponse.data);
 
       if (altResponse.data && altResponse.data.success) {
@@ -393,7 +393,7 @@ export const clearBrokerConnection = async () => {
 
 export const clearBrokerProfile = async () => {
   try {
-    const response = await axios.delete('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/clear');
+    const response = await axios.delete(API_ENDPOINTS.USERS.BROKER.CLEAR);
     return response.data;
   } catch (error) {
     console.error('Error clearing broker profile:', error);
@@ -416,7 +416,7 @@ export const refreshBrokerConnection = async (refreshToken) => {
 // Enhanced get current user details with better error handling and data normalization
 export const getCurrentUserEnhanced = async () => {
   try {
-    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/me');
+    const response = await axios.get(API_ENDPOINTS.AUTH.ME);
     
     // Normalize the response data
     let userData;
@@ -478,7 +478,7 @@ export const updateProfile = async (data) => {
     const endpoints = [
       // API structure from user specification - Try this first
       {
-        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile',
+        url: API_ENDPOINTS.USERS.PROFILE,
         method: 'PUT',
         data: {
           fullname: data.fullName,
@@ -486,7 +486,7 @@ export const updateProfile = async (data) => {
         }
       },
       {
-        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile',
+        url: API_ENDPOINTS.USERS.PROFILE,
         method: 'PUT',
         data: {
           full_name: data.fullName,
@@ -494,7 +494,7 @@ export const updateProfile = async (data) => {
         }
       },
       {
-        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile',
+        url: API_ENDPOINTS.USERS.PROFILE,
         method: 'PUT',
         data: {
           name: data.fullName,
@@ -502,27 +502,27 @@ export const updateProfile = async (data) => {
         }
       },
       {
-        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile',
+        url: API_ENDPOINTS.USERS.PROFILE,
         method: 'PUT',
         data: data
       },
       {
-        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile',
+        url: API_ENDPOINTS.USERS.PROFILE,
         method: 'POST',
         data: data
       },
       {
-        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/profileUpdate',
+        url: API_ENDPOINTS.USERS.ME + '/profileUpdate',
         method: 'PUT',
         data: data
       },
       {
-        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/profile',
+        url: API_ENDPOINTS.USERS.ME + '/profile',
         method: 'PUT',
         data: data
       },
       {
-        url: 'https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me',
+        url: API_ENDPOINTS.AUTH.ME,
         method: 'PUT',
         data: data
       }
@@ -587,7 +587,7 @@ export const updateProfile = async (data) => {
 export const getUserProfile = async () => {
   try {
     // Since the profile endpoint is not available, directly use the working auth endpoint
-    const userResponse = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/me');
+    const userResponse = await axios.get(API_ENDPOINTS.AUTH.ME);
     
     const userData = userResponse.data.data?.user || userResponse.data.data || userResponse.data;
     

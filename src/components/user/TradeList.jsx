@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { RefreshCw, TrendingUp, TrendingDown, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { API_ENDPOINTS } from '../../config/environment';
+import { exitTrade } from '../../api/admin';
 
 const TradeList = () => {
   const [trades, setTrades] = useState([]);
@@ -14,6 +15,8 @@ const TradeList = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState(null);
   const [showTradeDetails, setShowTradeDetails] = useState(false);
+  const [exitTradeStatus, setExitTradeStatus] = useState('');
+  const [exitTradeLoading, setExitTradeLoading] = useState(false);
 
   // Filter trades based on search term with active search
   const filteredTrades = useMemo(() => {
@@ -93,6 +96,36 @@ const TradeList = () => {
   const closeTradeDetails = () => {
     setShowTradeDetails(false);
     setSelectedTrade(null);
+  };
+
+  const handleExitTrade = async (tradeId) => {
+    if (!tradeId) {
+      setExitTradeStatus('Error: No trade ID provided');
+      return;
+    }
+
+    setExitTradeLoading(true);
+    setExitTradeStatus('');
+    
+    try {
+      console.log(`Attempting to exit trade with ID: ${tradeId}`);
+      const result = await exitTrade(tradeId);
+      
+      if (result && result.success) {
+        setExitTradeStatus('✅ Trade exit initiated successfully!');
+        // Refresh the trade list after a short delay
+        setTimeout(() => {
+          refreshTrades();
+        }, 2000);
+      } else {
+        setExitTradeStatus('❌ Failed to exit trade. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error exiting trade:', err);
+      setExitTradeStatus('❌ Error exiting trade: ' + (err.message || 'Unknown error'));
+    } finally {
+      setExitTradeLoading(false);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -343,6 +376,23 @@ const TradeList = () => {
       {/* Trades Table */}
       {filteredTrades.length > 0 ? (
         <>
+          {/* Status Message */}
+          {exitTradeStatus && (
+            <div style={{ 
+              background: exitTradeStatus.includes('✅') ? '#f0fff4' : '#fff5f5', 
+              border: `1px solid ${exitTradeStatus.includes('✅') ? '#9ae6b4' : '#fed7d7'}`, 
+              borderRadius: '8px', 
+              padding: '1em',
+              marginBottom: '1em',
+              color: exitTradeStatus.includes('✅') ? '#22543d' : '#c53030',
+              fontSize: '14px',
+              fontWeight: '500',
+              textAlign: 'center'
+            }}>
+              {exitTradeStatus}
+            </div>
+          )}
+          
           {/* Clickable indicator */}
           <div style={{
             background: 'linear-gradient(135deg, #667eea, #764ba2)',
@@ -421,6 +471,14 @@ const TradeList = () => {
                   fontSize: 'clamp(12px, 2.5vw, 14px)'
                 }}>
                   Date
+                </th>
+                <th style={{ 
+                  padding: 'clamp(0.8em, 2vw, 1em)', 
+                  textAlign: 'center', 
+                  fontWeight: 600,
+                  fontSize: 'clamp(12px, 2.5vw, 14px)'
+                }}>
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -506,6 +564,47 @@ const TradeList = () => {
                   }}>
                     {trade.timestamp ? new Date(trade.timestamp).toLocaleDateString() : 
                      trade.created_at ? new Date(trade.created_at).toLocaleDateString() : 'N/A'}
+                  </td>
+                  <td style={{ 
+                    padding: 'clamp(0.8em, 2vw, 1em)', 
+                    textAlign: 'center'
+                  }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent row click
+                        handleExitTrade(trade.id || trade.tradeId);
+                      }}
+                      disabled={(!trade.id && !trade.tradeId) || exitTradeLoading}
+                      style={{
+                        padding: '0.4em 0.8em',
+                        borderRadius: '6px',
+                        border: '1px solid #d3503f',
+                        background: (!trade.id && !trade.tradeId) || exitTradeLoading ? '#ccc' : 'linear-gradient(135deg, #d3503f, #c53030)',
+                        color: '#ffffff',
+                        fontWeight: 600,
+                        cursor: (!trade.id && !trade.tradeId) || exitTradeLoading ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.3s ease',
+                        fontSize: 'clamp(10px, 2vw, 12px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.3em',
+                        margin: '0 auto'
+                      }}
+                      onMouseEnter={(e) => {
+                        if ((trade.id || trade.tradeId) && !exitTradeLoading) {
+                          e.target.style.transform = 'translateY(-1px)';
+                          e.target.style.boxShadow = '0 2px 8px rgba(211, 80, 63, 0.4)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if ((trade.id || trade.tradeId) && !exitTradeLoading) {
+                          e.target.style.transform = 'translateY(0)';
+                          e.target.style.boxShadow = 'none';
+                        }
+                      }}
+                    >
+                      {exitTradeLoading ? '🔄' : '🚪'} {exitTradeLoading ? 'Exiting...' : 'Exit'}
+                    </button>
                   </td>
                 </tr>
               ))}
