@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TradeList from './TradeList';
+import RecentTrades from './RecentTrades';
 import {
   clearBrokerConnection
 } from '../../api/auth';
@@ -289,6 +290,18 @@ const TradingPortal = () => {
             </div>
           </div>
 
+          {/* Recent Trades with Exit Functionality */}
+          <div style={{ 
+            background: 'rgba(255,255,255,0.9)', 
+            borderRadius: '16px', 
+            padding: 'clamp(1.5em, 3vw, 2em)', 
+            marginBottom: '2em',
+            boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+            border: '1px solid rgba(255,255,255,0.3)'
+          }}>
+            <RecentTrades />
+          </div>
+
           {/* Order History (always visible) */}
           <div style={{ 
             background: 'rgba(255,255,255,0.9)', 
@@ -476,17 +489,32 @@ const TradingPortal = () => {
       )}
 
       {activeTab === 'history' && (
-            <div style={{ 
-          background: 'rgba(255,255,255,0.9)', 
-          borderRadius: '16px', 
-          padding: 'clamp(1.5em, 3vw, 2em)', 
-          marginBottom: '2em',
-          boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
-          border: '1px solid rgba(255,255,255,0.3)'
-        }}>
-          <h3 style={{ margin: '0 0 1em 0', color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Trade History</h3>
-          <TradeList />
-            </div>
+        <>
+          {/* Recent Trades with Exit Functionality */}
+          <div style={{ 
+            background: 'rgba(255,255,255,0.9)', 
+            borderRadius: '16px', 
+            padding: 'clamp(1.5em, 3vw, 2em)', 
+            marginBottom: '2em',
+            boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+            border: '1px solid rgba(255,255,255,0.3)'
+          }}>
+            <RecentTrades />
+          </div>
+          
+          {/* Full Trade History */}
+          <div style={{ 
+            background: 'rgba(255,255,255,0.9)', 
+            borderRadius: '16px', 
+            padding: 'clamp(1.5em, 3vw, 2em)', 
+            marginBottom: '2em',
+            boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+            border: '1px solid rgba(255,255,255,0.3)'
+          }}>
+            <h3 style={{ margin: '0 0 1em 0', color: '#2c3e50', fontSize: 'clamp(1.2em, 3vw, 1.5em)' }}>Complete Trade History</h3>
+            <TradeList />
+          </div>
+        </>
       )}
 
       

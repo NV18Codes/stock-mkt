@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAdminUsers, getAllSegments, initiateTrade } from '../../api/admin';
 import AdminOrderForm from './AdminOrderForm';
+import RecentTrades from '../user/RecentTrades';
 
 const formatINR = (value) => {
   const num = typeof value === 'object' && value !== null ? value.net : value;
@@ -482,6 +483,18 @@ const AdminTradingPortal = () => {
 
       {/* Admin Order Form */}
       <AdminOrderForm onOrderSubmit={handleOrderSubmit} selectedUserIds={selectedUserIds} />
+
+      {/* Recent Trades with Exit Functionality */}
+      <div style={{ 
+        background: 'rgba(255,255,255,0.9)', 
+        borderRadius: '16px', 
+        padding: 'clamp(1.5em, 3vw, 2em)', 
+        marginBottom: '2em',
+        boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+        border: '1px solid rgba(255,255,255,0.3)'
+      }}>
+        <RecentTrades />
+      </div>
     </div>
   );
 };
