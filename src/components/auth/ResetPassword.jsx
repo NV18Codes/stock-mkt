@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Lock, Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FaLock, FaEye, FaEyeSlash, FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
 import { resetPassword } from '../../api/auth';
 import v4Logo from '../../assets/Logo-updated-removebg-preview.png';
 
@@ -140,7 +140,7 @@ const ResetPassword = () => {
             color: 'white',
             boxShadow: '0 10px 30px rgba(16, 185, 129, 0.3)'
           }}>
-            <FaCheckCircle />
+            <CheckCircle />
           </div>
 
           <h1 style={{ 
@@ -300,7 +300,7 @@ const ResetPassword = () => {
         e.target.style.background = 'rgba(255, 255, 255, 0.05)';
         e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
       }}>
-        <FaArrowLeft />
+        <ArrowLeft />
         Back to Login
       </Link>
 
@@ -394,7 +394,7 @@ const ResetPassword = () => {
               New Password
             </label>
             <div style={{ position: 'relative' }}>
-              <FaLock style={{ 
+              <Lock style={{ 
                 position: 'absolute', 
                 left: '1rem', 
                 top: '50%', 
@@ -447,7 +447,7 @@ const ResetPassword = () => {
                 }}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                {showPassword ? <EyeOff /> : <Eye />}
               </button>
             </div>
           </div>
@@ -464,7 +464,7 @@ const ResetPassword = () => {
               Confirm New Password
             </label>
             <div style={{ position: 'relative' }}>
-              <FaLock style={{ 
+              <Lock style={{ 
                 position: 'absolute', 
                 left: '1rem', 
                 top: '50%', 
@@ -517,7 +517,7 @@ const ResetPassword = () => {
                 }}
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
-                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                {showConfirmPassword ? <EyeOff /> : <Eye />}
               </button>
             </div>
           </div>

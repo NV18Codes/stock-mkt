@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Mail, Lock, Eye, EyeOff, TrendingUp, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaChartLine, FaArrowLeft } from 'react-icons/fa';
+import { signin } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import v4Logo from '../../assets/Logo-updated-removebg-preview.png';
 
@@ -87,7 +88,7 @@ const Login = () => {
         e.target.style.background = 'rgba(255, 255, 255, 0.05)';
         e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
       }}>
-        <FaArrowLeft />
+        <ArrowLeft />
         Back to Home
       </Link>
 
@@ -181,7 +182,7 @@ const Login = () => {
               Email Address
             </label>
             <div style={{ position: 'relative' }}>
-              <FaEnvelope style={{ 
+              <Mail style={{ 
                 position: 'absolute', 
                 left: '1rem', 
                 top: '50%', 
@@ -232,7 +233,7 @@ const Login = () => {
               Password
             </label>
             <div style={{ position: 'relative' }}>
-              <FaLock style={{ 
+              <Lock style={{ 
                 position: 'absolute', 
                 left: '1rem', 
                 top: '50%', 
@@ -285,7 +286,7 @@ const Login = () => {
                 }}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                {showPassword ? <EyeOff /> : <Eye />}
               </button>
             </div>
           </div>

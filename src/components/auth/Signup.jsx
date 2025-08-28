@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { User, Mail, Lock, Eye, EyeOff, Phone, TrendingUp, ArrowLeft } from 'lucide-react';
 import { signup } from '../../api/auth';
-import { FaUser, FaEnvelope, FaLock, FaEye, FaEyeSlash, FaPhone, FaChartLine, FaArrowLeft } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import v4Logo from '../../assets/Logo-updated-removebg-preview.png';
 
@@ -126,7 +126,7 @@ const Signup = () => {
         e.target.style.background = 'rgba(255, 255, 255, 0.05)';
         e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
       }}>
-        <FaArrowLeft />
+        <ArrowLeft />
         Back to Home
       </Link>
 
@@ -220,7 +220,7 @@ const Signup = () => {
               Full Name
             </label>
             <div style={{ position: 'relative' }}>
-              <FaUser style={{ 
+              <User style={{ 
                 position: 'absolute', 
                 left: '1rem', 
                 top: '50%', 
@@ -272,7 +272,7 @@ const Signup = () => {
               Phone Number
             </label>
             <div style={{ position: 'relative' }}>
-              <FaPhone style={{ 
+              <Phone style={{ 
                 position: 'absolute', 
                 left: '1rem', 
                 top: '50%', 
@@ -325,7 +325,7 @@ const Signup = () => {
               Email Address
             </label>
             <div style={{ position: 'relative' }}>
-              <FaEnvelope style={{ 
+              <Mail style={{ 
                 position: 'absolute', 
                 left: '1rem', 
                 top: '50%', 
@@ -377,7 +377,7 @@ const Signup = () => {
               Create Password
             </label>
             <div style={{ position: 'relative' }}>
-              <FaLock style={{ 
+              <Lock style={{ 
                 position: 'absolute', 
                 left: '1rem', 
                 top: '50%', 
@@ -432,7 +432,7 @@ const Signup = () => {
                 }}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                {showPassword ? <EyeOff /> : <Eye />}
               </button>
             </div>
           </div>
@@ -449,7 +449,7 @@ const Signup = () => {
               Confirm Password
             </label>
             <div style={{ position: 'relative' }}>
-              <FaLock style={{ 
+              <Lock style={{ 
                 position: 'absolute', 
                 left: '1rem', 
                 top: '50%', 
@@ -504,7 +504,7 @@ const Signup = () => {
                 }}
                 aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
               >
-                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                {showConfirmPassword ? <EyeOff /> : <Eye />}
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
+import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaEnvelope, FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
 import { forgotPassword } from '../../api/auth';
 import v4Logo from '../../assets/Logo-updated-removebg-preview.png';
 
@@ -83,7 +83,7 @@ const ForgotPassword = () => {
           e.target.style.background = 'rgba(255, 255, 255, 0.05)';
           e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
         }}>
-          <FaArrowLeft />
+          <ArrowLeft />
           Back to Login
         </Link>
 
@@ -114,7 +114,7 @@ const ForgotPassword = () => {
             color: 'white',
             boxShadow: '0 10px 30px rgba(16, 185, 129, 0.3)'
           }}>
-            <FaCheckCircle />
+            <CheckCircle />
           </div>
 
           <h1 style={{ 
@@ -236,7 +236,7 @@ const ForgotPassword = () => {
         e.target.style.background = 'rgba(255, 255, 255, 0.05)';
         e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
       }}>
-        <FaArrowLeft />
+        <ArrowLeft />
         Back to Login
       </Link>
 
@@ -330,7 +330,7 @@ const ForgotPassword = () => {
               Email Address
             </label>
             <div style={{ position: 'relative' }}>
-              <FaEnvelope style={{ 
+              <Mail style={{ 
                 position: 'absolute', 
                 left: '1rem', 
                 top: '50%', 
