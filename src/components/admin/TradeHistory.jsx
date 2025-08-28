@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminTradeHistory, singleTradeDetail } from '../../api/admin';
+import { API_ENDPOINTS } from '../../config/environment';
 
 const TradeHistory = () => {
   const [trades, setTrades] = useState([]);
@@ -320,7 +321,10 @@ const TradeHistory = () => {
     console.log('Trade ID:', trade.id);
     console.log('Trade object keys:', Object.keys(trade));
     console.log('Full trade object:', JSON.stringify(trade, null, 2));
-    console.log('Will call API URL: https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/' + trade.id);
+    // New Railway URL
+    console.log('Will call API URL:', API_ENDPOINTS.ADMIN.TRADES.DETAIL(trade.id));
+    // Legacy AWS URL (commented out)
+    // console.log('Will call API URL: https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/' + trade.id);
     
     if (!trade.id) {
       console.error('Trade ID is missing! Trade object:', trade);

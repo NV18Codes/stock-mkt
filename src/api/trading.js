@@ -1,10 +1,11 @@
 import axios from 'axios';
+import { API_ENDPOINTS } from '../config/environment';
 
 // Add a request interceptor to attach the token automatically
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://y9tyscpumt.us-east-1.awsapprunner.com/api'))) {
+    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://v4fintechtradingapi-production.up.railway.app/api'))) {
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
       // Add additional headers for better compatibility
@@ -33,34 +34,37 @@ axios.interceptors.response.use(
   }
 );
 
-// TRADING API endpoints - Updated with exact URLs from the provided APIs
+// TRADING API endpoints - Updated to use Railway deployment
+// Legacy AWS URLs commented out for reference
 
-// TRADE EXECUTION API endpoints
-export const placeTradeOrder = async (orderData) => {
-    try {
-        const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/initiate', orderData);
-        console.log('Trade order response:', response.data);
-        return response.data;
-    } catch (error) {
-        console.error('Error placing trade order:', error);
-        throw error;
-    }
+// Place order through admin trading system
+export const placeOrder = async (orderData) => {
+  try {
+    console.log('Placing order with data:', orderData);
+    // New Railway URL
+    const response = await axios.post(API_ENDPOINTS.ADMIN.TRADES.INITIATE, orderData);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/initiate', orderData);
+    console.log('Order placement response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error placing order:', error);
+    throw error;
+  }
 };
 
-// Get positions
+// Get trading positions
 export const getPositions = async () => {
-    try {
-        const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/trading/positions');
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching positions:', error);
-        // Return empty positions with success flag to prevent UI breaks
-        return { 
-            success: true, 
-            data: [], 
-            message: 'No positions available at the moment' 
-        };
-    }
+  try {
+    // New Railway URL
+    const response = await axios.get(API_ENDPOINTS.TRADING.POSITIONS);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/trading/positions');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching positions:', error);
+    throw error;
+  }
 };
 
 // Get order history

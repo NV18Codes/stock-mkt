@@ -1,6 +1,10 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import TradeDetails from './TradeDetails';
+import { motion } from 'framer-motion';
+import { RefreshCw, TrendingUp, TrendingDown, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { API_ENDPOINTS } from '../../config/environment';
 
 const TradeList = () => {
   const [trades, setTrades] = useState([]);
@@ -33,7 +37,10 @@ const TradeList = () => {
       setLoading(true);
       setError('');
       try {
-        const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/trades');
+        // New Railway URL
+        const response = await axios.get(API_ENDPOINTS.USERS.BROKER.TRADES);
+        // Legacy AWS URL (commented out)
+        // const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/trades');
         if (response.data && response.data.success) {
           setTrades(response.data.trades || []);
         } else if (response.data && Array.isArray(response.data)) {

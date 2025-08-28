@@ -1,23 +1,16 @@
 import axios from 'axios';
+import { API_ENDPOINTS } from '../config/environment';
 
 // Add a request interceptor to attach the token automatically
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://apistocktrading-production.up.railway.app/api'))) {
+    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://v4fintechtradingapi-production.up.railway.app/api'))) {
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
       // Add additional headers for better compatibility
       config.headers['Content-Type'] = 'application/json';
       config.headers['Accept'] = 'application/json';
-      
-      // Debug logging for profile update requests
-      if (config.url.includes('/users/profile') || config.url.includes('/profileUpdate')) {
-        console.log('Request interceptor - URL:', config.url);
-        console.log('Request interceptor - Method:', config.method);
-        console.log('Request interceptor - Headers:', config.headers);
-        console.log('Request interceptor - Data:', config.data);
-      }
     }
     return config;  
   },
@@ -41,18 +34,60 @@ axios.interceptors.response.use(
   }
 );
 
-// AUTH API endpoints - Updated with exact URLs from the provided APIs
-export const signup = (data) => axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/signup', data);
-export const signin = (data) => axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/signin', data);
-export const signout = () => axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/signout');
-export const getCurrentUser = () => axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/me');
-export const forgotPassword = (data) => axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/forgot-password', data);
-export const resetPassword = (data) => axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/reset-password', {
-  password: data.password,
-  accessToken: data.accessToken
-});
+// AUTH API endpoints - Updated to use Railway deployment
+// Legacy AWS URLs commented out for reference
 
-// USER API endpoints - Updated with exact URLs
+export const signup = (data) => {
+  // New Railway URL
+  return axios.post(API_ENDPOINTS.AUTH.SIGNUP, data);
+  // Legacy AWS URL (commented out)
+  // return axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/signup', data);
+};
+
+export const signin = (data) => {
+  // New Railway URL
+  return axios.post(API_ENDPOINTS.AUTH.SIGNIN, data);
+  // Legacy AWS URL (commented out)
+  // return axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/signin', data);
+};
+
+export const signout = () => {
+  // New Railway URL
+  return axios.get(API_ENDPOINTS.AUTH.SIGNOUT);
+  // Legacy AWS URL (commented out)
+  // return axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/signout');
+};
+
+export const getCurrentUser = () => {
+  // New Railway URL
+  return axios.get(API_ENDPOINTS.AUTH.ME);
+  // Legacy AWS URL (commented out)
+  // return axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/me');
+};
+
+export const forgotPassword = (data) => {
+  // New Railway URL
+  return axios.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, data);
+  // Legacy AWS URL (commented out)
+  // return axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/forgot-password', data);
+};
+
+export const resetPassword = (data) => {
+  // New Railway URL
+  return axios.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
+    token: data.token,
+    password: data.password
+  });
+  // Legacy AWS URL (commented out)
+  // return axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/reset-password', {
+  //   token: data.token,
+  //   password: data.password
+  // });
+};
+
+// USER API endpoints - Updated to use Railway deployment
+// Legacy AWS URLs commented out for reference
+
 export const changeEmail = async (data) => {
   try {
     console.log('Attempting email change with data:', data);
@@ -64,7 +99,10 @@ export const changeEmail = async (data) => {
     };
     
     console.log('Sending email change request with data:', apiData);
-    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/change-email', apiData);
+    // New Railway URL
+    const response = await axios.post(API_ENDPOINTS.USERS.CHANGE_EMAIL, apiData);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/change-email', apiData);
     return response.data;
   } catch (error) {
     console.error('Email change failed:', error);
@@ -75,14 +113,20 @@ export const changeEmail = async (data) => {
 export const userProfileUpdate = async (data) => {
   try {
     console.log('Attempting profile update with data:', data);
-    const response = await axios.put('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/profileUpdate', data);
+    // New Railway URL
+    const response = await axios.put(API_ENDPOINTS.USERS.PROFILE_UPDATE, data);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.put('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/profileUpdate', data);
     return response.data;
   } catch (error) {
     console.error('Profile update failed, trying alternative endpoint...');
     
     // Try alternative endpoint if the first one fails
     try {
-      const altResponse = await axios.put('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile', data);
+      // New Railway URL
+      const altResponse = await axios.put(API_ENDPOINTS.USERS.PROFILE, data);
+      // Legacy AWS URL (commented out)
+      // const altResponse = await axios.put('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/profile', data);
       return altResponse.data;
     } catch (altError) {
       console.error('Alternative profile update also failed:', altError);
@@ -96,6 +140,7 @@ export const userProfileUpdate = async (data) => {
     }
   }
 };
+
 export const addBrokerAccount = async (data) => {
   try {
     console.log('Adding broker account with data:', data);
@@ -112,7 +157,10 @@ export const addBrokerAccount = async (data) => {
     
     console.log('Sending API payload:', apiPayload);
     
-    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/connect', apiPayload);
+    // New Railway URL
+    const response = await axios.post(API_ENDPOINTS.USERS.BROKER.CONNECT, apiPayload);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/connect', apiPayload);
     console.log('Broker connection response:', response.data);
     
     return response.data;

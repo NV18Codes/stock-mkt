@@ -15,6 +15,7 @@ import {
 import { getAdminDashboardStats, getAdminUsers, exitTrade } from '../../api/admin';
 import { useAuth } from '../../context/AuthContext';
 import { getDematLimit, fetchMyBrokerProfile } from '../../api/auth';
+import { API_ENDPOINTS } from '../../config/environment';
 
 const AdminDashboard = () => {
   const { user: currentUser } = useAuth();
@@ -99,7 +100,10 @@ const AdminDashboard = () => {
   const fetchTrades = async () => {
     try {
       setTradesLoading(true);
-      const response = await fetch('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades', {
+      // New Railway URL
+      const response = await fetch(API_ENDPOINTS.ADMIN.TRADES.LIST, {
+        // Legacy AWS URL (commented out)
+        // const response = await fetch('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -239,7 +243,10 @@ const AdminDashboard = () => {
         // Fetch P&L data
         
         try {
-          const pnlRes = await fetch('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/pnl/all-trades', {
+          // New Railway URL
+          const pnlRes = await fetch(API_ENDPOINTS.ADMIN.TRADES.PNL, {
+            // Legacy AWS URL (commented out)
+            // const pnlRes = await fetch('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/pnl/all-trades', {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
               'Content-Type': 'application/json'
@@ -264,15 +271,13 @@ const AdminDashboard = () => {
               }, 0);
               
               // Update stats with P&L data
-                                      setStats(prev => ({
-                          ...prev,
-                          totalTrades: pnlData.length,
-                          totalVolume: totalVolume,
-                          totalProfitLoss: totalPnL
-                        }));
+              setStats(prev => ({
+                ...prev,
+                totalTrades: pnlData.length,
+                totalVolume: totalVolume,
+                totalProfitLoss: totalPnL
+              }));
             }
-          } else {
-            console.log('Failed to fetch P&L data:', pnlRes.status);
           }
         } catch (pnlError) {
           console.error('Error fetching P&L data:', pnlError);

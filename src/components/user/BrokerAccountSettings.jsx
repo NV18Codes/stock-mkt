@@ -8,6 +8,22 @@ import {
   verifyBrokerTOTP,
   verifyBrokerMPIN
 } from '../../api/broker';
+import { motion } from 'framer-motion';
+import { 
+  Building, 
+  CheckCircle, 
+  XCircle, 
+  AlertCircle, 
+  RefreshCw,
+  Eye,
+  EyeOff,
+  Lock,
+  Key,
+  Smartphone,
+  Shield
+} from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { API_ENDPOINTS } from '../../config/environment';
 
 const BrokerAccountSettings = () => {
   const [brokerData, setBrokerData] = useState({
@@ -34,6 +50,8 @@ const BrokerAccountSettings = () => {
   const [showBrokerForm, setShowBrokerForm] = useState(false);
   const [showHashedDetails, setShowHashedDetails] = useState(false);
 
+  const { token } = useAuth();
+
   // Utility function to hash sensitive data
   const hashSensitiveData = (value) => {
     if (!value || value.trim() === '') return '';
@@ -42,41 +60,33 @@ const BrokerAccountSettings = () => {
     return '*'.repeat(length - 4) + value.slice(-4);
   };
 
-  const fetchBrokerInfo = async () => {
-    setLoading(true);
-    setError('');
+  const fetchBrokerProfile = async () => {
     try {
-      // Fetch broker profile using the new API endpoint
-      const profileRes = await fetch('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/profile', {
+      setLoading(true);
+      // New Railway URL
+      const profileRes = await fetch(API_ENDPOINTS.USERS.BROKER.PROFILE, {
+        // Legacy AWS URL (commented out)
+        // const profileRes = await fetch('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/profile', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (profileRes.ok) {
-        const data = await profileRes.json();
-        if (data) {
-          // Check if broker is connected and active
-          const isBrokerConnected = data.broker_name && 
-                                  data.broker_name !== 'No Broker Connected';
-          const isActiveForTrading = data.is_active_for_trading;
+        const profileData = await profileRes.json();
+        console.log('Broker profile data:', profileData);
+        
+        if (profileData && profileData.data) {
+          setBrokerProfile(profileData.data);
+          setStatus('ACTIVE'); // Assuming if profile is fetched, it's active
           
-          if (isBrokerConnected && isActiveForTrading) {
-            setStatus('ACTIVE');
-            setBrokerProfile(data);
-            
-            // Fetch demat limit
-            try {
-              const dematRes = await getDematLimit();
-              setDematLimit(dematRes.data);
-            } catch (dematErr) {
-              console.error('Error fetching demat limit:', dematErr);
-              setDematLimit(null);
-            }
-          } else {
-            setStatus('NOT_CONNECTED');
-            setBrokerProfile(null);
+          // Fetch demat limit
+          try {
+            const dematRes = await getDematLimit();
+            setDematLimit(dematRes.data);
+          } catch (dematErr) {
+            console.error('Error fetching demat limit:', dematErr);
             setDematLimit(null);
           }
         } else {
@@ -85,13 +95,13 @@ const BrokerAccountSettings = () => {
           setDematLimit(null);
         }
       } else {
+        console.log('Failed to fetch broker profile:', profileRes.status);
         setStatus('NOT_CONNECTED');
         setBrokerProfile(null);
         setDematLimit(null);
       }
-    } catch (err) {
-      console.error('Error fetching broker info:', err);
-      setError('Failed to fetch broker status');
+    } catch (error) {
+      console.error('Error fetching broker profile:', error);
       setStatus('NOT_CONNECTED');
       setBrokerProfile(null);
       setDematLimit(null);
@@ -101,7 +111,7 @@ const BrokerAccountSettings = () => {
   };
 
   useEffect(() => {
-    fetchBrokerInfo();
+    fetchBrokerProfile();
   }, []);
 
   const handleBrokerChange = (e) => {
@@ -160,7 +170,7 @@ const BrokerAccountSettings = () => {
           
           // Refresh broker info
           setTimeout(() => {
-            fetchBrokerInfo();
+            fetchBrokerProfile();
           }, 2000);
         } else {
           setError(result?.message || 'Failed to verify TOTP');
@@ -194,7 +204,7 @@ const BrokerAccountSettings = () => {
         
         // Refresh broker info
         setTimeout(() => {
-          fetchBrokerInfo();
+          fetchBrokerProfile();
         }, 2000);
       } else {
         setError(result?.message || 'Failed to disconnect broker');

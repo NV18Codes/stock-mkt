@@ -1,10 +1,11 @@
 import axios from 'axios';
+import { API_ENDPOINTS } from '../config/environment';
 
 // Add a request interceptor to attach the token automatically
 axios.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://y9tyscpumt.us-east-1.awsapprunner.com/api'))) {
+    if (token && config.url && (config.url.startsWith('/api') || config.url.startsWith('https://v4fintechtradingapi-production.up.railway.app/api'))) {
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
       // Add additional headers for better compatibility
@@ -33,12 +34,16 @@ axios.interceptors.response.use(
   }
 );
 
-// ADMIN API endpoints - Updated with exact URLs from the provided APIs
+// ADMIN API endpoints - Updated to use Railway deployment
+// Legacy AWS URLs commented out for reference
 
 // MARKET DATA API endpoints
 export const getOptionExpiries = async (underlying) => {
   try {
-    const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/market-data/option-expiries/${underlying}`);
+    // New Railway URL
+    const response = await axios.get(API_ENDPOINTS.MARKET_DATA.OPTION_EXPIRIES(underlying));
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/market-data/option-expiries/${underlying}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching option expiries:', error);
@@ -48,7 +53,10 @@ export const getOptionExpiries = async (underlying) => {
 
 export const getOptionChainStructure = async (underlying, expiry) => {
   try {
-    const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/market-data/option-chain?underlying=${underlying}&expiry=${expiry}`);
+    // New Railway URL
+    const response = await axios.get(`${API_ENDPOINTS.MARKET_DATA.OPTION_CHAIN}?underlying=${underlying}&expiry=${expiry}`);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/market-data/option-chain?underlying=${underlying}&expiry=${expiry}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching option chain structure:', error);
@@ -58,7 +66,10 @@ export const getOptionChainStructure = async (underlying, expiry) => {
 
 export const getOptionsUnderlying = async () => {
   try {
-    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/market-data/option-underlyings');
+    // New Railway URL
+    const response = await axios.get(API_ENDPOINTS.MARKET_DATA.OPTION_UNDERLYINGS);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/market-data/option-underlyings');
     return response.data;
   } catch (error) {
     console.error('Error fetching options underlying:', error);
@@ -69,7 +80,10 @@ export const getOptionsUnderlying = async () => {
 // TRADE EXECUTION API endpoints
 export const initiateTrade = async (tradeData) => {
   try {
-    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/initiate', tradeData);
+    // New Railway URL
+    const response = await axios.post(API_ENDPOINTS.ADMIN.TRADES.INITIATE, tradeData);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/initiate', tradeData);
     return response.data;
   } catch (error) {
     console.error('Error initiating trade:', error);
@@ -79,7 +93,10 @@ export const initiateTrade = async (tradeData) => {
 
 export const adminTradeHistory = async (params = {}) => {
   try {
-    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades', { params });
+    // New Railway URL
+    const response = await axios.get(API_ENDPOINTS.ADMIN.TRADES.LIST, { params });
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades', { params });
     return response.data;
   } catch (error) {
     console.error('Error fetching admin trade history:', error);
@@ -90,9 +107,15 @@ export const adminTradeHistory = async (params = {}) => {
 export const singleTradeDetail = async (tradeId) => {
   try {
     console.log(`Fetching trade details for ID: ${tradeId}`);
-    console.log(`API URL: https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/${tradeId}`);
+    // New Railway URL
+    const apiUrl = API_ENDPOINTS.ADMIN.TRADES.DETAIL(tradeId);
+    console.log(`API URL: ${apiUrl}`);
+    // Legacy AWS URL (commented out)
+    // console.log(`API URL: https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/${tradeId}`);
     
-    const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/${tradeId}`);
+    const response = await axios.get(apiUrl);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/${tradeId}`);
     
     console.log('API Response Status:', response.status);
     console.log('API Response Headers:', response.headers);
@@ -115,7 +138,10 @@ export const singleTradeDetail = async (tradeId) => {
 export const getAllSegments = async () => {
   try {
     console.log('Attempting to fetch segments from working endpoint');
-    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments');
+    // New Railway URL
+    const response = await axios.get(API_ENDPOINTS.ADMIN.SEGMENTS.LIST);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments');
     console.log('Segments endpoint response:', response.data);
     return response.data;
   } catch (error) {
@@ -133,7 +159,10 @@ export const getAllSegments = async () => {
 
 export const addSegments = async (segmentData) => {
   try {
-    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments', segmentData);
+    // New Railway URL
+    const response = await axios.post(API_ENDPOINTS.ADMIN.SEGMENTS.CREATE, segmentData);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments', segmentData);
     return response.data;
   } catch (error) {
     console.error('Error adding segment:', error);
@@ -143,7 +172,10 @@ export const addSegments = async (segmentData) => {
 
 export const getSingleSegmentByID = async (segmentId) => {
   try {
-    const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`);
+    // New Railway URL
+    const response = await axios.get(API_ENDPOINTS.ADMIN.SEGMENTS.DETAIL(segmentId));
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching single segment:', error);
@@ -153,7 +185,10 @@ export const getSingleSegmentByID = async (segmentId) => {
 
 export const updateSegmentById = async (segmentId, segmentData) => {
   try {
-    const response = await axios.put(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`, segmentData);
+    // New Railway URL
+    const response = await axios.put(API_ENDPOINTS.ADMIN.SEGMENTS.UPDATE(segmentId), segmentData);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.put(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`, segmentData);
     return response.data;
   } catch (error) {
     console.error('Error updating segment:', error);
@@ -163,7 +198,10 @@ export const updateSegmentById = async (segmentId, segmentData) => {
 
 export const deleteSegmentById = async (segmentId) => {
   try {
-    const response = await axios.delete(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`);
+    // New Railway URL
+    const response = await axios.delete(API_ENDPOINTS.ADMIN.SEGMENTS.DELETE(segmentId));
+    // Legacy AWS URL (commented out)
+    // const response = await axios.delete(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`);
     return response.data;
   } catch (error) {
     console.error('Error deleting segment:', error);
@@ -175,7 +213,10 @@ export const deleteSegmentById = async (segmentId) => {
 export const addUserToSegment = async (segmentId, userData) => {
   try {
     console.log('addUserToSegment called with:', { segmentId, userData });
-    const response = await axios.post(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users`, userData);
+    // New Railway URL
+    const response = await axios.post(API_ENDPOINTS.ADMIN.SEGMENTS.USERS.ADD(segmentId), userData);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.post(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users`, userData);
     console.log('addUserToSegment response:', response.data);
     return response.data;
   } catch (error) {
@@ -183,7 +224,10 @@ export const addUserToSegment = async (segmentId, userData) => {
     console.error('Request details:', {
       segmentId,
       userData,
-      url: `https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users`,
+      // New Railway URL
+      url: API_ENDPOINTS.ADMIN.SEGMENTS.USERS.ADD(segmentId),
+      // Legacy AWS URL (commented out)
+      // url: `https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users`,
       method: 'POST',
       headers: error.config?.headers,
       status: error.response?.status,
@@ -196,7 +240,10 @@ export const addUserToSegment = async (segmentId, userData) => {
 
 export const getUsersInSegment = async (segmentId) => {
   try {
-    const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users`);
+    // New Railway URL
+    const response = await axios.get(API_ENDPOINTS.ADMIN.SEGMENTS.USERS.LIST(segmentId));
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users`);
     return response.data;
   } catch (error) {
     console.error('Error fetching users in segment:', error);
@@ -207,7 +254,10 @@ export const getUsersInSegment = async (segmentId) => {
 // USER MANAGEMENT API endpoints
 export const getSingleUser = async (userId) => {
   try {
-    const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/${userId}`);
+    // New Railway URL
+    const response = await axios.get(API_ENDPOINTS.ADMIN.USERS.DETAIL(userId));
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/${userId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching single user:', error);
@@ -217,7 +267,10 @@ export const getSingleUser = async (userId) => {
 
 export const getListUsers = async () => {
   try {
-    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users');
+    // New Railway URL
+    const response = await axios.get(API_ENDPOINTS.ADMIN.USERS.LIST);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users');
     return response.data;
   } catch (error) {
     console.error('Error fetching users list:', error);
@@ -228,7 +281,10 @@ export const getListUsers = async () => {
 // Enhanced get current user details
 export const getCurrentUser = async () => {
   try {
-    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/me');
+    // New Railway URL
+    const response = await axios.get(API_ENDPOINTS.AUTH.ME);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/auth/me');
     console.log('Admin getCurrentUser response:', response.data);
     
     // Normalize the response data
@@ -278,7 +334,10 @@ export const getCurrentUser = async () => {
 export const getAdminUsers = async () => {
   try {
     console.log('Attempting to fetch users from working endpoint');
-    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users');
+    // New Railway URL
+    const response = await axios.get(API_ENDPOINTS.ADMIN.USERS.LIST);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users');
     console.log('Users endpoint response:', response.data);
     
     let usersData;
@@ -343,7 +402,10 @@ export const getAdminUsers = async () => {
 export const assignUserToSegment = async (segmentId, userId) => {
   try {
     console.log(`Attempting to assign user ${userId} to segment ${segmentId}`);
-    const response = await axios.post(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users`, { userId });
+    // New Railway URL
+    const response = await axios.post(API_ENDPOINTS.ADMIN.SEGMENTS.USERS.ADD(segmentId), { userId });
+    // Legacy AWS URL (commented out)
+    // const response = await axios.post(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users`, { userId });
     console.log('Assign user to segment response:', response.data);
     return response.data;
   } catch (error) {
@@ -362,7 +424,10 @@ export const assignUserToSegment = async (segmentId, userId) => {
 export const removeUserFromSegment = async (segmentId, userId) => {
   try {
     console.log(`Attempting to remove user ${userId} from segment ${segmentId}`);
-    const response = await axios.delete(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users/${userId}`);
+    // New Railway URL
+    const response = await axios.delete(API_ENDPOINTS.ADMIN.SEGMENTS.USERS.REMOVE(segmentId, userId));
+    // Legacy AWS URL (commented out)
+    // const response = await axios.delete(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}/users/${userId}`);
     console.log('Remove user from segment response:', response.data);
     return response.data;
   } catch (error) {
@@ -381,7 +446,10 @@ export const removeUserFromSegment = async (segmentId, userId) => {
 export const createSegment = async (segmentData) => {
   try {
     console.log('Attempting to create segment:', segmentData);
-    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments', segmentData);
+    // New Railway URL
+    const response = await axios.post(API_ENDPOINTS.ADMIN.SEGMENTS.CREATE, segmentData);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments', segmentData);
     console.log('Create segment response:', response.data);
     return response.data;
   } catch (error) {
@@ -400,7 +468,10 @@ export const createSegment = async (segmentData) => {
 export const updateSegment = async (segmentId, segmentData) => {
   try {
     console.log(`Attempting to update segment ${segmentId}:`, segmentData);
-    const response = await axios.put(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`, segmentData);
+    // New Railway URL
+    const response = await axios.put(API_ENDPOINTS.ADMIN.SEGMENTS.UPDATE(segmentId), segmentData);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.put(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`, segmentData);
     console.log('Update segment response:', response.data);
     return response.data;
   } catch (error) {
@@ -419,7 +490,10 @@ export const updateSegment = async (segmentId, segmentData) => {
 export const deleteSegment = async (segmentId) => {
   try {
     console.log(`Attempting to delete segment ${segmentId}`);
-    const response = await axios.delete(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`);
+    // New Railway URL
+    const response = await axios.delete(API_ENDPOINTS.ADMIN.SEGMENTS.DELETE(segmentId));
+    // Legacy AWS URL (commented out)
+    // const response = await axios.delete(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/segments/${segmentId}`);
     console.log('Delete segment response:', response.data);
     return response.data;
   } catch (error) {
@@ -438,7 +512,10 @@ export const deleteSegment = async (segmentId) => {
 // Get admin trades with working endpoint
 export const getAdminTrades = async () => {
   try {
-    const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades');
+    // New Railway URL
+    const response = await axios.get(API_ENDPOINTS.ADMIN.TRADES.LIST);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades');
     console.log('Admin trades API response:', response.data);
     return response.data;
   } catch (error) {
@@ -447,16 +524,20 @@ export const getAdminTrades = async () => {
   }
 };
 
-
-
 // Get admin dashboard stats - simplified to use available endpoints
 export const getAdminDashboardStats = async () => {
   try {
     // Since the stats endpoint doesn't exist, we'll construct stats from available data
+    // New Railway URLs
     const [usersResponse, tradesResponse] = await Promise.all([
-      axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users'),
+      axios.get(API_ENDPOINTS.ADMIN.USERS.LIST),
       getAdminTrades()
     ]);
+    // Legacy AWS URLs (commented out)
+    // const [usersResponse, tradesResponse] = await Promise.all([
+    //   axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users'),
+    //   getAdminTrades()
+    // ]);
     
     const users = usersResponse.data?.data || [];
     const trades = tradesResponse.data || [];
@@ -495,7 +576,10 @@ export const getAdminDashboardStats = async () => {
 
 export const initiateAdminTrade = async (tradeData) => {
   try {
-    const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/initiate', tradeData);
+    // New Railway URL
+    const response = await axios.post(API_ENDPOINTS.ADMIN.TRADES.INITIATE, tradeData);
+    // Legacy AWS URL (commented out)
+    // const response = await axios.post('https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/initiate', tradeData);
     return response.data;
   } catch (error) {
     console.error('Error initiating admin trade:', error);
@@ -507,7 +591,10 @@ export const initiateAdminTrade = async (tradeData) => {
 export const exitTrade = async (adminTradeId) => {
   try {
     console.log(`Attempting to exit trade with ID: ${adminTradeId}`);
-    const response = await axios.post(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/${adminTradeId}/exit`, {});
+    // New Railway URL
+    const response = await axios.post(API_ENDPOINTS.ADMIN.TRADES.EXIT(adminTradeId), {});
+    // Legacy AWS URL (commented out)
+    // const response = await axios.post(`https://y9tyscpumt.us-east-1.awsapprunner.com/api/admin/trades/${adminTradeId}/exit`, {});
     console.log('Exit trade response:', response.data);
     return response.data;
   } catch (error) {
