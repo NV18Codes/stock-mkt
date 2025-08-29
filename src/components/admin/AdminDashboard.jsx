@@ -812,13 +812,7 @@ const AdminDashboard = () => {
           <div style={{ 
             display: 'grid', 
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-            gap: 'clamp(1em, 2.5vw, 1.5em)',
-            '@media (max-width: 768px)': {
-              gridTemplateColumns: 'repeat(2, 1fr)'
-            },
-            '@media (max-width: 480px)': {
-              gridTemplateColumns: '1fr'
-            }
+            gap: 'clamp(1em, 2.5vw, 1.5em)'
           }}>
             <div style={{
               background: 'var(--bg-secondary)',
@@ -1116,8 +1110,7 @@ const AdminDashboard = () => {
         {filteredUsers.length > 0 ? (
           <div style={{ overflowX: 'auto' }}>
             <div style={{ 
-              display: 'none',
-              '@media (max-width: 768px)': { display: 'block' },
+              display: 'block',
               padding: '1em',
               textAlign: 'center',
               color: 'var(--text-muted)',
@@ -1448,9 +1441,8 @@ const AdminDashboard = () => {
         ) : trades.length > 0 ? (
           <div style={{ overflowX: 'auto' }}>
             <div style={{ 
-              display: 'none',
-              '@media (max-width: 768px)': { display: 'block' },
-              padding: '1em',
+              display: 'block',
+              padding: 'clamp(0.5em, 2vw, 1em)',
               textAlign: 'center',
               color: 'var(--text-muted)',
               fontSize: 'clamp(12px, 2.5vw, 14px)'

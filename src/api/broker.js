@@ -145,10 +145,10 @@ export const connectBroker = async (data) => {
 // Additional functions needed by components
 export const getUserBrokerTrades = async () => {
   try {
-    // New Railway URL
-    const response = await axios.get(API_ENDPOINTS.USERS.BROKER.TRADES);
-    // Legacy AWS URL (commented out)
-    // const response = await axios.get('https://y9tyscpumt.us-east-1.awsapprunner.com/api/users/me/broker/trades');
+    // Direct Railway URL as requested
+    const response = await axios.get('https://v4fintechtradingapi-production.up.railway.app/api/users/me/broker/trades');
+    // Legacy endpoint (commented out)
+    // const response = await axios.get(API_ENDPOINTS.USERS.BROKER.TRADES);
     return response.data;
   } catch (error) {
     console.error('Error fetching user broker trades:', error);

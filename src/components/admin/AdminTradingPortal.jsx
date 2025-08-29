@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAdminUsers, getAllSegments, initiateTrade } from '../../api/admin';
 import AdminOrderForm from './AdminOrderForm';
-import RecentTrades from '../user/RecentTrades';
+import RecentTrades from './RecentTrades';
 
 const formatINR = (value) => {
   const num = typeof value === 'object' && value !== null ? value.net : value;

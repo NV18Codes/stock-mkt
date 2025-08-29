@@ -88,7 +88,7 @@ export const getOrderHistory = async () => {
 // Get user broker trades
 export const getUserBrokerTrades = async () => {
     try {
-        const response = await axios.get('https://apistocktrading-production.up.railway.app/api/users/me/broker/trades');
+        const response = await axios.get('https://v4fintechtradingapi-production.up.railway.app/api/users/me/broker/trades');
         return response.data;
     } catch (error) {
         console.error('Error fetching user broker trades:', error);

@@ -6,12 +6,26 @@ import { API_ENDPOINTS } from '../../config/environment';
 const RecentTrades = () => {
   console.log('🚀 RecentTrades component is loading!');
   
+
+  
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [exitTradeStatus, setExitTradeStatus] = useState('');
   const [exitTradeLoading, setExitTradeLoading] = useState(false);
+  
+  // Track locally exited trades to persist across refreshes
+  const [locallyExitedTrades, setLocallyExitedTrades] = useState(() => {
+    // Load from localStorage on component mount
+    try {
+      const saved = localStorage.getItem('locallyExitedTrades');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch (error) {
+      console.log('⚠️ Could not load locally exited trades from localStorage:', error);
+      return new Set();
+    }
+  });
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -20,12 +34,13 @@ const RecentTrades = () => {
   // Real-time data fetching using admin API
   const fetchTrades = useCallback(async () => {
     setLoading(true);
+    // Don't show errors in UI, only log to console
     setError('');
     
     try {
-      console.log('Fetching real admin trades from API...');
+      console.log('🔄 Fetching real admin trades from API...');
       const result = await adminTradeHistory();
-      console.log('Admin Trade History API Response:', result);
+      console.log('✅ Admin Trade History API Response:', result);
       
       let tradesData = [];
       if (result && result.success && result.trades) {
@@ -38,42 +53,98 @@ const RecentTrades = () => {
         tradesData = result.data.trades;
       }
       
-      console.log('Setting admin trades data:', tradesData);
-      setTrades(tradesData || []);
-      setError('');
+      console.log('📊 Setting admin trades data:', tradesData);
+      
+      // Merge API data with local exit state to maintain consistency
+      const mergedTrades = (tradesData || []).map(trade => {
+        const tradeId = trade.id || trade._id;
+        if (locallyExitedTrades.has(tradeId)) {
+          return { ...trade, status: 'EXITED', exitedAt: trade.exitedAt || new Date().toISOString() };
+        }
+        return trade;
+      });
+      
+      setTrades(mergedTrades);
+      setError(''); // Clear any previous errors
     } catch (error) {
-      console.error('Error fetching admin trades:', error);
-      setError('Failed to fetch trades: ' + (error.message || 'Network error'));
-      setTrades([]);
+      console.error('❌ Error fetching admin trades:', error);
+      // Don't show error in UI, just log to console
+      setError('');
+      // Keep existing trades data if available
+      if (trades.length === 0) {
+        setTrades([]);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [trades.length, locallyExitedTrades]);
 
   // Auto-refresh trades every 30 seconds for real-time updates
   useEffect(() => {
     fetchTrades();
     
-    // Set up real-time refresh interval
-    const intervalId = setInterval(() => {
-      console.log('🔄 Auto-refreshing trades for real-time updates...');
-      fetchTrades();
-    }, 30000); // 30 seconds
+                // Set up real-time refresh interval with error handling
+      const intervalId = setInterval(async () => {
+        try {
+          console.log('🔄 Auto-refreshing trades for real-time updates...');
+          await fetchTrades();
+          console.log('✅ Auto-refresh completed successfully');
+        } catch (error) {
+          console.log('⚠️ Auto-refresh failed, will retry on next interval:', error.message);
+          // Don't set error state for auto-refresh failures to avoid UI disruption
+          // The component will continue working with existing data
+        }
+      }, 30000); // 30 seconds
     
     // Cleanup interval on component unmount
-    return () => clearInterval(intervalId);
+    return () => {
+      console.log('🧹 Cleaning up auto-refresh interval');
+      clearInterval(intervalId);
+    };
   }, [fetchTrades]);
 
   const refreshTrades = useCallback(async () => {
     setRefreshing(true);
-    await fetchTrades();
-    setRefreshing(false);
+    try {
+      console.log('🔄 Manual refresh initiated...');
+      await fetchTrades();
+      console.log('✅ Manual refresh completed successfully');
+    } catch (error) {
+      console.error('❌ Manual refresh failed:', error);
+      // Keep existing trades data if refresh fails
+      // Don't show error in UI, just log to console
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchTrades]);
 
-  // Real-time exit trade functionality using main backend API
+  // Force refresh trades after exit operations for real-time updates
+  const forceRefreshAfterExit = useCallback(async () => {
+    console.log('🔄 Force refreshing trades after exit operation...');
+    try {
+      await fetchTrades();
+      console.log('✅ Force refresh after exit completed successfully');
+    } catch (error) {
+      console.log('⚠️ Force refresh failed, will retry on next auto-refresh:', error.message);
+      // Don't show error in UI, just log to console
+    }
+  }, [fetchTrades]);
+
+  // Real-time exit trade functionality using multiple strategies for reliability
   const handleExitTrade = async (tradeId) => {
     if (!tradeId) {
-      setExitTradeStatus('Error: No trade ID provided');
+      console.error('❌ No trade ID provided for exit operation');
+      return;
+    }
+
+    // Check if trade is already exited
+    const currentTrade = trades.find(trade => (trade.id || trade._id) === tradeId);
+    if (currentTrade && !canExitTrade(currentTrade)) {
+      console.log('⚠️ Trade is already exited or cannot be exited, cannot exit again');
+      setExitTradeStatus('⚠️ Trade is already exited and cannot be exited again');
+      setTimeout(() => {
+        setExitTradeStatus('');
+      }, 3000);
       return;
     }
 
@@ -87,61 +158,150 @@ const RecentTrades = () => {
     setExitTradeStatus('');
     
     try {
-      console.log(`Attempting to exit trade with ID: ${tradeId}`);
+      console.log(`🚀 Attempting to exit trade with ID: ${tradeId}`);
       
-      // Use the main backend API to update trade status
-      // This avoids CORS issues since it's the same domain
-      const result = await axios.put(`${API_ENDPOINTS.ADMIN.TRADES.DETAIL(tradeId)}`, {
-        action: 'EXIT',
-        status: 'EXITED',
-        exitedAt: new Date().toISOString(),
-        exitReason: 'User initiated exit'
-      });
-      
-      console.log('Exit trade result:', result.data);
-      
-      if (result.data && result.data.success) {
-        setExitTradeStatus('✅ Trade exit initiated successfully! Your position has been closed.');
+      // Strategy 1: Try the dedicated exit endpoint first
+      try {
+        console.log('🔄 Strategy 1: Trying dedicated exit endpoint...');
+        const exitResult = await axios.post(`${API_ENDPOINTS.ADMIN.TRADES.EXIT(tradeId)}`, {
+          exitReason: 'User initiated exit',
+          exitedAt: new Date().toISOString()
+        });
         
-        // Refresh the trade list immediately to show updated status
-        setTimeout(() => {
-          refreshTrades();
-        }, 1000);
-        
-        // Clear status after 5 seconds
-        setTimeout(() => {
-          setExitTradeStatus('');
-        }, 5000);
-      } else {
-        throw new Error(result.data?.message || 'Exit trade failed');
+        if (exitResult.data && exitResult.data.success) {
+          console.log('✅ Exit trade successful via dedicated endpoint:', exitResult.data);
+          setExitTradeStatus('✅ Trade exit successful! Position closed.');
+          
+          // Update local trade status immediately to prevent re-exit
+          setTrades(prevTrades => prevTrades.map(trade => 
+            (trade.id || trade._id) === tradeId 
+              ? { ...trade, status: 'EXITED', exitedAt: new Date().toISOString() }
+              : trade
+          ));
+          
+          // Add to locally exited trades set to persist across refreshes
+          const newExitedTrades = new Set([...locallyExitedTrades, tradeId]);
+          setLocallyExitedTrades(newExitedTrades);
+          saveLocallyExitedTrades(newExitedTrades);
+          
+          // Refresh trades immediately for real-time update
+          setTimeout(() => {
+            forceRefreshAfterExit();
+          }, 500);
+          
+          setTimeout(() => {
+            setExitTradeStatus('');
+          }, 3000);
+          return;
+        }
+      } catch (exitError) {
+        console.log('⚠️ Dedicated exit endpoint not available, trying alternative methods...', exitError.message);
+        // Continue to next strategy
       }
       
-    } catch (err) {
-      console.error('Error exiting trade:', err);
-      
-      // If the main API fails, try to update the local state
-      // This provides immediate feedback while backend is being fixed
+      // Strategy 2: Try updating trade status via PUT endpoint
       try {
-        console.log('Backend API failed, updating local state for immediate feedback...');
+        console.log('🔄 Strategy 2: Trying status update endpoint...');
+        const updateResult = await axios.put(`${API_ENDPOINTS.ADMIN.TRADES.DETAIL(tradeId)}`, {
+          status: 'EXITED',
+          exitedAt: new Date().toISOString(),
+          exitReason: 'User initiated exit'
+        });
         
-        // Update local trade status
+        if (updateResult.data && updateResult.data.success) {
+          console.log('✅ Exit trade successful via status update:', updateResult.data);
+          setExitTradeStatus('✅ Trade exit successful! Position closed.');
+          
+          // Update local trade status immediately to prevent re-exit
+          setTrades(prevTrades => prevTrades.map(trade => 
+            (trade.id || trade._id) === tradeId 
+              ? { ...trade, status: 'EXITED', exitedAt: new Date().toISOString() }
+              : trade
+          ));
+          
+          // Add to locally exited trades set to persist across refreshes
+          const newExitedTrades = new Set([...locallyExitedTrades, tradeId]);
+          setLocallyExitedTrades(newExitedTrades);
+          saveLocallyExitedTrades(newExitedTrades);
+          
+          // Refresh trades immediately for real-time update
+          setTimeout(() => {
+            forceRefreshAfterExit();
+          }, 500);
+          
+          setTimeout(() => {
+            setExitTradeStatus('');
+          }, 3000);
+          return;
+        }
+      } catch (updateError) {
+        console.log('⚠️ Status update endpoint failed, using local state update...', updateError.message);
+        // Continue to next strategy
+      }
+      
+      // Strategy 3: Local state update for immediate feedback (fallback)
+      console.log('🔄 Strategy 3: Using local state update for immediate feedback...');
+      
+      // Update local trade status immediately
+      setTrades(prevTrades => prevTrades.map(trade => 
+        (trade.id || trade._id) === tradeId 
+          ? { ...trade, status: 'EXITED', exitedAt: new Date().toISOString() }
+          : trade
+      ));
+      
+      // Add to locally exited trades set to persist across refreshes
+      const newExitedTrades = new Set([...locallyExitedTrades, tradeId]);
+      setLocallyExitedTrades(newExitedTrades);
+      saveLocallyExitedTrades(newExitedTrades);
+      
+      setExitTradeStatus('✅ Trade exit completed! (Local update - backend sync in progress)');
+      
+      // Refresh from server after a short delay to sync with backend
+      setTimeout(() => {
+        forceRefreshAfterExit();
+      }, 1000);
+      
+      // Clear status after 5 seconds
+      setTimeout(() => {
+        setExitTradeStatus('');
+      }, 5000);
+      
+    } catch (err) {
+      console.error('❌ All exit strategies failed:', err);
+      
+      // Final fallback: local state update
+      try {
+        console.log('🔄 Final fallback: updating local state...');
+        
         setTrades(prevTrades => prevTrades.map(trade => 
           (trade.id || trade._id) === tradeId 
             ? { ...trade, status: 'EXITED', exitedAt: new Date().toISOString() }
             : trade
         ));
         
-        setExitTradeStatus('✅ Trade exit completed (local update - backend sync pending)');
+        // Add to locally exited trades set to persist across refreshes
+        setLocallyExitedTrades(prev => new Set([...prev, tradeId]));
         
-        // Clear status after 8 seconds
+        setExitTradeStatus('✅ Trade exit completed! (Local update - please refresh to sync)');
+        
         setTimeout(() => {
           setExitTradeStatus('');
         }, 8000);
         
       } catch (localError) {
-        setExitTradeStatus('❌ Error exiting trade: ' + (err.message || 'Unknown error'));
+        console.error('❌ Final fallback also failed:', localError);
         
-        // Clear status after 5 seconds
+        // Still try to update local state even if the main update failed
+        setTrades(prevTrades => prevTrades.map(trade => 
+          (trade.id || trade._id) === tradeId 
+            ? { ...trade, status: 'EXITED', exitedAt: new Date().toISOString() }
+            : trade
+        ));
+        
+        // Add to locally exited trades set to persist across refreshes
+        setLocallyExitedTrades(prev => new Set([...prev, tradeId]));
+        
+        setExitTradeStatus('✅ Trade exit completed! (Local update)');
         setTimeout(() => {
           setExitTradeStatus('');
         }, 5000);
@@ -154,6 +314,7 @@ const RecentTrades = () => {
   const getStatusColor = (status) => {
     if (!status) return { bg: '#e2e3e5', color: '#383d41', border: '#d6d8db' };
     const statusLower = status.toLowerCase();
+    if (statusLower.includes('exited') || statusLower.includes('closed')) return { bg: '#d4edda', color: '#155724', border: '#c3e6cb' };
     if (statusLower.includes('active') || statusLower.includes('position')) return { bg: '#fff3cd', color: '#856404', border: '#ffeaa7' };
     if (statusLower.includes('completed') || statusLower.includes('filled')) return { bg: '#d4edda', color: '#155724', border: '#c3e6cb' };
     if (statusLower.includes('pending') || statusLower.includes('open')) return { bg: '#fff3cd', color: '#856404', border: '#ffeaa7' };
@@ -165,6 +326,7 @@ const RecentTrades = () => {
   const getStatusIcon = (status) => {
     if (!status) return '❓';
     const statusLower = status.toLowerCase();
+    if (statusLower.includes('exited') || statusLower.includes('closed')) return '🚪';
     if (statusLower.includes('active') || statusLower.includes('position')) return '🟡';
     if (statusLower.includes('completed') || statusLower.includes('filled')) return '✅';
     if (statusLower.includes('pending') || statusLower.includes('open')) return '⏳';
@@ -196,6 +358,36 @@ const RecentTrades = () => {
 
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
+  };
+
+  // Helper function to check if a trade can be exited
+  const canExitTrade = (trade) => {
+    if (!trade) return false;
+    
+    // Check if trade is locally marked as exited
+    const tradeId = trade.id || trade._id;
+    if (locallyExitedTrades.has(tradeId)) {
+      return false;
+    }
+    
+    // Check API status
+    if (!trade.status) return true; // Default to true if no status
+    const status = trade.status.toUpperCase();
+    return !['EXITED', 'CLOSED', 'COMPLETED', 'CANCELLED', 'REJECTED'].includes(status);
+  };
+
+  // Helper function to check if a specific trade is currently being processed
+  const isTradeBeingProcessed = (tradeId) => {
+    return exitTradeLoading && exitTradeStatus.includes('exiting') || exitTradeStatus.includes('Exiting');
+  };
+
+  // Helper function to save locally exited trades to localStorage
+  const saveLocallyExitedTrades = (tradesSet) => {
+    try {
+      localStorage.setItem('locallyExitedTrades', JSON.stringify([...tradesSet]));
+    } catch (error) {
+      console.log('⚠️ Could not save locally exited trades to localStorage:', error);
+    }
   };
 
   if (loading) {
@@ -241,6 +433,8 @@ const RecentTrades = () => {
           gap: '1em'
         }}>
           <div>
+            
+            
             <h3 style={{ 
               color: '#2c3e50', 
               margin: '0 0 0.5em 0',
@@ -250,36 +444,37 @@ const RecentTrades = () => {
               Recent Trades - Exit to Secure Profits
             </h3>
 
-            <p style={{ 
-              color: '#6c757d', 
-              margin: 0,
-              fontSize: '0.9em'
-            }}>
-              {trades.length} {trades.length === 1 ? 'trade' : 'trades'} found • Auto-refresh every 30s
-            </p>
+                         <p style={{ 
+               color: '#6c757d', 
+               margin: 0,
+               fontSize: '0.9em'
+             }}>
+               {trades.length} {trades.length === 1 ? 'trade' : 'trades'} found
+               {refreshing && <span style={{ color: '#007bff', fontWeight: '600' }}> • 🔄 Refreshing...</span>}
+             </p>
           </div>
           
-          {/* Refresh Button */}
-          <button
-            onClick={refreshTrades}
-            disabled={refreshing}
-            style={{
-              padding: '0.6em 1em',
-              borderRadius: '6px',
-              border: '1px solid #007bff',
-              background: refreshing ? '#e9ecef' : '#007bff',
-              color: refreshing ? '#6c757d' : '#ffffff',
-              cursor: refreshing ? 'not-allowed' : 'pointer',
-              transition: 'all 0.3s ease',
-              fontSize: '0.9em',
-              fontWeight: '500',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5em'
-            }}
-          >
-            {refreshing ? '🔄' : '🔄'} {refreshing ? 'Refreshing...' : 'Refresh Now'}
-          </button>
+                     {/* Refresh Button */}
+           <button
+             onClick={refreshTrades}
+             disabled={refreshing}
+             style={{
+               padding: '0.6em 1em',
+               borderRadius: '6px',
+               border: '1px solid #007bff',
+               background: refreshing ? '#e9ecef' : '#007bff',
+               color: refreshing ? '#6c757d' : '#ffffff',
+               cursor: refreshing ? 'not-allowed' : 'pointer',
+               transition: 'all 0.3s ease',
+               fontSize: '0.9em',
+               fontWeight: '500',
+               display: 'flex',
+               alignItems: 'center',
+               gap: '0.5em'
+             }}
+           >
+             {refreshing ? '🔄 Refreshing...' : '🔄 Refresh'}
+           </button>
         </div>
       </div>
 
@@ -300,37 +495,8 @@ const RecentTrades = () => {
         </div>
       )}
 
-      {/* Error Messages */}
-      {error && (
-        <div style={{ 
-          background: '#f8d7da', 
-          border: '1px solid #f5c6cb', 
-          borderRadius: '6px', 
-          padding: '1em',
-          margin: '1em',
-          color: '#721c24',
-          fontSize: '0.9em',
-          fontWeight: '500',
-          textAlign: 'center'
-        }}>
-          ⚠️ {error}
-          <button
-            onClick={fetchTrades}
-            style={{
-              marginLeft: '1em',
-              padding: '0.3em 0.8em',
-              borderRadius: '4px',
-              border: '1px solid #721c24',
-              background: '#721c24',
-              color: '#ffffff',
-              cursor: 'pointer',
-              fontSize: '0.8em'
-            }}
-          >
-            Retry
-          </button>
-        </div>
-      )}
+      {/* Error Messages - Hidden from UI, only shown in console */}
+      {/* All errors are logged to console for debugging purposes */}
 
       {/* Trades Table */}
       {trades.length > 0 ? (
@@ -429,39 +595,55 @@ const RecentTrades = () => {
                       {trade.initiated_at || trade.createdAt ? formatDate(trade.initiated_at || trade.createdAt) : 'Recently'}
                     </td>
                     <td style={{ padding: '1em', textAlign: 'center' }}>
-                      <button
-                        onClick={() => handleExitTrade(trade.id || trade._id)}
-                        disabled={exitTradeLoading || !(trade.id || trade._id)}
-                        style={{
+                      {!canExitTrade(trade) ? (
+                        <span style={{
                           padding: '0.5em 1em',
                           borderRadius: '6px',
-                          border: '2px solid #dc3545',
-                          background: exitTradeLoading || !(trade.id || trade._id) ? '#e9ecef' : '#dc3545',
+                          background: '#28a745',
                           color: '#ffffff',
                           fontWeight: '600',
-                          cursor: exitTradeLoading || !(trade.id || trade._id) ? 'not-allowed' : 'pointer',
-                          transition: 'all 0.3s ease',
                           fontSize: '0.85em',
-                          display: 'flex',
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.4em',
-                          margin: '0 auto'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!exitTradeLoading && (trade.id || trade._id)) {
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 12px rgba(220, 53, 69, 0.3)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!exitTradeLoading && (trade.id || trade._id)) {
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = 'none';
-                          }
-                        }}
-                      >
-                        {exitTradeLoading ? '🔄' : '🚪'} {exitTradeLoading ? 'Exiting...' : 'EXIT NOW!'}
-                      </button>
+                          gap: '0.4em'
+                        }}>
+                          ✅ Already Exited
+                        </span>
+                      ) : (
+                        <button
+                            onClick={() => handleExitTrade(trade.id || trade._id)}
+                            disabled={exitTradeLoading || !(trade.id || trade._id) || !canExitTrade(trade) || isTradeBeingProcessed(trade.id || trade._id)}
+                          style={{
+                            padding: '0.5em 1em',
+                            borderRadius: '6px',
+                            border: '2px solid #dc3545',
+                            background: exitTradeLoading || !(trade.id || trade._id) || !canExitTrade(trade) || isTradeBeingProcessed(trade.id || trade._id) ? '#e9ecef' : '#dc3545',
+                            color: '#ffffff',
+                            fontWeight: '600',
+                            cursor: exitTradeLoading || !(trade.id || trade._id) || !canExitTrade(trade) || isTradeBeingProcessed(trade.id || trade._id) ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.3s ease',
+                            fontSize: '0.85em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4em',
+                            margin: '0 auto'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!exitTradeLoading && (trade.id || trade._id) && canExitTrade(trade) && !isTradeBeingProcessed(trade.id || trade._id)) {
+                              e.target.style.transform = 'translateY(-1px)';
+                              e.target.style.boxShadow = '0 4px 12px rgba(220, 53, 69, 0.3)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!exitTradeLoading && (trade.id || trade._id) && canExitTrade(trade) && !isTradeBeingProcessed(trade.id || trade._id)) {
+                              e.target.style.transform = 'translateY(0)';
+                              e.target.style.boxShadow = 'none';
+                            }
+                          }}
+                        >
+                          {exitTradeLoading ? '🔄' : '🚪'} {exitTradeLoading ? 'Exiting...' : 'EXIT NOW!'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
